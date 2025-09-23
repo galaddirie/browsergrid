@@ -1,0 +1,161 @@
+x-browsergrid-environment: &browsergrid-env
+  MIX_ENV: dev
+  BROWSERGRID_ENV: dev
+  PHX_SERVER: true
+  PORT: 4000
+  PHX_HOST: 0.0.0.0
+  
+  BROWSERGRID_DATABASE_URL: ${BROWSERGRID_DATABASE_URL:-postgres://${BROWSERGRID_POSTGRES_USER:-postgres}:${BROWSERGRID_POSTGRES_PASSWORD:-postgres}@${BROWSERGRID_POSTGRES_HOST:-postgres}:${BROWSERGRID_POSTGRES_PORT:-5432}/${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}}
+  BROWSERGRID_POSTGRES_HOST: postgres
+  BROWSERGRID_POSTGRES_PORT: 5432
+  REDIS_ADDR: redis:6379
+  BROWSERGRID_POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
+  BROWSERGRID_POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
+  BROWSERGRID_POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
+  POOL_SIZE: 10
+  
+  SECRET_KEY_BASE: dev_secret_key_base_please_change_in_production_at_least_64_characters_long
+  
+  LOG_LEVEL: debug
+  
+x-browsergrid-common: &browsergrid-common
+  build:
+    context: ..
+    dockerfile: docker/server/Dockerfile.dev
+  image: browsergrid:latest
+  env_file:
+    - ../.env
+  environment:
+    <<: *browsergrid-env
+  volumes:
+    # Mount source code for live reloading
+    - ../:/app
+    - media_data:/var/lib/browsergrid/media
+    - profiles_data:/var/lib/browsergrid/profiles
+    # Mount kubeconfig (read-only for app from named volume)
+    - kubeconfig_data:/app/kubeconfig
+    # Cache mix dependencies
+    - mix_deps_cache:/app/deps
+    - mix_build_cache:/app/_build
+    # Cache node_modules
+    - node_modules_cache:/app/assets/node_modules
+    - go_mod_cache:/go/pkg/mod
+    # X11 socket for GUI applications
+    - /tmp/.X11-unix:/tmp/.X11-unix:rw
+  working_dir: /app
+  shm_size: 2gb
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+  networks:
+    - browsergrid_server
+  restart: unless-stopped
+  stdin_open: true
+  tty: true
+
+name: browsergrid-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: browsergrid_postgres_dev
+    environment:
+      POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - browsergrid_server
+
+  adminer:
+    image: adminer
+    container_name: browsergrid_adminer_dev
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - browsergrid_server
+    depends_on:
+      - postgres
+
+  redis:
+    container_name: browsergrid-redis
+    image: redis:latest
+    ports:
+      - "${BROWSERGRID_REDIS_PORT:-6379}:6379"
+    networks:
+      - browsergrid_server
+   
+  browsergrid:
+    <<: *browsergrid-common
+    container_name: browsergrid_server_dev
+    ports:
+      - "4000:4000"
+    command: >
+      sh -c "
+        sudo chown -R browseruser:browseruser /app/deps /app/_build /app/assets/node_modules 2>/dev/null || true &&
+        mix deps.get &&
+        cd assets && npm install && cd .. &&
+        mix assets.setup &&
+        mix assets.build &&
+        mix ecto.setup &&
+        mix phx.server
+      "
+
+  test_runner:
+    <<: *browsergrid-common
+    container_name: browsergrid_test
+    volumes:
+      # Mount source code for live reloading
+      - ../:/app
+      - media_data:/var/lib/browsergrid/media
+      - profiles_data:/var/lib/browsergrid/profiles
+      - kubeconfig_data:/app/kubeconfig
+      # Cache mix dependencies
+      - mix_deps_cache:/app/deps
+      - mix_build_cache:/app/_build
+      # Cache node_modules
+      - node_modules_cache:/app/assets/node_modules
+      - go_mod_cache:/go/pkg/mod
+      # X11 socket for GUI applications
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      <<: *browsergrid-env
+      MIX_ENV: test
+
+
+
+    command: >
+      sh -c "
+        sudo chown -R browseruser:browseruser /app/deps /app/_build /app/assets/node_modules 2>/dev/null || true &&
+        mix deps.get &&
+        cd assets && npm install && cd .. &&
+        mix assets.setup &&
+        mix assets.build &&
+        mix ecto.setup &&
+        tail -f /dev/null
+      "
+
+volumes:
+  postgres_dev_data:
+  mix_deps_cache:
+  mix_build_cache:
+  node_modules_cache:
+  go_mod_cache:
+  media_data:
+  profiles_data:
+  kubeconfig_data:
+
+networks:
+  browsergrid_server:
+    driver: bridge
