@@ -1,0 +1,823 @@
+---
+description:  use this rule When working with react and Inertiajs parts of the app
+alwaysApply: false
+---
+You are an expert in Elixir, Phoenix, Inertia.js, React/Vue/Svelte, and Tailwind CSS working with a modern SPA architecture.
+
+---
+
+## 1. Core Architecture & Principles
+
+### Inertia.js Model
+* **Server** (Phoenix) handles routing, controllers, business logic, persistence, and authentication
+* **Client** (React/Vue/Svelte) owns page components, UI state, animations, form validation, complex interactions  
+* **Communication** flows via Inertia.js requests - server sends page props as JSON, client renders components
+* **Navigation**: Client-side routing with server-side rendering fallback
+
+### 📁 File Organization
+```
+assets/
+├── js/
+│   ├── app.jsx          # Inertia.js boot function
+│   ├── ssr.jsx          # Server-side rendering (optional)
+│   └── pages/           # Inertia page components
+│       ├── Dashboard.jsx
+│       ├── Profile/
+│       │   ├── Index.jsx
+│       │   └── Edit.jsx
+│       └── Auth/
+│           ├── Login.jsx
+│           └── Register.jsx
+├── css/
+│   └── app.css         # Tailwind imports
+lib/your_app_web/
+├── controllers/        # Phoenix controllers (return Inertia responses)
+├── components/         # Phoenix view components (if needed)
+└── router.ex          # Standard Phoenix routes
+```
+
+---
+
+## 2. Integration Patterns
+
+### 🔒 Mandatory Controller Patterns
+
+**✅ REQUIRED: Inertia Response Pattern**
+- All controller actions must use `render_inertia/2` for page responses
+- Props must be assigned using `assign_prop/3`
+- Redirects should use standard Phoenix `redirect/2`
+
+**❌ PROHIBITED Patterns**
+- Mixing JSON API responses with Inertia responses in the same controller
+- Using Phoenix LiveView alongside Inertia (they serve different architectures)
+- Direct HTML rendering in controllers meant for Inertia
+
+### Controller Usage
+```elixir
+defmodule MyAppWeb.ProfileController do
+  use MyAppWeb, :controller
+
+  def index(conn, _params) do
+    user = get_current_user(conn)
+    
+    conn
+    |> assign_prop(:user, serialize_user(user))
+    |> assign_prop(:recent_activity, get_recent_activity(user))
+    |> render_inertia("Profile/Index")
+  end
+
+  def update(conn, %{"user" => user_params}) do
+    current_user = get_current_user(conn)
+    
+    case Users.update_user(current_user, user_params) do
+      {:ok, user} ->
+        conn
+        |> put_flash(:info, "Profile updated successfully")
+        |> redirect(to: ~p"/profile")
+        
+      {:error, changeset} ->
+        conn
+        |> assign_errors(changeset)
+        |> assign_prop(:user, serialize_user(current_user))
+        |> render_inertia("Profile/Edit")
+    end
+  end
+end
+```
+
+---
+
+## 3. State Management & Data Flow
+
+### State Ownership Rules
+- **Server state**: Database entities, authentication, authorization - managed in Phoenix controllers
+- **Page props**: Data passed from server to client via `assign_prop/3`
+- **Local UI state**: Form inputs, modals, loading states - use React/Vue/Svelte state
+- **Global client state**: Consider Zustand (React), Pinia (Vue), or Svelte stores for cross-page state
+
+### ✅ Inertia Data Flow
+Data flows from Phoenix controllers to page components as props.
+
+```elixir
+# Controller
+def show(conn, %{"id" => id}) do
+  post = Blog.get_post!(id)
+  comments = Blog.list_comments(post)
+  
+  conn
+  |> assign_prop(:post, serialize_post(post))
+  |> assign_prop(:comments, serialize_comments(comments))
+  |> assign_prop(:can_edit, can_edit_post?(get_current_user(conn), post))
+  |> render_inertia("Blog/Show")
+end
+```
+
+```jsx
+// React page component
+import React, { useState } from 'react'
+import { useForm } from '@inertiajs/react'
+
+export default function Show({ post, comments, can_edit }) {
+  const [showComments, setShowComments] = useState(true)
+  
+  const { data, setData, post: submit, processing } = useForm({
+    title: post.title,
+    content: post.content
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    submit(`/posts/${post.id}`)
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+      
+      {can_edit && (
+        <form onSubmit={handleSubmit} className="mb-6">
+          <input
+            value={data.title}
+            onChange={e => setData('title', e.target.value)}
+            className="w-full p-2 border rounded mb-4"
+          />
+          <button 
+            type="submit" 
+            disabled={processing}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            {processing ? 'Saving...' : 'Save'}
+          </button>
+        </form>
+      )}
+
+      <button 
+        onClick={() => setShowComments(!showComments)}
+        className="mb-4 text-blue-500"
+      >
+        {showComments ? 'Hide' : 'Show'} Comments ({comments.length})
+      </button>
+      
+      {showComments && (
+        <div className="space-y-4">
+          {comments.map(comment => (
+            <div key={comment.id} className="border-l-4 border-gray-200 pl-4">
+              <p>{comment.content}</p>
+              <small className="text-gray-500">by {comment.author}</small>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+## 4. Forms & Validation
+
+### Inertia Form Handling
+```elixir
+# Controller - handle form submission
+def create(conn, %{"post" => post_params}) do
+  case Blog.create_post(post_params) do
+    {:ok, post} ->
+      conn
+      |> put_flash(:info, "Post created successfully")
+      |> redirect(to: ~p"/posts/#{post}")
+      
+    {:error, changeset} ->
+      conn
+      |> assign_errors(changeset)  # Automatically adds 'errors' prop
+      |> assign_prop(:post, %{})
+      |> render_inertia("Blog/New")
+  end
+end
+```
+
+```jsx
+// React - form with validation
+import { useForm } from '@inertiajs/react'
+
+export default function New({ errors }) {
+  const { data, setData, post, processing } = useForm({
+    title: '',
+    content: '',
+    tags: []
+  })
+
+  const submit = (e) => {
+    e.preventDefault()
+    post('/posts')
+  }
+
+  return (
+    <form onSubmit={submit} className="max-w-2xl mx-auto">
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Title</label>
+        <input
+          value={data.title}
+          onChange={e => setData('title', e.target.value)}
+          className={`w-full p-2 border rounded ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+        />
+        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">Content</label>
+        <textarea
+          value={data.content}
+          onChange={e => setData('content', e.target.value)}
+          className={`w-full p-2 border rounded h-32 ${errors.content ? 'border-red-500' : 'border-gray-300'}`}
+        />
+        {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
+      </div>
+
+      <button
+        type="submit"
+        disabled={processing}
+        className="bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50"
+      >
+        {processing ? 'Creating...' : 'Create Post'}
+      </button>
+    </form>
+  )
+}
+```
+
+---
+
+## 5. Flash Messages & Toast Notifications
+
+### Custom Flash API with Sonner Toast
+
+#### Backend Setup
+
+**Flash Controller**
+```elixir
+# lib/your_app_web/controllers/api/v1/flash_controller.ex
+defmodule YourAppWeb.API.V1.FlashController do
+  use YourAppWeb, :controller
+
+  def clear(conn, %{"type" => type}) do
+    conn = Phoenix.Controller.put_flash(conn, String.to_atom(type), nil)
+    json(conn, %{success: true, type: type})
+  end
+end
+```
+
+**Router Configuration**
+```elixir
+# lib/your_app_web/router.ex
+scope "/api/v1/flash", YourAppWeb.API.V1 do
+  pipe_through :api  # No auth needed for flash clearing
+  delete "/:type", FlashController, :clear
+end
+```
+
+**Controller Flash Usage**
+```elixir
+def create(conn, %{"post" => post_params}) do
+  case Blog.create_post(post_params) do
+    {:ok, post} ->
+      conn
+      |> put_flash(:info, "Post created successfully!")
+      |> redirect(to: ~p"/posts/#{post}")
+
+    {:error, changeset} ->
+      conn
+      |> put_flash(:error, "Failed to create post")
+      |> assign_errors(changeset)
+      |> assign_prop(:post, %{})
+      |> render_inertia("Blog/New")
+  end
+end
+```
+
+#### Frontend Setup
+
+**Layout Component with Toast Integration**
+```jsx
+// assets/js/components/Layout.tsx
+import React, { useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
+import { Toaster, toast } from 'sonner';
+
+export default function Layout({ children }) {
+    const { props } = usePage();
+    const flash = (props.flash as Record<string, string>) || {};
+
+    // Auto-show flash messages as toasts
+    useEffect(() => {
+        if (flash.info) {
+            toast.success(flash.info);
+        }
+        if (flash.error) {
+            toast.error(flash.error);
+        }
+    }, [flash]);
+
+    return (
+        <div className="min-h-screen">
+            {children}
+
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 4000,
+                    style: {
+                        background: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        color: 'hsl(var(--foreground))',
+                    },
+                }}
+            />
+        </div>
+    );
+}
+```
+
+**Optional Toast API Client**
+```typescript
+// assets/js/lib/toast.ts
+import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
+
+export const clearFlash = async (type: 'info' | 'error') => {
+  try {
+    await fetch(`/api/v1/flash/${type}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    console.error('Failed to clear flash:', error);
+  }
+};
+
+export const showToast = {
+  success: (message: string) => toast.success(message),
+  error: (message: string) => toast.error(message),
+  info: (message: string) => toast.info(message),
+  warning: (message: string) => toast.warning(message),
+};
+```
+
+### Key Integration Points
+
+- **Inertia Plug**: Add `plug Inertia.Plug` to browser pipeline
+- **Flash Sharing**: Inertia automatically shares flash in `props.flash`
+- **Auto-Display**: useEffect watches flash changes and triggers toasts
+- **Sonner Styling**: Match your design system colors and theme
+- **API Control**: DELETE route for manual flash clearing when needed
+
+### Usage Examples
+
+```jsx
+// Direct toast calls
+showToast.success("Operation completed!");
+showToast.error("Something went wrong");
+
+// Flash messages auto-display via Layout component
+// No manual calls needed - handled automatically
+```
+
+**Benefits:**
+- **Seamless UX**: Flash messages become modern toast notifications
+- **No Duplication**: Single source of truth for user messages
+- **Accessible**: Screen reader friendly notifications
+- **Customizable**: Full control over toast appearance and behavior
+- **API Control**: Manual clearing when needed
+
+---
+
+## 6. Navigation & Links
+
+### Inertia Navigation
+```jsx
+import { Link } from '@inertiajs/react'
+
+export default function Navigation({ user }) {
+  return (
+    <nav className="bg-white shadow">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between h-16 items-center">
+          <Link href="/" className="font-bold text-xl">MyApp</Link>
+          
+          <div className="flex space-x-4">
+            <Link 
+              href="/overview" 
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Dashboard
+            </Link>
+            
+            {user ? (
+              <>
+                <Link 
+                  href="/profile" 
+                  className="text-gray-700 hover:text-blue-600"
+                >
+                  Profile
+                </Link>
+                <Link 
+                  href="/logout" 
+                  method="post"
+                  className="text-gray-700 hover:text-blue-600"
+                >
+                  Logout
+                </Link>
+              </>
+            ) : (
+              <Link 
+                href="/login" 
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+              >
+                Login
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}
+```
+
+---
+
+## 7. Advanced Features
+
+### Lazy Data Evaluation
+```elixir
+# Controller - expensive data loaded only when needed
+def dashboard(conn, _params) do
+  user = get_current_user(conn)
+  
+  conn
+  |> assign_prop(:user, serialize_user(user))
+  |> assign_prop(:quick_stats, get_quick_stats(user))
+  # Only load when explicitly requested via partial reload
+  |> assign_prop(:detailed_analytics, fn -> get_detailed_analytics(user) end)
+  |> render_inertia("Dashboard/Index")
+end
+```
+
+```jsx
+// Partial reloads to fetch lazy data
+import { router } from '@inertiajs/react'
+
+export default function Dashboard({ user, quick_stats, detailed_analytics }) {
+  const [showDetails, setShowDetails] = useState(false)
+
+  const loadDetails = () => {
+    setShowDetails(true)
+    // Partial reload - only fetch detailed_analytics prop
+    router.reload({ only: ['detailed_analytics'] })
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user.name}</h1>
+      
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {quick_stats.map(stat => (
+          <div key={stat.label} className="bg-white p-4 rounded shadow">
+            <h3>{stat.label}</h3>
+            <p className="text-2xl font-bold">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {!showDetails ? (
+        <button onClick={loadDetails} className="btn-primary">
+          Load Detailed Analytics
+        </button>
+      ) : (
+        detailed_analytics && <AnalyticsChart data={detailed_analytics} />
+      )}
+    </div>
+  )
+}
+```
+
+### Deferred Props (Inertia v2.x)
+```elixir
+# Controller - deferred loading
+def show(conn, %{"id" => id}) do
+  post = Blog.get_post!(id)
+  
+  conn
+  |> assign_prop(:post, serialize_post(post))
+  # Load comments asynchronously after page render
+  |> assign_prop(:comments, inertia_defer(fn -> Blog.list_comments(post) end))
+  |> render_inertia("Blog/Show")
+end
+```
+
+### Shared Data
+```elixir
+# Plug for shared data across all Inertia requests
+defmodule MyApp.InertiaAuth do
+  import Inertia.Controller
+  import Phoenix.Controller
+  import Plug.Conn
+
+  def share_auth_data(conn, _opts) do
+    user = get_current_user(conn)
+    
+    conn
+    |> assign_prop(:auth, %{
+      user: user && serialize_user(user),
+      permissions: user && get_permissions(user)
+    })
+    |> assign_prop(:flash, get_flash(conn))
+  end
+end
+
+# In your router
+pipeline :browser do
+  plug :accepts, ["html"]
+  plug Inertia.Plug
+  plug MyApp.InertiaAuth, :share_auth_data
+end
+```
+
+---
+
+## 8. Client-Side Framework Specifics
+
+### React Integration
+```jsx
+// app.jsx - React setup
+import React from 'react'
+import { createInertiaApp } from '@inertiajs/react'
+import { createRoot } from 'react-dom/client'
+import axios from 'axios'
+
+axios.defaults.xsrfHeaderName = 'x-csrf-token'
+
+createInertiaApp({
+  resolve: async (name) => {
+    return await import(`./pages/${name}.jsx`)
+  },
+  setup({ App, el, props }) {
+    createRoot(el).render(<App {...props} />)
+  },
+})
+```
+
+### Vue Integration  
+```js
+// app.js - Vue setup
+import { createApp, h } from 'vue'
+import { createInertiaApp } from '@inertiajs/vue3'
+import axios from 'axios'
+
+axios.defaults.xsrfHeaderName = 'x-csrf-token'
+
+createInertiaApp({
+  resolve: async (name) => {
+    return await import(`./pages/${name}.vue`)
+  },
+  setup({ App, el, props, plugin }) {
+    createApp({ render: () => h(App, props) })
+      .use(plugin)
+      .mount(el)
+  },
+})
+```
+
+### Svelte Integration
+```js
+// app.js - Svelte setup
+import { createInertiaApp } from '@inertiajs/svelte'
+import axios from 'axios'
+
+axios.defaults.xsrfHeaderName = 'x-csrf-token'
+
+createInertiaApp({
+  resolve: async (name) => {
+    return await import(`./pages/${name}.svelte`)
+  },
+  setup({ App, el, props }) {
+    new App({ target: el, props })
+  },
+})
+```
+
+---
+
+## 9. Styling & UI
+
+### Tailwind Integration
+- Use Tailwind utility classes directly in page components
+- Conditional classes: `className={condition ? "bg-blue-500" : "bg-gray-500"}`
+- Component libraries: HeadlessUI, Radix, or build custom with Tailwind
+
+### Layout Components
+```jsx
+// Shared layout component
+import { Link } from '@inertiajs/react'
+
+export default function Layout({ children, title = 'MyApp' }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <Link href="/" className="font-bold text-xl text-gray-900">
+              MyApp
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {children}
+      </main>
+    </div>
+  )
+}
+
+// Use in page components
+import Layout from '../Shared/Layout'
+
+export default function Dashboard({ user }) {
+  return (
+    <Layout title="Dashboard">
+      <h1 className="text-3xl font-bold">Welcome, {user.name}</h1>
+      {/* page content */}
+    </Layout>
+  )
+}
+```
+
+---
+
+## 10. Testing
+
+### Controller Testing
+```elixir
+defmodule MyAppWeb.PostControllerTest do
+  use MyAppWeb.ConnCase
+  import Inertia.Testing
+
+  describe "GET /posts" do
+    test "renders posts index", %{conn: conn} do
+      post = insert(:post)
+      conn = get(conn, ~p"/posts")
+      
+      assert inertia_component(conn) == "Posts/Index"
+      assert %{posts: [%{id: ^post.id}]} = inertia_props(conn)
+    end
+  end
+
+  describe "POST /posts" do
+    test "creates post with valid data", %{conn: conn} do
+      valid_attrs = %{title: "Test", content: "Content"}
+      conn = post(conn, ~p"/posts", post: valid_attrs)
+      
+      assert redirected_to(conn) == ~p"/posts"
+      assert get_flash(conn, :info) == "Post created successfully"
+    end
+
+    test "renders errors with invalid data", %{conn: conn} do
+      conn = post(conn, ~p"/posts", post: %{title: ""})
+      
+      assert inertia_component(conn) == "Posts/New"
+      assert %{title: "can't be blank"} = inertia_errors(conn)
+    end
+  end
+end
+```
+
+---
+
+## 11. Performance & Best Practices
+
+### Performance Optimization
+- Use partial reloads for expensive data: `router.reload({ only: ['analytics'] })`
+- Implement code splitting via dynamic imports
+- Enable server-side rendering for SEO-critical pages
+- Use Inertia's built-in progress indicators
+- Cache expensive computations in controllers
+
+### Essential Best Practices
+
+1. **Always** use `assign_prop/3` for passing data to client
+2. Use `assign_errors/2` for validation error handling  
+3. Leverage partial reloads for better UX
+4. Use Inertia's form helpers for better DX
+5. Keep page components focused and composable
+6. Use Phoenix contexts for business logic
+7. Implement proper error boundaries in React/Vue
+8. Use TypeScript for better development experience
+
+### Code Organization
+- Keep page components in `assets/js/pages/` matching Phoenix routes
+- Create shared components for reusable UI elements
+- Use Phoenix contexts for business logic, not controllers
+- Keep controllers thin - just data fetching and response rendering
+- Use serializer functions to control data shape sent to client
+
+### Error Handling
+```jsx
+// Global error handling
+import { router } from '@inertiajs/react'
+
+router.on('error', (errors) => {
+  console.error('Inertia error:', errors)
+  // Handle global errors (auth, server errors, etc.)
+})
+
+// Component error boundaries for React
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div className="text-red-500">Something went wrong.</div>
+    }
+    return this.props.children
+  }
+}
+```
+
+---
+
+## 12. Common Patterns
+
+### CRUD Operations
+```elixir
+# Controller pattern for full CRUD
+defmodule MyAppWeb.PostController do
+  use MyAppWeb, :controller
+
+  def index(conn, params) do
+    posts = Blog.list_posts(params)
+    conn
+    |> assign_prop(:posts, serialize_posts(posts))
+    |> assign_prop(:filters, params)
+    |> render_inertia("Posts/Index")
+  end
+
+  def show(conn, %{"id" => id}) do
+    post = Blog.get_post!(id)
+    conn
+    |> assign_prop(:post, serialize_post(post))
+    |> render_inertia("Posts/Show")
+  end
+
+  def new(conn, _params) do
+    changeset = Blog.change_post(%Post{})
+    conn
+    |> assign_prop(:post, %{})
+    |> assign_prop(:changeset, changeset)
+    |> render_inertia("Posts/New")
+  end
+
+  def edit(conn, %{"id" => id}) do
+    post = Blog.get_post!(id)
+    conn
+    |> assign_prop(:post, serialize_post(post))
+    |> render_inertia("Posts/Edit")
+  end
+end
+```
+
+### Authentication
+```elixir
+# Auth controller
+defmodule MyAppWeb.AuthController do
+  use MyAppWeb, :controller
+
+  def login_form(conn, _params) do
+    render_inertia(conn, "Auth/Login")
+  end
+
+  def login(conn, %{"email" => email, "password" => password}) do
+    case Auth.authenticate_user(email, password) do
+      {:ok, user} ->
+        conn
+        |> put_session(:user_id, user.id)
+        |> put_flash(:info, "Welcome back!")
+        |> redirect(to: ~p"/overview")
+        
+      {:error, :invalid_credentials} ->
+        conn
+        |> put_flash(:error, "Invalid email or password")
+        |> render_inertia("Auth/Login")
+    end
+  end
+end
+```
+
+> **Remember:** Phoenix handles the server logic, Inertia.js bridges server and client, and your chosen frontend framework handles the user interface. Keep business logic on the server and UI logic on the client!
