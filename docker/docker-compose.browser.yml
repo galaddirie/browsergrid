@@ -1,0 +1,67 @@
+name: browsergrid
+
+services:
+  base:
+    container_name: browsergrid-base
+    image: browsergrid/base:latest
+    build:
+      context: ..
+      dockerfile: docker/browsers/base/Dockerfile
+    env_file:
+      - ../.env
+    ports:
+      - "${VNC_PORT:-5900}:5900"
+      - "${NOVNC_PORT:-6080}:6080"
+    networks:
+      - browsergrid
+      
+  browser:
+    container_name: browsergrid-${BROWSER:-chrome}
+    image: browsergrid/${BROWSER:-chrome}:${BROWSER_VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: docker/browsers/${BROWSER:-chrome}/Dockerfile
+      args:
+        BROWSER_VERSION: ${BROWSER_VERSION:-latest}
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:-latest}
+    shm_size: ${SHM_SIZE:-2gb}
+    volumes:
+      - /dev/shm:/dev/shm
+    env_file:
+      - ../.env
+    environment:
+      - BROWSERGRID_SESSION_ID=${SESSION_ID:-default}
+      - ENABLE_VNC=${ENABLE_VNC:-true}
+      - HEADLESS=${HEADLESS:-false}
+    ports:
+      - "80:80"
+    networks:
+      - browsergrid
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health && curl -f http://localhost:80/json/version || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+        
+  cua:
+    container_name: browsergrid-cua
+    build:
+      context: ..
+      dockerfile: docker/cua/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      - PORT=${CUA_PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-production}
+    ports:
+      - "${CUA_PORT:-3000}:3000"
+    networks:
+      - browsergrid
+    depends_on:
+      browser:
+        condition: service_healthy
+
+networks:
+  browsergrid:
+    name: browsergrid
