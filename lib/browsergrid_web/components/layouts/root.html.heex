@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" class="[scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.inertia_title><%= assigns[:page_title] || "DemoApp" %></.inertia_title>
+    <.inertia_head content={@inertia_head} />
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="module" src={~p"/assets/app.js"}>
+    </script>
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <%= @inner_content %>
+    
+    <script>
+      (function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const storageKey = 'browsergrid-ui-theme';
+        
+        function getTheme() {
+          const stored = localStorage.getItem(storageKey);
+          if (stored && ['light', 'dark'].includes(stored)) {
+            return stored;
+          }
+          return 'system';
+        }
+        
+        function applyTheme(theme) {
+          const root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          
+          if (theme === 'system') {
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            root.classList.add(systemTheme);
+          } else {
+            root.classList.add(theme);
+          }
+        }
+        
+        function updateToggleIcons(theme) {
+          if (!themeToggle) return;
+          
+          const sunIcon = themeToggle.querySelector('.lucide-sun');
+          const moonIcon = themeToggle.querySelector('.lucide-moon');
+          
+          if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            sunIcon?.classList.remove('hidden');
+            sunIcon?.classList.add('block');
+            moonIcon?.classList.remove('block');
+            moonIcon?.classList.add('hidden');
+          } else {
+            sunIcon?.classList.remove('block');
+            sunIcon?.classList.add('hidden');
+            moonIcon?.classList.remove('hidden');
+            moonIcon?.classList.add('block');
+          }
+        }
+        
+        function toggleTheme() {
+          const currentTheme = getTheme();
+          let newTheme;
+          
+          if (currentTheme === 'system') {
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            newTheme = systemPrefersDark ? 'light' : 'dark';
+          } else if (currentTheme === 'light') {
+            newTheme = 'dark';
+          } else {
+            newTheme = 'light';
+          }
+          
+          localStorage.setItem(storageKey, newTheme);
+          applyTheme(newTheme);
+          updateToggleIcons(newTheme);
+        }
+        
+        function initTheme() {
+          const theme = getTheme();
+          applyTheme(theme);
+          updateToggleIcons(theme);
+        }
+        
+        function listenForSystemThemeChanges() {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const theme = getTheme();
+            if (theme === 'system') {
+              applyTheme(theme);
+              updateToggleIcons(theme);
+            }
+          });
+        }
+        
+        if (themeToggle) {
+          themeToggle.addEventListener('click', toggleTheme);
+        }
+        
+        initTheme();
+        listenForSystemThemeChanges();
+      })();
+    </script>
+  </body>
+</html>
