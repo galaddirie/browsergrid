@@ -1,0 +1,48 @@
+ARG ELIXIR_VERSION=1.18.4
+ARG DEBIAN_VERSION=bookworm-slim
+
+FROM elixir:${ELIXIR_VERSION}-slim
+
+
+# Install system dependencies for Phoenix app and browser automation
+RUN apt-get update -y && \
+  apt-get install -y --no-install-recommends \
+    libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools \
+    \
+  && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+# Configure UTF-8 locale to prevent latin1 warnings in Erlang/Elixir
+RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen
+
+# Install Node.js 20.x for Playwright and frontend assets
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+
+# Create browseruser for proper permissions
+RUN groupadd -g 1000 browseruser && \
+    useradd -r -u 1000 -g browseruser browseruser && \
+    mkdir -p /home/browseruser && \
+    chown browseruser:browseruser /home/browseruser
+
+# Install hex + rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+# Set development ENV
+ENV MIX_ENV="dev"
+
+# Default to UTF-8 inside the container
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8"
+
+# Install sudo for permission management
+RUN apt-get update && \
+    apt-get install -y sudo && \
+    echo 'browseruser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
+    apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+CMD ["mix", "phx.server"]
