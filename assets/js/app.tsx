@@ -1,0 +1,49 @@
+import axios from "axios";
+
+import { createInertiaApp } from "@inertiajs/react";
+import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "./components/theme-provider";
+import { HeaderProvider } from "./components/HeaderPortal";
+
+import Overview from "./pages/Overview";
+import DeploymentsIndex from "./pages/Deployments/Index";
+import DeploymentsNew from "./pages/Deployments/New";
+import DeploymentsShow from "./pages/Deployments/Show";
+import ProfilesIndex from "./pages/Profiles/Index";
+import ProfilesNew from "./pages/Profiles/New";
+import SessionsIndex from "./pages/Sessions/Index";
+import SessionsShow from "./pages/Sessions/Show";
+import SessionsEdit from "./pages/Sessions/Edit";
+
+axios.defaults.xsrfHeaderName = "x-csrf-token";
+
+const pages: Record<string, any> = {
+  Overview,
+  "Deployments/Index": DeploymentsIndex,
+  "Deployments/New": DeploymentsNew,
+  "Deployments/Show": DeploymentsShow,
+  "Profiles/Index": ProfilesIndex,
+  "Profiles/New": ProfilesNew,
+  "Sessions/Index": SessionsIndex,
+  "Sessions/Show": SessionsShow,
+  "Sessions/Edit": SessionsEdit,
+};
+
+createInertiaApp({
+  resolve: (name: string) => {
+    const page = pages[name];
+    if (!page) {
+      throw new Error(`Page not found: ${name}`);
+    }
+    return page;
+  },
+  setup({ App, el, props }) {
+    createRoot(el).render(
+      <ThemeProvider defaultTheme="system" storageKey="browsergrid-ui-theme">
+        <HeaderProvider>
+          <App {...props} />
+        </HeaderProvider>
+      </ThemeProvider>
+    );
+  },
+});
