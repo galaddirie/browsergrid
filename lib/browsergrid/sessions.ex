@@ -1,0 +1,310 @@
+defmodule Browsergrid.Sessions do
+  @moduledoc """
+  The Sessions context - manages browser session lifecycle.
+  """
+
+  import Ecto.Query, warn: false
+  alias Browsergrid.Repo
+  alias Browsergrid.Sessions.Session
+  require Logger
+
+  @doc """
+  Returns the list of sessions.
+  """
+  def list_sessions do
+    Session
+    |> order_by([s], desc: s.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets a single session.
+  Returns {:ok, session} or {:error, :not_found}
+  """
+  def get_session(id) do
+    # Validate UUID format
+    case Ecto.UUID.cast(id) do
+      {:ok, _uuid} ->
+        case Repo.get(Session, id) do
+          nil -> {:error, :not_found}
+          session -> {:ok, session}
+        end
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Gets a single session.
+  Raises if not found or invalid UUID.
+  """
+  def get_session!(id) do
+    Repo.get!(Session, id)
+  end
+
+  @doc """
+  Creates a session.
+  """
+  def create_session(attrs \\ %{}) do
+    with {:ok, session} <- (Session.create_changeset(attrs) |> Repo.insert()) do
+      {:ok, session} = update_session(session, %{})
+
+      broadcast_session_created(session)
+
+      # TODO: Start session provisioning
+      # This should trigger the browser container/process startup
+
+      {:ok, session}
+    end
+  end
+
+  @doc """
+  Updates a session.
+  """
+  def update_session(%Session{} = session, attrs) do
+    with {:ok, updated_session} <- (session |> Session.changeset(attrs) |> Repo.update()) do
+      # Broadcast the session update
+      broadcast_session_updated(updated_session)
+      {:ok, updated_session}
+    end
+  end
+
+  @doc """
+  Deletes a session.
+  """
+  def delete_session(%Session{} = session) do
+    with {:ok, deleted_session} <- Repo.delete(session) do
+      # Broadcast the session deletion
+      broadcast_session_deleted(session.id)
+      {:ok, deleted_session}
+    end
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking session changes.
+  """
+  def change_session(%Session{} = session, attrs \\ %{}) do
+    Session.changeset(session, attrs)
+  end
+
+  @doc """
+  Gets statistics about sessions.
+  """
+  def get_statistics do
+    sessions = list_sessions()
+
+    by_status = Enum.group_by(sessions, & &1.status)
+    |> Enum.map(fn {status, sessions} -> {status, length(sessions)} end)
+    |> Map.new()
+
+    %{
+      total: length(sessions),
+      by_status: by_status,
+      total_sessions: length(sessions),
+      active_sessions: Enum.count(sessions, &(&1.status in [:running, :pending])),
+      available_sessions: Enum.count(sessions, &(&1.status == :pending)),
+      failed_sessions: Enum.count(sessions, &(&1.status in [:error, :stopped]))
+    }
+  end
+
+  @doc """
+  Starts a session using the distributed supervisor
+  """
+  def start_session(%Session{} = session) do
+    # TODO: Implement session provisioning logic
+    # This should handle starting the browser container/process
+    Logger.info("Starting session #{session.id}")
+    {:error, :not_implemented}
+  end
+
+  @doc """
+  Stops a session across the cluster
+  """
+  def stop_session(%Session{} = session) do
+    # TODO: Implement session cleanup logic
+    # This should handle stopping the browser container/process
+    Logger.info("Stopping session #{session.id}")
+    {:error, :not_implemented}
+  end
+
+  @doc """
+  Get session info including which node it's running on
+  """
+  def get_session_info(session_id) do
+    with {:ok, session} <- get_session(session_id) do
+      route = Browsergrid.Routing.get_route(session_id)
+      {:ok, %{session: session, route: route}}
+    end
+  end
+
+  @doc """
+  Updates session status with detailed logging.
+  """
+  def update_status(%Session{} = session, status) when is_atom(status) do
+    Logger.info("Updating session #{session.id} status from #{session.status} to #{status}")
+    Logger.debug("Session before update: #{inspect(session, pretty: true)}")
+
+    result =
+      session
+      |> Session.status_changeset(status)
+      |> Repo.update()
+
+    Logger.debug("Repo.update result: #{inspect(result)}")
+
+    case result do
+      {:ok, updated_session} ->
+        Logger.info("Successfully updated session #{session.id} to status #{updated_session.status}")
+        Logger.debug("Session after update: #{inspect(updated_session, pretty: true)}")
+
+        # Broadcast the status update
+        broadcast_session_updated(updated_session)
+
+        {:ok, updated_session}
+
+      {:error, changeset} = error ->
+        Logger.error("Failed to update session #{session.id} status: #{inspect(changeset.errors)}")
+        Logger.error("Changeset details: #{inspect(changeset)}")
+        Logger.error("Session that failed to update: #{inspect(session, pretty: true)}")
+        error
+    end
+  end
+
+  @doc """
+  Returns the connection info for a session (edge URL only).
+  """
+  def get_connection_info(session_id) do
+    with {:ok, %Session{id: id}} <- get_session(session_id) do
+      edge_cfg = Application.get_env(:browsergrid, :edge, [])
+      host = Keyword.get(edge_cfg, :host, "edge.local")
+      scheme = Keyword.get(edge_cfg, :scheme, "wss")
+      {:ok, %{url: "#{scheme}://#{host}/s/#{id}"}}
+    end
+  end
+
+  @doc """
+  Creates a session with a profile.
+  """
+  def create_session_with_profile(attrs, profile_id) do
+    attrs = Map.put(attrs, :profile_id, profile_id)
+
+    # Validate profile exists and matches browser type
+    with {:ok, profile} <- validate_profile_for_session(attrs, profile_id),
+         {:ok, session} <- create_session(attrs) do
+      # Update profile last used timestamp
+      Browsergrid.Profiles.update_profile(profile, %{last_used_at: DateTime.utc_now()})
+      {:ok, session}
+    end
+  end
+
+  @doc """
+  Stops a session and triggers profile extraction if needed.
+  """
+  def stop_session_with_cleanup(%Session{} = session) do
+    # TODO: Schedule cleanup which will handle profile extraction
+    # This should trigger the cleanup process asynchronously
+    Logger.info("Scheduling cleanup for session #{session.id}")
+
+    # Update status immediately
+    update_status(session, :stopping)
+  end
+
+  @doc """
+  Gets all sessions using a specific profile.
+  """
+  def get_sessions_by_profile(profile_id) do
+    Session
+    |> where([s], s.profile_id == ^profile_id)
+    |> order_by([s], desc: s.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets active sessions using a specific profile.
+  """
+  def get_active_sessions_by_profile(profile_id) do
+    Session
+    |> where([s], s.profile_id == ^profile_id)
+    |> where([s], s.status in [:pending, :running, :starting])
+    |> Repo.all()
+  end
+
+  @doc """
+  Checks if a profile is currently in use by any active session.
+  """
+  def profile_in_use?(profile_id) do
+    Session
+    |> where([s], s.profile_id == ^profile_id)
+    |> where([s], s.status in [:pending, :running, :starting])
+    |> Repo.exists?()
+  end
+
+  @doc """
+  Clones a session with its profile settings.
+  """
+  def clone_session(%Session{} = session) do
+    attrs = %{
+      name: "#{session.name} (Clone)",
+      browser_type: session.browser_type,
+      options: session.options,
+      profile_id: session.profile_id
+    }
+
+    create_session(attrs)
+  end
+
+  @doc """
+  Gets session with profile preloaded.
+  """
+  def get_session_with_profile!(id) do
+    Session
+    |> preload(:profile)
+    |> Repo.get!(id)
+  end
+
+  @doc """
+  Updates session to mark profile snapshot as created.
+  """
+  def mark_profile_snapshot_created(%Session{} = session) do
+    update_session(session, %{profile_snapshot_created: true})
+  end
+
+  @doc """
+  Updates session status by ID (for watcher)
+  """
+  def update_status_by_id(session_id, status) when is_binary(session_id) and is_atom(status) do
+    case get_session(session_id) do
+      {:ok, session} -> update_status(session, status)
+      error -> error
+    end
+  end
+
+  # Private helper functions
+
+  defp validate_profile_for_session(attrs, profile_id) do
+    browser_type = Map.get(attrs, :browser_type, :chrome)
+
+    case Browsergrid.Profiles.get_profile(profile_id) do
+      nil ->
+        {:error, :profile_not_found}
+      profile ->
+        if profile.browser_type == browser_type do
+          {:ok, profile}
+        else
+          {:error, :browser_type_mismatch}
+        end
+    end
+  end
+
+  defp broadcast_session_created(session) do
+    BrowsergridWeb.SessionChannel.broadcast_session_created(session)
+  end
+
+  defp broadcast_session_updated(session) do
+    BrowsergridWeb.SessionChannel.broadcast_session_update(session)
+  end
+
+  defp broadcast_session_deleted(session_id) do
+    BrowsergridWeb.SessionChannel.broadcast_session_deleted(session_id)
+  end
+
+end
