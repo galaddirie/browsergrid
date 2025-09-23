@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+
+PORT="${REMOTE_DEBUGGING_PORT:-9222}"
+curl -sf "http://localhost:${PORT}/json/version" >/dev/null

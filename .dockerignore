@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+_build/
+deps/
+*.o
+*.beam
+*.plt
+*.tar
+*.tar.gz
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Coverage
+cover/
+*.coverdata
+
+# Test artifacts
+test/tmp/
+
+# Node modules and assets (if they exist)
+node_modules/
+assets/node_modules/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+
+# Documentation
+doc/
+docs/
+
+# Mix
+mix.lock.orig
+
+# Hex
+*.hex
+
+# Docker files
+docker-compose*.yml
+docker-start.sh
+docker-build.sh
+.dockerignore
+
+# Development files
+.elixir_ls/
+.formatter.exs 
