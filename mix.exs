@@ -54,6 +54,8 @@ defmodule Browsergrid.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
       {:jason, "~> 1.2"},
+      {:horde, "~> 0.9"},
+      {:delta_crdt, "~> 0.6"},
       {:httpoison, "~> 2.0"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
@@ -64,6 +66,7 @@ defmodule Browsergrid.MixProject do
       {:redix, "~> 1.5"},
       {:yaml_elixir, "~> 2.9"},
       {:inertia, "~> 2.5"},
+      {:muontrap, "~> 1.3"},
       # Development and code quality tools
       {:dotenvy, "~> 1.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

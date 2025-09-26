@@ -3,14 +3,6 @@ import Config
 # In test we don't send emails
 config :browsergrid, Browsergrid.Mailer, adapter: Swoosh.Adapters.Test
 
-# Oban testing: disable plugins/queues; assert enqueues manually
-config :oban, testing: :manual
-
-config :browsergrid, Oban,
-  repo: Browsergrid.Repo,
-  plugins: false,
-  queues: false
-
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
@@ -24,6 +16,16 @@ config :browsergrid, Browsergrid.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+config :browsergrid, Browsergrid.SessionRuntime,
+  port_range: 55_000..56_000,
+  checkpoint_interval_ms: 200,
+  state_store: [
+    adapter: Browsergrid.SessionRuntime.StateStore.DeltaCrdt,
+    sync_interval_ms: 200,
+    ttl_ms: to_timeout(minute: 5)
+  ],
+  cdp: [mode: :stub, ready_timeout_ms: 100, ready_poll_interval_ms: 50]
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :browsergrid, BrowsergridWeb.Endpoint,
@@ -31,19 +33,10 @@ config :browsergrid, BrowsergridWeb.Endpoint,
   secret_key_base: "OZkIY6rZLw1Xto05fuelGhaBOeLS8ZSb6zJYunwkHyOatyMfzdPK4WHjIrpgV0fQ",
   server: false
 
-config :logger, level: :critical
-
-# Initialize plugs at runtime for faster test compilation
-config :phoenix, :plug_init_mode, :runtime
-
-# Enable helpful, but potentially expensive runtime checks
-config :phoenix_live_view,
-  enable_expensive_runtime_checks: true
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
-
-
+config :browsergrid, Oban,
+  repo: Browsergrid.Repo,
+  plugins: false,
+  queues: false
 
 # Point Redis to a local URL; tests mock publish calls and don't require a server
 config :browsergrid, :redis,
@@ -55,3 +48,18 @@ config :browsergrid, :storage,
   backend: Browsergrid.Storage.Local,
   local_path: "/tmp/browsergrid-test-media",
   base_url: "http://localhost:4002"
+
+config :logger, level: :critical
+
+# Oban testing: disable plugins/queues; assert enqueues manually
+config :oban, testing: :manual
+
+# Initialize plugs at runtime for faster test compilation
+config :phoenix, :plug_init_mode, :runtime
+
+# Enable helpful, but potentially expensive runtime checks
+config :phoenix_live_view,
+  enable_expensive_runtime_checks: true
+
+# Disable swoosh api client as it is only required for production adapters
+config :swoosh, :api_client, false

@@ -2,6 +2,7 @@ defmodule Browsergrid.Application do
   @moduledoc false
 
   use Application
+
   require Logger
 
   @impl true
@@ -20,10 +21,13 @@ defmodule Browsergrid.Application do
       # Job processing and Redis pub/sub
       {Oban, Application.fetch_env!(:browsergrid, Oban)},
       Browsergrid.Redis,
+      {Finch, name: Browsergrid.Finch},
+      Browsergrid.SessionRuntime.Supervisor,
       Browsergrid.Edge.Directory,
       # Web endpoint (should start last)
       BrowsergridWeb.Endpoint
     ]
+
     children = base_children
 
     # See https://hexdocs.pm/elixir/Supervisor.html

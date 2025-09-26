@@ -4,8 +4,11 @@ defmodule Browsergrid.Sessions do
   """
 
   import Ecto.Query, warn: false
+
   alias Browsergrid.Repo
+  alias Browsergrid.SessionRuntime
   alias Browsergrid.Sessions.Session
+
   require Logger
 
   @doc """
@@ -29,6 +32,7 @@ defmodule Browsergrid.Sessions do
           nil -> {:error, :not_found}
           session -> {:ok, session}
         end
+
       :error ->
         {:error, :not_found}
     end
@@ -46,15 +50,18 @@ defmodule Browsergrid.Sessions do
   Creates a session.
   """
   def create_session(attrs \\ %{}) do
-    with {:ok, session} <- (Session.create_changeset(attrs) |> Repo.insert()) do
-      {:ok, session} = update_session(session, %{})
-
+    with {:ok, session} <- attrs |> Session.create_changeset() |> Repo.insert(),
+         {:ok, session} <- update_session(session, %{}) do
       broadcast_session_created(session)
 
-      # TODO: Start session provisioning
-      # This should trigger the browser container/process startup
+      case ensure_actor_started(session) do
+        {:ok, running_session} ->
+          {:ok, running_session}
 
-      {:ok, session}
+        {:error, reason} = error ->
+          Logger.error("failed to start session actor #{session.id}: #{inspect(reason)}")
+          error
+      end
     end
   end
 
@@ -62,7 +69,7 @@ defmodule Browsergrid.Sessions do
   Updates a session.
   """
   def update_session(%Session{} = session, attrs) do
-    with {:ok, updated_session} <- (session |> Session.changeset(attrs) |> Repo.update()) do
+    with {:ok, updated_session} <- session |> Session.changeset(attrs) |> Repo.update() do
       # Broadcast the session update
       broadcast_session_updated(updated_session)
       {:ok, updated_session}
@@ -93,9 +100,10 @@ defmodule Browsergrid.Sessions do
   def get_statistics do
     sessions = list_sessions()
 
-    by_status = Enum.group_by(sessions, & &1.status)
-    |> Enum.map(fn {status, sessions} -> {status, length(sessions)} end)
-    |> Map.new()
+    by_status =
+      sessions
+      |> Enum.group_by(& &1.status)
+      |> Map.new(fn {status, sessions} -> {status, length(sessions)} end)
 
     %{
       total: length(sessions),
@@ -111,20 +119,20 @@ defmodule Browsergrid.Sessions do
   Starts a session using the distributed supervisor
   """
   def start_session(%Session{} = session) do
-    # TODO: Implement session provisioning logic
-    # This should handle starting the browser container/process
     Logger.info("Starting session #{session.id}")
-    {:error, :not_implemented}
+    ensure_actor_started(session)
   end
 
   @doc """
   Stops a session across the cluster
   """
   def stop_session(%Session{} = session) do
-    # TODO: Implement session cleanup logic
-    # This should handle stopping the browser container/process
     Logger.info("Stopping session #{session.id}")
-    {:error, :not_implemented}
+
+    with {:ok, session} <- update_status(session, :stopping) do
+      :ok = SessionRuntime.stop_session(session.id)
+      update_status(session, :stopped)
+    end
   end
 
   @doc """
@@ -132,8 +140,20 @@ defmodule Browsergrid.Sessions do
   """
   def get_session_info(session_id) do
     with {:ok, session} <- get_session(session_id) do
-      route = Browsergrid.Routing.get_route(session_id)
-      {:ok, %{session: session, route: route}}
+      runtime =
+        case SessionRuntime.describe(session_id) do
+          {:ok, details} ->
+            %{
+              port: details.port,
+              node: details.node,
+              metadata: details.metadata
+            }
+
+          {:error, _} ->
+            nil
+        end
+
+      {:ok, %{session: session, runtime: runtime}}
     end
   end
 
@@ -173,11 +193,22 @@ defmodule Browsergrid.Sessions do
   Returns the connection info for a session (edge URL only).
   """
   def get_connection_info(session_id) do
-    with {:ok, %Session{id: id}} <- get_session(session_id) do
+    with {:ok, %Session{id: id}} <- get_session(session_id),
+         {:ok, _port} <- SessionRuntime.local_port(id) do
       edge_cfg = Application.get_env(:browsergrid, :edge, [])
       host = Keyword.get(edge_cfg, :host, "edge.local")
-      scheme = Keyword.get(edge_cfg, :scheme, "wss")
-      {:ok, %{url: "#{scheme}://#{host}/s/#{id}"}}
+      scheme = Keyword.get(edge_cfg, :scheme, "https")
+      ws_scheme = websocket_scheme(scheme)
+
+      {:ok,
+       %{
+         http_proxy: "#{scheme}://#{host}/sessions/#{id}/http",
+         ws_proxy: "#{ws_scheme}://#{host}/sessions/#{id}/ws",
+         session: id
+       }}
+    else
+      {:error, :not_found} -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -200,12 +231,8 @@ defmodule Browsergrid.Sessions do
   Stops a session and triggers profile extraction if needed.
   """
   def stop_session_with_cleanup(%Session{} = session) do
-    # TODO: Schedule cleanup which will handle profile extraction
-    # This should trigger the cleanup process asynchronously
     Logger.info("Scheduling cleanup for session #{session.id}")
-
-    # Update status immediately
-    update_status(session, :stopping)
+    stop_session(session)
   end
 
   @doc """
@@ -286,6 +313,7 @@ defmodule Browsergrid.Sessions do
     case Browsergrid.Profiles.get_profile(profile_id) do
       nil ->
         {:error, :profile_not_found}
+
       profile ->
         if profile.browser_type == browser_type do
           {:ok, profile}
@@ -294,6 +322,42 @@ defmodule Browsergrid.Sessions do
         end
     end
   end
+
+  defp ensure_actor_started(%Session{} = session) do
+    with {:ok, session_starting} <- update_status(session, :starting),
+         {:ok, _pid} <-
+           SessionRuntime.ensure_session_started(session_starting.id, runtime_init_options(session_starting)),
+         {:ok, running_session} <- update_status(session_starting, :running) do
+      {:ok, running_session}
+    else
+      {:error, _reason} = error ->
+        _ = update_status(session, :error)
+        error
+    end
+  end
+
+  defp runtime_init_options(%Session{} = session) do
+    options = session.options || %{}
+
+    metadata =
+      %{
+        "options" => options,
+        "profile_id" => session.profile_id,
+        "cluster" => session.cluster
+      }
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Map.new()
+
+    limits = Map.get(options, "limits", %{})
+
+    [metadata: metadata, owner: nil, limits: limits]
+  end
+
+  defp websocket_scheme("https"), do: "wss"
+  defp websocket_scheme("http"), do: "ws"
+  defp websocket_scheme("wss"), do: "wss"
+  defp websocket_scheme("ws"), do: "ws"
+  defp websocket_scheme(other) when is_binary(other), do: other
 
   defp broadcast_session_created(session) do
     BrowsergridWeb.SessionChannel.broadcast_session_created(session)
@@ -306,5 +370,4 @@ defmodule Browsergrid.Sessions do
   defp broadcast_session_deleted(session_id) do
     BrowsergridWeb.SessionChannel.broadcast_session_deleted(session_id)
   end
-
 end

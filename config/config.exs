@@ -22,6 +22,21 @@ config :browsergrid, Browsergrid.Repo,
   migration_foreign_key: [type: :binary_id],
   migration_timestamps: [type: :utc_datetime_usec]
 
+config :browsergrid, Browsergrid.SessionRuntime,
+  port_range: 51_000..59_000,
+  checkpoint_interval_ms: 2_000,
+  state_store: [
+    adapter: Browsergrid.SessionRuntime.StateStore.DeltaCrdt,
+    sync_interval_ms: 3_000,
+    ttl_ms: to_timeout(minute: 30)
+  ],
+  cdp: [
+    command: System.get_env("BROWSERGRID_CDP_BIN") || "browsermux",
+    ready_path: "/healthz",
+    ready_timeout_ms: 5_000,
+    ready_poll_interval_ms: 200
+  ]
+
 # Configures the endpoint
 config :browsergrid, BrowsergridWeb.Endpoint,
   url: [host: "localhost"],
@@ -44,9 +59,16 @@ config :browsergrid, Oban,
     default: 10,
     provision: 5,
     cleanup: 5,
-    profile_extraction: 3  # New queue for profile extraction
+    # New queue for profile extraction
+    profile_extraction: 3
   ]
 
+# Profile management settings
+config :browsergrid, :profiles,
+  max_snapshots_per_profile: 10,
+  auto_cleanup_old_snapshots: true,
+  max_profile_size_mb: 500,
+  allowed_browser_types: [:chrome, :chromium, :firefox]
 
 # Redis (pub/sub for route fanout)
 config :browsergrid, :redis,
@@ -131,12 +153,5 @@ config :tailwind,
     # of this file so it overrides the configuration defined above.
     cd: Path.expand("../assets", __DIR__)
   ]
-
-# Profile management settings
-config :browsergrid, :profiles,
-  max_snapshots_per_profile: 10,
-  auto_cleanup_old_snapshots: true,
-  max_profile_size_mb: 500,
-  allowed_browser_types: [:chrome, :chromium, :firefox]
 
 import_config "#{config_env()}.exs"

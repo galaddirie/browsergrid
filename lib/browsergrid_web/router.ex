@@ -70,6 +70,13 @@ defmodule BrowsergridWeb.Router do
     get "/health", HealthController, :health
   end
 
+  scope "/sessions/:id", BrowsergridWeb do
+    pipe_through :api
+
+    match :*, "/http/*path", SessionProxyController, :proxy
+    get "/ws", SessionProxyController, :websocket
+  end
+
   # API V1 Routes - Main API
   scope "/api/v1", BrowsergridWeb.API.V1 do
     pipe_through :api
