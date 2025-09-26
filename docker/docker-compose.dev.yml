@@ -21,7 +21,7 @@ x-browsergrid-environment: &browsergrid-env
 x-browsergrid-common: &browsergrid-common
   build:
     context: ..
-    dockerfile: docker/server/Dockerfile.dev
+    dockerfile: docker/session-runtime/Dockerfile
   image: browsergrid:latest
   env_file:
     - ../.env
