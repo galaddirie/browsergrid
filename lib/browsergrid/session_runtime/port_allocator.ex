@@ -76,8 +76,8 @@ defmodule Browsergrid.SessionRuntime.PortAllocator do
       true ->
         case state.available do
           [port | rest] ->
-            state = allocate(%{state | available: rest}, session_id, port)
-            {:reply, {:ok, port}, state}
+            next_state = allocate(session_id, port, %{state | available: rest})
+            {:reply, {:ok, port}, next_state}
 
           [] ->
             {:reply, {:error, :no_ports_available}, state}
