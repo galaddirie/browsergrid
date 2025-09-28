@@ -241,7 +241,10 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   defp push_arg(args, _flag, nil), do: args
-  defp push_arg(args, flag, value) when is_binary(flag), do: args ++ [flag, value]
+
+  defp push_arg(args, flag, value) do
+    args ++ [to_string(flag), to_string(value)]
+  end
 
   defp push_flag_list(args, []), do: args
 
