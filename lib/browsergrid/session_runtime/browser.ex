@@ -26,7 +26,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
 
   @spec start(String.t(), non_neg_integer(), String.t(), keyword(), map(), atom()) ::
           {:ok, t()} | {:error, term()}
-  def start(session_id, port, profile_dir, opts, context, browser_type \ :chrome) do
+  def start(session_id, port, profile_dir, opts, context, browser_type \\ :chrome) do
     config = Keyword.merge(SessionRuntime.browser_config(), opts)
     mode = Keyword.get(config, :mode, :command)
     type = normalize_browser_type(Keyword.get(config, :type, browser_type))
