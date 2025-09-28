@@ -8,9 +8,23 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chromium do
     "/snap/bin/chromium"
   ]
 
+  @darwin_candidates [
+    "/Applications/Chromium.app/Contents/MacOS/Chromium"
+  ]
+
   @windows_candidates [
     "C:/Program Files/Chromium/Application/chrome.exe",
     "C:/Program Files (x86)/Chromium/Application/chrome.exe"
+  ]
+
+  @playwright_candidates [
+    # Linux
+    "~/.cache/ms-playwright/chromium/chrome-linux/chrome",
+    "~/.cache/ms-playwright/chromium/chrome",
+    # macOS
+    "~/Library/Caches/ms-playwright/chromium/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+    # Windows
+    "%USERPROFILE%/AppData/Local/ms-playwright/chromium/chrome-win/chrome.exe"
   ]
 
   @impl true
@@ -18,7 +32,7 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chromium do
     [
       "chromium-browser",
       "chromium"
-    ] ++ @linux_candidates ++ @windows_candidates
+    ] ++ @linux_candidates ++ @darwin_candidates ++ @windows_candidates ++ @playwright_candidates
   end
 
   @impl true
