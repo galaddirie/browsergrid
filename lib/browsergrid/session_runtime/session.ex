@@ -110,7 +110,14 @@ defmodule Browsergrid.SessionRuntime.Session do
         with {:ok, browser_port} <- lease_browser_port(browser_port_key, preferred_browser_opts),
              {:ok, port} <- lease_cdp_port(session_id, preferred_opts),
              context <-
-               build_process_context(session_id, profile_dir, browser_port, port, browser_type),
+               build_process_context(
+                 session_id,
+                 profile_dir,
+                 browser_port,
+                 port,
+                 browser_type,
+                 metadata
+               ),
              {:ok, support_processes} <- start_support_processes(session_id, support_process_configs, context),
              {:ok, browser} <-
                wrap_browser_start(
@@ -337,15 +344,59 @@ defmodule Browsergrid.SessionRuntime.Session do
     end
   end
 
-  defp build_process_context(session_id, profile_dir, browser_port, cdp_port, browser_type) do
+  defp build_process_context(
+         session_id,
+         profile_dir,
+         browser_port,
+         cdp_port,
+         browser_type,
+         metadata
+       ) do
+    metadata = metadata || %{}
+    options = Map.get(metadata, "options", %{}) || %{}
+    screen_options = Map.get(options, "screen", %{}) || %{}
+    screen_width =
+      fetch_numeric_option(options, "screen_width") || fetch_numeric_option(screen_options, "width")
+    screen_height =
+      fetch_numeric_option(options, "screen_height") || fetch_numeric_option(screen_options, "height")
+    screen_scale =
+      fetch_numeric_option(options, "screen_scale") || fetch_numeric_option(screen_options, "scale")
+    screen_dpi =
+      fetch_numeric_option(options, "screen_dpi") || fetch_numeric_option(screen_options, "dpi")
+
     %{
       session_id: session_id,
       profile_dir: profile_dir,
       browser_port: browser_port,
       remote_debugging_port: browser_port,
       cdp_port: cdp_port,
-      browser_type: browser_type
+      browser_type: browser_type,
+      headless: truthy?(Map.get(options, "headless")),
+      screen_width: screen_width,
+      screen_height: screen_height,
+      screen_scale: screen_scale,
+      screen_dpi: screen_dpi
     }
+  end
+
+  defp truthy?(value), do: value in [true, "true", 1, "1"]
+
+  defp fetch_numeric_option(map, key) do
+    case Map.get(map, key) do
+      nil -> nil
+      value when is_number(value) -> value
+      value when is_binary(value) ->
+        case Integer.parse(value) do
+          {int, ""} -> int
+          _ ->
+            case Float.parse(value) do
+              {float, ""} -> float
+              _ -> nil
+            end
+        end
+
+      _other -> nil
+    end
   end
 
   defp start_support_processes(_session_id, [], _context), do: {:ok, []}

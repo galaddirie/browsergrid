@@ -169,6 +169,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
           |> push_arg("--user-data-dir", context.profile_dir)
 
         base_args
+        |> maybe_push_headless(context)
+        |> maybe_push_window_size(context)
+        |> maybe_push_scale(context)
         |> append_args(adapter.default_args(context), context)
         |> append_args(Keyword.get(config, :default_args, []), context)
       else
@@ -251,6 +254,61 @@ defmodule Browsergrid.SessionRuntime.Browser do
   defp push_flag_list(args, list) when is_list(list) do
     args ++ Enum.map(list, &to_string/1)
   end
+
+  defp maybe_push_headless(args, %{headless: true}) do
+    push_flag_list(args, ["--headless=new"])
+  end
+
+  defp maybe_push_headless(args, %{headless: false}) do
+    if requires_headless_fallback?() do
+      Logger.warning("DISPLAY not set; forcing headless mode for browser session")
+      push_flag_list(args, ["--headless=new"])
+    else
+      args
+    end
+  end
+
+  defp maybe_push_headless(args, _), do: args
+
+  defp requires_headless_fallback? do
+    case System.get_env("DISPLAY") do
+      nil -> true
+      "" -> true
+      _value -> false
+    end
+  end
+
+  defp maybe_push_window_size(args, %{screen_width: width, screen_height: height})
+       when is_number(width) and is_number(height) do
+    size = "#{round(width)},#{round(height)}"
+    push_flag_list(args, ["--window-size=#{size}"])
+  end
+
+  defp maybe_push_window_size(args, _context), do: args
+
+  defp maybe_push_scale(args, %{screen_scale: scale}) when is_number(scale) and scale > 0 do
+    formatted = format_scale(scale)
+    scaled_args = ["--force-device-scale-factor=#{formatted}", "--high-dpi-support=#{formatted}"]
+    push_flag_list(args, scaled_args)
+  end
+
+  defp maybe_push_scale(args, %{screen_dpi: dpi}) when is_number(dpi) and dpi > 0 do
+    factor = dpi / 96
+    formatted = format_scale(factor)
+    push_flag_list(args, ["--force-device-scale-factor=#{formatted}", "--high-dpi-support=#{formatted}"])
+  end
+
+  defp maybe_push_scale(args, _context), do: args
+
+  defp format_scale(value) when is_integer(value), do: Integer.to_string(value)
+
+  defp format_scale(value) when is_float(value) do
+    value
+    |> Float.round(4)
+    |> :erlang.float_to_binary([:compact])
+  end
+
+  defp format_scale(value), do: to_string(value)
 
   defp render(value, context) when is_binary(value), do: interpolate(value, context)
   defp render(value, _context) when is_atom(value), do: Atom.to_string(value)
