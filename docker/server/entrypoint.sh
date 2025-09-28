@@ -6,8 +6,15 @@ if [ -d "${HOME}/.npm" ]; then
   chown -R ${UID}:${GID} "${HOME}/.npm"
 fi
 
-rm -f /tmp/.X0-lock #
+# Clean up any stale X locks and ensure proper permissions for X11
+rm -f /tmp/.X0-lock
+rm -f /tmp/.X1-lock
+rm -f /tmp/.X11-unix/X0
+rm -f /tmp/.X11-unix/X1
 
+# Ensure /tmp/.X11-unix exists with correct permissions
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
 
 # Start supervisord to bring up Xvfb/x11vnc (runs in background)
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf &

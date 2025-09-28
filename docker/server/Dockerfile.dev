@@ -99,8 +99,7 @@ ENV DISPLAY=":1" \
 
 COPY docker/server/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/server/entrypoint.sh /usr/local/bin/server-entrypoint.sh
-COPY docker/server/start-novnc.sh /usr/local/bin/start-novnc.sh
-RUN chmod +x /usr/local/bin/server-entrypoint.sh /usr/local/bin/start-novnc.sh
+RUN chmod +x /usr/local/bin/server-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/server-entrypoint.sh"]
 

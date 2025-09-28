@@ -41,7 +41,6 @@ x-browsergrid-common: &browsergrid-common
     - node_modules_cache:/app/assets/node_modules
     - go_mod_cache:/go/pkg/mod
     # X11 socket for GUI applications
-    - /tmp/.X11-unix:/tmp/.X11-unix:rw
   working_dir: /app
   shm_size: 2gb
   depends_on:
@@ -129,8 +128,7 @@ services:
       # Cache node_modules
       - node_modules_cache:/app/assets/node_modules
       - go_mod_cache:/go/pkg/mod
-      # X11 socket for GUI applications
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
     environment:
       <<: *browsergrid-env
       MIX_ENV: test

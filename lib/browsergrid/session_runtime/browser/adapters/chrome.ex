@@ -102,5 +102,7 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chrome do
   end
 
   @impl true
-  def default_env(_context), do: []
+  def default_env(_context) do
+    [{"DISPLAY", System.get_env("DISPLAY", ":1")}]
+  end
 end
