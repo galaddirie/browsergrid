@@ -350,8 +350,31 @@ defmodule Browsergrid.Sessions do
 
     limits = Map.get(options, "limits", %{})
 
-    [metadata: metadata, owner: nil, limits: limits]
+    init_opts = [metadata: metadata, owner: nil, limits: limits]
+
+    case build_cdp_opts(options) do
+      [] -> init_opts
+      cdp_opts -> Keyword.put(init_opts, :cdp, cdp_opts)
+    end
   end
+
+  defp build_cdp_opts(options) when is_map(options) do
+    options
+    |> Map.get("browser_mux", %{})
+    |> Enum.reduce([], fn
+      {"browser_url", value}, acc -> [{:browser_url, value} | acc]
+      {"frontend_url", value}, acc -> [{:frontend_url, value} | acc]
+      {"max_message_size", value}, acc -> [{:max_message_size, value} | acc]
+      {"connection_timeout_seconds", value}, acc -> [{:connection_timeout_seconds, value} | acc]
+      {"env", value}, acc -> [{:env, value} | acc]
+      {"args", value}, acc -> [{:args, value} | acc]
+      {"cd", value}, acc -> [{:cd, value} | acc]
+      {_other, _value}, acc -> acc
+    end)
+    |> Enum.reverse()
+  end
+
+  defp build_cdp_opts(_options), do: []
 
   defp websocket_scheme("https"), do: "wss"
   defp websocket_scheme("http"), do: "ws"

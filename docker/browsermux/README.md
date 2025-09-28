@@ -92,6 +92,12 @@ BROWSER_URL=ws://chrome:9222/devtools/browser ./browsermux
 
 # Start with config file
 CONFIG_PATH=config.json ./browsermux
+
+# Override settings with CLI flags (takes precedence over env/config file)
+./browsermux \
+  --browser-url ws://chrome:9222/devtools/browser \
+  --port 9090 \
+  --frontend-url http://localhost:8080
 ```
 
 ### Docker Usage
@@ -157,4 +163,3 @@ dispatcher.Register(browser.EventCDPCommand, func(event browser.Event) {
 ## License
 
 [Your License Here]
-

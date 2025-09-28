@@ -171,6 +171,20 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       assert %State{} = new_state
       assert new_state.ready?
     end
+
+    test "stores provided cdp options in state" do
+      session_id = unique_session_id()
+      on_exit(fn -> cleanup_session(session_id) end)
+
+      cdp_opts = [browser_url: "ws://browsermux/devtools/browser", frontend_url: "http://frontend"]
+
+      pid = start_supervised!({Session, session_id: session_id, cdp: cdp_opts})
+
+      %State{cdp_opts: stored_opts} = :sys.get_state(pid)
+
+      # Keyword equality ignores ordering differences
+      assert Keyword.equal?(stored_opts, cdp_opts)
+    end
   end
 
   defp unique_session_id do

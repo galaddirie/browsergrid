@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -15,9 +16,44 @@ import (
 )
 
 func main() {
+	portFlag := flag.String("port", "", "Port to listen on")
+	browserURLFlag := flag.String("browser-url", "", "Browser DevTools URL to proxy")
+	frontendURLFlag := flag.String("frontend-url", "", "Frontend base URL")
+	maxMessageSizeFlag := flag.Int("max-message-size", -1, "Maximum message size in bytes")
+	connectionTimeoutFlag := flag.Int("connection-timeout", -1, "Connection timeout in seconds")
+	configPathFlag := flag.String("config", "", "Optional path to JSON config file")
+
+	flag.Parse()
+
+	if *configPathFlag != "" {
+		if err := os.Setenv("CONFIG_PATH", *configPathFlag); err != nil {
+			log.Printf("Warning: failed to set CONFIG_PATH env var: %v", err)
+		}
+	}
+
 	log.Println("Starting Browsergrid CDP Proxy...")
 
 	cfg := loadConfig()
+
+	if *portFlag != "" {
+		cfg.Port = *portFlag
+	}
+
+	if *browserURLFlag != "" {
+		cfg.BrowserURL = *browserURLFlag
+	}
+
+	if *frontendURLFlag != "" {
+		cfg.FrontendURL = *frontendURLFlag
+	}
+
+	if *maxMessageSizeFlag >= 0 {
+		cfg.MaxMessageSize = *maxMessageSizeFlag
+	}
+
+	if *connectionTimeoutFlag >= 0 {
+		cfg.ConnectionTimeoutSeconds = *connectionTimeoutFlag
+	}
 
 	cdpProxyConfig := browser.CDPProxyConfig{
 		BrowserURL:        cfg.BrowserURL,

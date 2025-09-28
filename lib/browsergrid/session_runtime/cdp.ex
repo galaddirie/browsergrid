@@ -16,7 +16,7 @@ defmodule Browsergrid.SessionRuntime.CDP do
 
   @spec start(String.t(), non_neg_integer(), keyword()) :: {:ok, t()} | {:error, term()}
   def start(session_id, port, opts) do
-    profile_dir = Keyword.fetch!(opts, :profile_dir)
+    profile_dir = Keyword.get(opts, :profile_dir)
     config = Keyword.merge(SessionRuntime.cdp_config(), Keyword.get(opts, :cdp, []))
     mode = Keyword.get(config, :mode, :command)
 
@@ -47,7 +47,7 @@ defmodule Browsergrid.SessionRuntime.CDP do
     poll_ms = opts[:ready_poll_interval_ms] || SessionRuntime.cdp_config()[:ready_poll_interval_ms] || 200
     timeout_ms = opts[:ready_timeout_ms] || SessionRuntime.cdp_config()[:ready_timeout_ms] || 5_000
     started_at = System.monotonic_time(:millisecond)
-    ready_path = opts[:ready_path] || SessionRuntime.cdp_config()[:ready_path] || "/healthz"
+    ready_path = opts[:ready_path] || SessionRuntime.cdp_config()[:ready_path] || "/health"
 
     wait_loop(state, poll_ms, timeout_ms, started_at, ready_path)
   end
@@ -66,28 +66,26 @@ defmodule Browsergrid.SessionRuntime.CDP do
   end
 
   defp do_start_process(session_id, command, port, profile_dir, config) do
-    args =
-      Keyword.get(config, :args, []) ++
-        ["--port", Integer.to_string(port), "--profile", profile_dir]
+    with {:ok, env} <- build_env(config),
+         {:ok, args} <- build_args(port, config) do
+      cd = Keyword.get(config, :cd)
+      log_prefix = "session=#{session_id}"
 
-    env = Keyword.get(config, :env, [])
-    cd = Keyword.get(config, :cd)
-    log_prefix = "session=#{session_id}"
+      muon_opts = maybe_put([stderr_to_stdout: true, env: env], :cd, cd)
 
-    muon_opts = maybe_put([stderr_to_stdout: true, env: env], :cd, cd)
+      Logger.info("launching CDP command '#{command}' with args #{inspect(args)}")
 
-    Logger.info("launching CDP command '#{command}' with args #{inspect(args)}")
+      case MuonTrap.Daemon.start_link(command, args, muon_opts) do
+        {:ok, pid} ->
+          ref = Process.monitor(pid)
+          Logger.metadata(session: session_id)
+          Logger.info("cdp process spawned pid=#{inspect(pid)} #{log_prefix}")
+          {:ok, %{mode: :command, pid: pid, ref: ref, port: port, profile_dir: profile_dir}}
 
-    case MuonTrap.Daemon.start_link(command, args, muon_opts) do
-      {:ok, pid} ->
-        ref = Process.monitor(pid)
-        Logger.metadata(session: session_id)
-        Logger.info("cdp process spawned pid=#{inspect(pid)} #{log_prefix}")
-        {:ok, %{mode: :command, pid: pid, ref: ref, port: port, profile_dir: profile_dir}}
-
-      {:error, reason} ->
-        Logger.error("failed to spawn cdp process: #{inspect(reason)}")
-        {:error, reason}
+        {:error, reason} ->
+          Logger.error("failed to spawn cdp process: #{inspect(reason)}")
+          {:error, reason}
+      end
     end
   end
 
@@ -135,4 +133,70 @@ defmodule Browsergrid.SessionRuntime.CDP do
 
   defp maybe_put(list, _key, nil), do: list
   defp maybe_put(list, key, value), do: Keyword.put(list, key, value)
+
+  defp build_env(config) do
+    env = config |> Keyword.get(:env, []) |> normalize_env()
+    {:ok, env}
+  end
+
+  defp build_args(port, config) do
+    with {:ok, browser_url} <- fetch_browser_url(config) do
+      dynamic_args =
+        []
+        |> push_arg("--port", Integer.to_string(port))
+        |> push_arg("--browser-url", browser_url)
+        |> push_arg("--frontend-url", Keyword.get(config, :frontend_url))
+        |> push_arg("--max-message-size", maybe_to_string(Keyword.get(config, :max_message_size)))
+        |> push_arg(
+          "--connection-timeout",
+          maybe_to_string(Keyword.get(config, :connection_timeout_seconds))
+        )
+
+      user_args =
+        config
+        |> Keyword.get(:args, [])
+        |> List.wrap()
+        |> Enum.map(&to_string/1)
+
+      {:ok, dynamic_args ++ user_args}
+    end
+  end
+
+  defp normalize_env(env) when is_list(env) do
+    Enum.reduce(env, [], fn
+      {key, value}, acc -> [{to_string(key), to_string(value)} | acc]
+      binary, acc when is_binary(binary) ->
+        case String.split(binary, "=", parts: 2) do
+          [k, v] -> [{k, v} | acc]
+          _ -> acc
+        end
+      _other, acc -> acc
+    end)
+    |> Enum.reverse()
+  end
+
+  defp normalize_env(_), do: []
+
+  defp maybe_to_string(nil), do: nil
+  defp maybe_to_string(value), do: to_string(value)
+
+  defp push_arg(args, _flag, nil), do: args
+  defp push_arg(args, _flag, ""), do: args
+  defp push_arg(args, flag, value), do: args ++ [flag, to_string(value)]
+
+  defp fetch_browser_url(config) do
+    case Keyword.get(config, :browser_url) do
+      url when is_binary(url) and url != "" -> {:ok, url}
+      nil ->
+        Logger.error(
+          "BrowserMux requires a browser_url; provide it via :browser_url in SessionRuntime config or options.browser_mux"
+        )
+
+        {:error, :missing_browser_url}
+
+      other ->
+        Logger.error("Invalid browser_url configuration: #{inspect(other)}")
+        {:error, :invalid_browser_url}
+    end
+  end
 end

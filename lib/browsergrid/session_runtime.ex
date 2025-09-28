@@ -23,9 +23,13 @@ defmodule Browsergrid.SessionRuntime do
     ],
     cdp: [
       command: "browsermux",
-      ready_path: "/healthz",
+      ready_path: "/health",
       ready_timeout_ms: 5_000,
-      ready_poll_interval_ms: 200
+      ready_poll_interval_ms: 200,
+      browser_url: System.get_env("BROWSERGRID_BROWSER_URL"),
+      frontend_url: System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL") || "http://localhost:80",
+      max_message_size: 1_048_576,
+      connection_timeout_seconds: 10
     ]
   ]
 

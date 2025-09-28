@@ -32,9 +32,29 @@ config :browsergrid, Browsergrid.SessionRuntime,
   ],
   cdp: [
     command: System.get_env("BROWSERGRID_CDP_BIN") || "browsermux",
-    ready_path: "/healthz",
+    ready_path: "/health",
     ready_timeout_ms: 5_000,
-    ready_poll_interval_ms: 200
+    ready_poll_interval_ms: 200,
+    browser_url: System.get_env("BROWSERGRID_BROWSER_URL"),
+    frontend_url: System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL") || "http://localhost:80",
+    max_message_size:
+      case System.get_env("BROWSERGRID_BROWSERMUX_MAX_MESSAGE_SIZE") do
+        nil -> 1_048_576
+        value ->
+          case Integer.parse(value) do
+            {int, _} -> int
+            :error -> 1_048_576
+          end
+      end,
+    connection_timeout_seconds:
+      case System.get_env("BROWSERGRID_BROWSERMUX_CONNECTION_TIMEOUT") do
+        nil -> 10
+        value ->
+          case Integer.parse(value) do
+            {int, _} -> int
+            :error -> 10
+          end
+      end
   ]
 
 # Configures the endpoint
