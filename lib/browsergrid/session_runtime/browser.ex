@@ -260,23 +260,114 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   defp maybe_push_headless(args, %{headless: false}) do
-    if requires_headless_fallback?() do
-      Logger.warning("DISPLAY not set; forcing headless mode for browser session")
-      push_flag_list(args, ["--headless=new"])
-    else
-      args
+    case headless_requirement() do
+      :ok ->
+        args
+
+      {:force, reason} ->
+        Logger.warning("Forcing headless mode for browser session (#{format_headless_reason(reason)})")
+        push_flag_list(args, ["--headless=new"])
     end
   end
 
   defp maybe_push_headless(args, _), do: args
 
-  defp requires_headless_fallback? do
+  defp headless_requirement do
     case System.get_env("DISPLAY") do
-      nil -> true
-      "" -> true
-      _value -> false
+      nil -> {:force, :display_not_set}
+      "" -> {:force, :display_not_set}
+      display ->
+        if display_available?(display) do
+          :ok
+        else
+          {:force, {:display_unreachable, display}}
+        end
     end
   end
+
+  defp display_available?(display) when is_binary(display) do
+    trimmed = String.trim(display)
+
+    cond do
+      trimmed == "" -> false
+
+      String.starts_with?(trimmed, ":") ->
+        trimmed
+        |> String.trim_leading(":")
+        |> parse_display_number()
+        |> case do
+          {:ok, number} ->
+            unix_display_available?(number) or tcp_display_reachable?("127.0.0.1", 6_000 + number)
+
+          :error ->
+            false
+        end
+
+      true ->
+        case String.split(trimmed, ":", parts: 2) do
+          [host_part, rest] ->
+            host = if host_part in [nil, ""], do: "127.0.0.1", else: host_part
+
+            rest
+            |> parse_display_number()
+            |> case do
+              {:ok, number} -> tcp_display_reachable?(host, 6_000 + number)
+              :error -> false
+            end
+
+          _other ->
+            false
+        end
+    end
+  end
+
+  defp display_available?(_), do: false
+
+  defp parse_display_number(value) do
+    value
+    |> String.split(".", parts: 2)
+    |> List.first()
+    |> case do
+      nil -> :error
+      digits ->
+        case Integer.parse(digits) do
+          {number, _rest} -> {:ok, number}
+          :error -> :error
+        end
+    end
+  end
+
+  defp unix_display_available?(number) when is_integer(number) and number >= 0 do
+    path = "/tmp/.X11-unix/X" <> Integer.to_string(number)
+    File.exists?(path)
+  end
+
+  defp unix_display_available?(_), do: false
+
+  defp tcp_display_reachable?(host, port) when is_binary(host) and is_integer(port) do
+    try do
+      case :gen_tcp.connect(String.to_charlist(host), port, [:binary, active: false], 200) do
+        {:ok, socket} ->
+          :gen_tcp.close(socket)
+          true
+
+        {:error, _reason} ->
+          false
+      end
+    rescue
+      _ -> false
+    end
+  end
+
+  defp tcp_display_reachable?(_, _), do: false
+
+  defp format_headless_reason(:display_not_set), do: "DISPLAY not set"
+
+  defp format_headless_reason({:display_unreachable, display}) do
+    "DISPLAY '#{display}' is not reachable"
+  end
+
+  defp format_headless_reason(_), do: "unknown reason"
 
   defp maybe_push_window_size(args, %{screen_width: width, screen_height: height})
        when is_number(width) and is_number(height) do

@@ -4,6 +4,8 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   alias Browsergrid.Profiles
   alias Browsergrid.Repo
 
+  require Logger
+
   def index(conn, _params) do
     sessions = Sessions.list_sessions() |> Repo.preload(:profile)
     profiles = Profiles.list_profiles(status: :active)
@@ -38,11 +40,20 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
         |> put_flash(:info, "Session created successfully")
         |> redirect(to: ~p"/sessions/#{session.id}")
 
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         conn
         |> put_flash(:error, "Failed to create session")
         |> render_inertia("Sessions/Index", %{
           errors: format_changeset_errors(changeset)
+        })
+
+      {:error, reason} ->
+        Logger.error("Failed to create session: #{inspect(reason)}")
+
+        conn
+        |> put_flash(:error, "Failed to create session")
+        |> render_inertia("Sessions/Index", %{
+          errors: format_runtime_error(reason)
         })
     end
   end
@@ -113,6 +124,19 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
         String.replace(acc, "%{#{key}}", to_string(value))
       end)
     end)
+  end
+
+  defp format_runtime_error(reason) do
+    message =
+      case reason do
+        {:browser_not_ready, inner} -> "Browser failed to become ready (#{inspect(inner)})"
+        {:browser_start_failed, inner} -> "Browser failed to start (#{inspect(inner)})"
+        {:cdp_launch_failed, inner} -> "Failed to launch browser mux (#{inspect(inner)})"
+        {:cdp_not_ready, inner} -> "Browser mux did not become ready (#{inspect(inner)})"
+        _ -> "Unexpected error: #{inspect(reason)}"
+      end
+
+    %{"base" => [message]}
   end
 
   defp transform_session_params(params) do
