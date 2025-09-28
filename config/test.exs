@@ -24,7 +24,8 @@ config :browsergrid, Browsergrid.SessionRuntime,
     sync_interval_ms: 200,
     ttl_ms: to_timeout(minute: 5)
   ],
-  cdp: [mode: :stub, ready_timeout_ms: 100, ready_poll_interval_ms: 50]
+  cdp: [mode: :stub, ready_timeout_ms: 100, ready_poll_interval_ms: 50],
+  browser: [mode: :stub]
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

@@ -337,7 +337,10 @@ defmodule Browsergrid.Sessions do
   end
 
   defp runtime_init_options(%Session{} = session) do
-    options = session.options || %{}
+    options =
+      session.options
+      |> Kernel.||(%{})
+      |> Map.put("browser_type", session.browser_type)
 
     metadata =
       %{
@@ -347,15 +350,25 @@ defmodule Browsergrid.Sessions do
       }
       |> Enum.reject(fn {_k, v} -> is_nil(v) end)
       |> Map.new()
+      |> Map.put("browser_type", session.browser_type)
 
     limits = Map.get(options, "limits", %{})
 
     init_opts = [metadata: metadata, owner: nil, limits: limits]
 
-    case build_cdp_opts(options) do
-      [] -> init_opts
-      cdp_opts -> Keyword.put(init_opts, :cdp, cdp_opts)
-    end
+    init_opts =
+      case build_cdp_opts(options) do
+        [] -> init_opts
+        cdp_opts -> Keyword.put(init_opts, :cdp, cdp_opts)
+      end
+
+    init_opts =
+      case build_browser_opts(options) do
+        [] -> init_opts
+        browser_opts -> Keyword.put(init_opts, :browser, browser_opts)
+      end
+
+    Keyword.put(init_opts, :browser_type, session.browser_type)
   end
 
   defp build_cdp_opts(options) when is_map(options) do
@@ -375,6 +388,28 @@ defmodule Browsergrid.Sessions do
   end
 
   defp build_cdp_opts(_options), do: []
+
+  defp build_browser_opts(options) when is_map(options) do
+    options
+    |> Map.get("browser", %{})
+    |> Enum.reduce([], fn
+      {"command", value}, acc -> [{:command, value} | acc]
+      {"args", value}, acc -> [{:args, value} | acc]
+      {"env", value}, acc -> [{:env, value} | acc]
+      {"cd", value}, acc -> [{:cd, value} | acc]
+      {"type", value}, acc -> [{:type, value} | acc]
+      {"command_candidates", value}, acc -> [{:command_candidates, value} | acc]
+      {"mode", value}, acc -> [{:mode, value} | acc]
+      {"ready_timeout_ms", value}, acc -> [{:ready_timeout_ms, value} | acc]
+      {"ready_poll_interval_ms", value}, acc -> [{:ready_poll_interval_ms, value} | acc]
+      {"ready_path", value}, acc -> [{:ready_path, value} | acc]
+      {"remote_debugging_address", value}, acc -> [{:remote_debugging_address, value} | acc]
+      {_other, _value}, acc -> acc
+    end)
+    |> Enum.reverse()
+  end
+
+  defp build_browser_opts(_options), do: []
 
   defp websocket_scheme("https"), do: "wss"
   defp websocket_scheme("http"), do: "ws"

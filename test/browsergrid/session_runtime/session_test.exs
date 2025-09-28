@@ -25,23 +25,34 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
 
       assert snapshot["id"] == session_id
       assert snapshot["node"] == Atom.to_string(Node.self())
-      assert snapshot["metadata"] == metadata
+      assert Map.get(snapshot["metadata"], "foo") == "bar"
+      assert snapshot["metadata"]["browser_type"] == :chrome
       assert snapshot["owner"] == owner
       assert snapshot["limits"] == limits
       assert snapshot["ready"]
       assert snapshot["port"] in @port_range
+      assert snapshot["browser_port"] in @port_range
+      assert snapshot["browser_type"] == :chrome
       assert File.dir?(snapshot["profile_dir"])
 
       assert {:ok, port} = PortAllocator.lookup(session_id)
       assert port == snapshot["port"]
 
+      browser_key = session_id <> "-browser"
+      assert {:ok, browser_port} = PortAllocator.lookup(browser_key)
+      assert browser_port == snapshot["browser_port"]
+
       assert {:ok, description} = GenServer.call(pid, :describe)
       assert description.id == session_id
       assert description.ready?
       assert description.port == snapshot["port"]
+      assert description.browser_port == snapshot["browser_port"]
+      assert description.browser_type == :chrome
       assert description.node == Node.self()
       assert %DateTime{} = description.started_at
       assert %DateTime{} = description.checkpoint_at
+
+      assert %State{browser_type: :chrome} = :sys.get_state(pid)
     end
 
     test "rehydrates snapshot data and merges options" do
@@ -50,12 +61,20 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
 
       port = Enum.random(@port_range)
       profile_dir = Path.join(System.tmp_dir!(), "browsergrid-profile-#{session_id}")
+      browser_port =
+        if port >= @port_range.last do
+          port - 1
+        else
+          port + 1
+        end
 
       seed_snapshot =
         %{
           "id" => session_id,
           "node" => Atom.to_string(Node.self()),
           "port" => port,
+          "browser_port" => browser_port,
+          "browser_type" => "chromium",
           "profile_dir" => profile_dir,
           "profile_snapshot" => "s3://bucket/snap"
         }
@@ -80,6 +99,7 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
 
       assert state.id == session_id
       assert state.port == port
+      assert state.browser_port == browser_port
       assert state.profile_dir == profile_dir
       assert state.profile_snapshot == "s3://bucket/snap"
       assert state.metadata["from_snapshot"]
@@ -88,12 +108,17 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       assert state.owner == %{"account_id" => "from_snapshot"}
       assert state.limits["max_runtime_ms"] == 60_000
       assert state.limits["idle_timeout_ms"] == 30_000
+      assert state.browser_type == :chrome
 
       snapshot = await_snapshot(session_id)
       assert snapshot["port"] == port
+      assert snapshot["browser_port"] == browser_port
+      assert snapshot["browser_type"] == :chrome
       assert snapshot["metadata"]["override"] == "new"
       assert snapshot["metadata"]["extra"]
       assert snapshot["limits"]["idle_timeout_ms"] == 30_000
+
+      assert {:ok, browser_port} == PortAllocator.lookup(session_id <> "-browser")
     end
 
     test "heartbeat updates last_seen_at" do
@@ -147,6 +172,7 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       assert snapshot_after["metadata"]["final"]
 
       assert :error == PortAllocator.lookup(session_id)
+      assert :error == PortAllocator.lookup(session_id <> "-browser")
       assert snapshot_after["port"] == port
     end
 
@@ -185,6 +211,19 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       # Keyword equality ignores ordering differences
       assert Keyword.equal?(stored_opts, cdp_opts)
     end
+
+    test "computes browser url when not provided" do
+      session_id = unique_session_id()
+      on_exit(fn -> cleanup_session(session_id) end)
+
+      pid = start_supervised!({Session, session_id: session_id})
+
+      %State{cdp_opts: stored_opts, browser_port: browser_port, browser_type: :chrome} =
+        :sys.get_state(pid)
+
+      expected_url = "ws://127.0.0.1:#{browser_port}/devtools/browser"
+      assert Keyword.get(stored_opts, :browser_url) == expected_url
+    end
   end
 
   defp unique_session_id do
@@ -193,6 +232,7 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
 
   defp cleanup_session(session_id) do
     PortAllocator.release(session_id)
+    PortAllocator.release(session_id <> "-browser")
     StateStore.delete(session_id)
     :ok
   end

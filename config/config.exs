@@ -55,7 +55,30 @@ config :browsergrid, Browsergrid.SessionRuntime,
             :error -> 10
           end
       end
-  ]
+  ],
+  browser: [
+    command: System.get_env("BROWSERGRID_BROWSER_BIN"),
+    mode: :command,
+    ready_path: "/json/version",
+    ready_timeout_ms: 15_000,
+    ready_poll_interval_ms: 200,
+    remote_debugging_address: "127.0.0.1",
+    default_args: [
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-background-networking",
+      "--disable-client-side-phishing-detection",
+      "--disable-default-apps",
+      "--disable-hang-monitor",
+      "--disable-popup-blocking",
+      "--disable-prompt-on-repost",
+      "--disable-sync",
+      "--metrics-recording-only",
+      "--safebrowsing-disable-auto-update",
+      "--disable-features=Translate"
+    ]
+  ],
+  support_processes: []
 
 # Configures the endpoint
 config :browsergrid, BrowsergridWeb.Endpoint,
