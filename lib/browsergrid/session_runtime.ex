@@ -21,39 +21,18 @@ defmodule Browsergrid.SessionRuntime do
       sync_interval_ms: 3_000,
       ttl_ms: to_timeout(minute: 30)
     ],
+
     cdp: [
       command: "browsermux",
       ready_path: "/health",
       ready_timeout_ms: 5_000,
       ready_poll_interval_ms: 200,
-      browser_url: System.get_env("BROWSERGRID_BROWSER_URL"),
-      frontend_url: System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL") || "http://localhost:80",
       max_message_size: 1_048_576,
       connection_timeout_seconds: 10
     ],
     browser: [
       command: System.get_env("BROWSERGRID_BROWSER_BIN"),
-      mode: :command,
-      ready_path: "/json/version",
-      ready_timeout_ms: 15_000,
-      ready_poll_interval_ms: 200,
-      remote_debugging_address: "127.0.0.1",
-      default_args: [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-background-networking",
-        "--disable-client-side-phishing-detection",
-        "--disable-default-apps",
-        "--disable-hang-monitor",
-        "--disable-popup-blocking",
-        "--disable-prompt-on-repost",
-        "--disable-sync",
-        "--metrics-recording-only",
-        "--safebrowsing-disable-auto-update",
-        "--disable-features=Translate"
-      ]
-    ],
-    support_processes: []
+      mode: :command
     ]
   ]
 
