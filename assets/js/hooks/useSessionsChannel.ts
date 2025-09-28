@@ -27,7 +27,7 @@ export function useSessionsChannel({
     channelRef.current = channel;
     // TODO: Add types
     channel.join()
-      .receive('ok', (response:) => {
+      .receive('ok', (response) => {
         console.log('Successfully joined sessions channel', response);
         onConnect?.();
       })
