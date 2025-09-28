@@ -11,7 +11,7 @@ config :browsergrid, Browsergrid.Mailer, adapter: Swoosh.Adapters.Test
 config :browsergrid, Browsergrid.Repo,
   username: System.get_env("BROWSERGRID_POSTGRES_USER", "postgres"),
   password: System.get_env("BROWSERGRID_POSTGRES_PASSWORD", "postgres"),
-  hostname: System.get_env("BROWSERGRID_POSTGRES_HOST", "postgres"),
+  hostname: System.get_env("BROWSERGRID_POSTGRES_HOST", "localhost"),
   database: System.get_env("BROWSERGRID_POSTGRES_DB", "browsergrid_test#{System.get_env("MIX_TEST_PARTITION")}"),
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2

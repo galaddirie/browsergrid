@@ -1,4 +1,7 @@
 import Config
+import Dotenvy
+
+
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
@@ -17,6 +20,9 @@ import Config
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 
+if File.exists?(".env") do
+  Dotenvy.source(".env")
+end
 
 if System.get_env("PHX_SERVER") do
   config :browsergrid, BrowsergridWeb.Endpoint, server: true

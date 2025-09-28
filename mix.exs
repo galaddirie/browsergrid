@@ -32,7 +32,6 @@ defmodule Browsergrid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.7.21"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.10"},
@@ -67,6 +66,7 @@ defmodule Browsergrid.MixProject do
       {:yaml_elixir, "~> 2.9"},
       {:inertia, "~> 2.5"},
       {:muontrap, "~> 1.6"},
+
       # Development and code quality tools
       {:dotenvy, "~> 1.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

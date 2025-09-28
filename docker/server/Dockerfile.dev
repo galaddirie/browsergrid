@@ -1,13 +1,16 @@
 ARG ELIXIR_VERSION=1.18.4
 ARG DEBIAN_VERSION=bookworm-slim
 
+
 FROM elixir:${ELIXIR_VERSION}-slim
 
-
+ARG GO_VERSION=1.25.1
+ARG GO_ARCH=amd64
+ARG PLAYWRIGHT_VERSION=latest
 # Install system dependencies for Phoenix app and browser automation
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
-    libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools \
+    build-essential libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools make \
     \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
@@ -20,6 +23,32 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
 
+# Install Playwright and Chrome globally (moved up for better caching)
+RUN npm install -g playwright@${PLAYWRIGHT_VERSION} && \
+    playwright install --with-deps chrome
+
+RUN apt-get update -y && \
+  apt-get install -y --no-install-recommends \
+    file \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
+# Install Go for browsermux
+RUN curl -OL "https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" \
+    && tar -C /usr/local -xzf "go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" \
+    && rm "go${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
+# Add Go to PATH
+ENV PATH=/usr/local/go/bin:$PATH
+
+# Build browsermux
+WORKDIR /tmp/browsermux-build
+COPY docker/browsermux/go.mod docker/browsermux/go.sum ./
+RUN go mod download
+COPY docker/browsermux/cmd ./cmd/
+COPY docker/browsermux/internal ./internal/
+RUN CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/browsermux ./cmd/main.go
+RUN chmod +x /usr/local/bin/browsermux
+
+# Clean up Go installation and build artifacts
+RUN rm -rf /usr/local/go /tmp/browsermux-build
 
 # Create browseruser for proper permissions
 RUN groupadd -g 1000 browseruser && \
