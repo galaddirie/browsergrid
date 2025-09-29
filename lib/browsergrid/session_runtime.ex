@@ -199,12 +199,20 @@ defmodule Browsergrid.SessionRuntime do
   """
   @spec sync_horde_membership() :: :ok
   def sync_horde_membership do
-    members_supervisor = horde_members(:supervisor)
-    members_registry = horde_members(:registry)
+    if not Node.alive?() do
+      # When the Erlang node is running without distribution (e.g. MIX_ENV=dev in a
+      # single container) there are no remote members to synchronise and Horde
+      # will block attempting to contact the pseudo-node :nonode@nohost. Skip
+      # the membership update in that case so callers don't hit GenServer timeouts.
+      :ok
+    else
+      members_supervisor = horde_members(:supervisor)
+      members_registry = horde_members(:registry)
 
-    Horde.Cluster.set_members(SessionSupervisor, members_supervisor)
-    Horde.Cluster.set_members(SessionRegistry, members_registry)
-    :ok
+      Horde.Cluster.set_members(SessionSupervisor, members_supervisor)
+      Horde.Cluster.set_members(SessionRegistry, members_registry)
+      :ok
+    end
   end
 
   defp component_module(:registry), do: SessionRegistry
