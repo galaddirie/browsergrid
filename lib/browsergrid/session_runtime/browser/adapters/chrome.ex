@@ -80,6 +80,7 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chrome do
       "--disable-breakpad",
 
       # Remote debugging
+      "--remote-debugging-address=0.0.0.0",
       "--remote-allow-origins=*",
 
       # Security and localhost
@@ -90,6 +91,10 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chrome do
 
       # Color and rendering consistency
       "--force-color-profile=srgb",
+
+      # Flag switches
+      "--flag-switches-begin",
+      "--flag-switches-end",
 
       # Feature flags
       "--enable-features=NetworkService,NetworkServiceInProcess,LoadCryptoTokenExtension,PermuteTLSExtensions",

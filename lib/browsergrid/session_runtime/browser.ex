@@ -162,10 +162,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
         base_args =
           []
           |> push_arg("--remote-debugging-port", context.remote_debugging_port)
-          |> push_arg(
-            "--remote-debugging-address",
-            Keyword.get(config, :remote_debugging_address, "127.0.0.1")
-          )
           |> push_arg("--user-data-dir", context.profile_dir)
 
         base_args
