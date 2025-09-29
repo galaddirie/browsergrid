@@ -120,7 +120,9 @@ defmodule Browsergrid.SessionRuntime.CDP do
   defp ready?(port, path) do
     case :gen_tcp.connect({127, 0, 0, 1}, port, [:binary, active: false], 500) do
       {:ok, socket} ->
-        request = "GET #{path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+        request =
+          "GET #{path} HTTP/1.1\r\nHost: 127.0.0.1:#{port}\r\nConnection: close\r\n\r\n"
+
         :gen_tcp.send(socket, request)
         result = :gen_tcp.recv(socket, 0, 500)
         :gen_tcp.close(socket)
