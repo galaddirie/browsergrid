@@ -32,7 +32,9 @@ defmodule Browsergrid.SessionRuntime do
     ],
     browser: [
       command: System.get_env("BROWSERGRID_BROWSER_BIN"),
-      mode: :command
+      mode: :command,
+      # 3 minutes
+      ready_timeout_ms: 60_000 * 3
     ]
   ]
 
