@@ -88,6 +88,8 @@ RUN apt-get update && \
       xdg-utils \
       net-tools \
       socat \
+      nginx \
+    && rm -f /etc/nginx/sites-enabled/default \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 ENV DISPLAY=":1" \
@@ -99,6 +101,7 @@ ENV DISPLAY=":1" \
 
 COPY docker/server/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/server/entrypoint.sh /usr/local/bin/server-entrypoint.sh
+COPY docker/server/nginx.conf /etc/nginx/conf.d/browsergrid.conf
 RUN chmod +x /usr/local/bin/server-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/server-entrypoint.sh"]
