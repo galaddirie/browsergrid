@@ -1,5 +1,0 @@
-#!/bin/bash
-
-curl -s http://localhost:9222/json/version > /dev/null
-
-exit $?
