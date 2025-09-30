@@ -403,7 +403,6 @@ defmodule Browsergrid.Sessions do
       {"ready_timeout_ms", value}, acc -> [{:ready_timeout_ms, value} | acc]
       {"ready_poll_interval_ms", value}, acc -> [{:ready_poll_interval_ms, value} | acc]
       {"ready_path", value}, acc -> [{:ready_path, value} | acc]
-      {"remote_debugging_address", value}, acc -> [{:remote_debugging_address, value} | acc]
       {_other, _value}, acc -> acc
     end)
     |> Enum.reverse()

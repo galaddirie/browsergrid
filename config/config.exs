@@ -61,22 +61,7 @@ config :browsergrid, Browsergrid.SessionRuntime,
     mode: :command,
     ready_path: "/json/version",
     ready_timeout_ms: 15_000,
-    ready_poll_interval_ms: 200,
-    remote_debugging_address: "127.0.0.1",
-    default_args: [
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-background-networking",
-      "--disable-client-side-phishing-detection",
-      "--disable-default-apps",
-      "--disable-hang-monitor",
-      "--disable-popup-blocking",
-      "--disable-prompt-on-repost",
-      "--disable-sync",
-      "--metrics-recording-only",
-      "--safebrowsing-disable-auto-update",
-      "--disable-features=Translate"
-    ]
+    ready_poll_interval_ms: 200
   ],
   support_processes: []
 

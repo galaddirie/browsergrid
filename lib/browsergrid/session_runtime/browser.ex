@@ -169,7 +169,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
         |> maybe_push_window_size(context)
         |> maybe_push_scale(context)
         |> append_args(adapter.default_args(context), context)
-        |> append_args(Keyword.get(config, :default_args, []), context)
       else
         []
       end

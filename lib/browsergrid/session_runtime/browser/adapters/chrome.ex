@@ -51,6 +51,9 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chrome do
       # First run and setup
       "--no-first-run",
       "--no-default-browser-check",
+      "--disable-default-apps",
+      "--disable-sync",
+      "--disable-component-extensions-with-background-pages",
 
       # Memory and performance
       "--disable-dev-shm-usage",
@@ -88,6 +91,9 @@ defmodule Browsergrid.SessionRuntime.Browser.Adapters.Chrome do
 
       # Anti-detection measures
       "--disable-blink-features=AutomationControlled",
+
+      # Homepage and startup
+      "--homepage=https://www.google.com",
 
       # Color and rendering consistency
       "--force-color-profile=srgb",
