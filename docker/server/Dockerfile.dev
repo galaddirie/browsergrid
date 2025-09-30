@@ -1,54 +1,23 @@
 ARG ELIXIR_VERSION=1.18.4
 ARG DEBIAN_VERSION=bookworm-slim
 
-
 FROM elixir:${ELIXIR_VERSION}-slim
 
-ARG GO_VERSION=1.25.1
-ARG GO_ARCH=amd64
-ARG PLAYWRIGHT_VERSION=latest
-# Install system dependencies for Phoenix app and browser automation
+
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
-    build-essential libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools make \
+    libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools \
     \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
-# Configure UTF-8 locale to prevent latin1 warnings in Erlang/Elixir
 RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen
 
-# Install Node.js 20.x for Playwright and frontend assets
+# Install Node.js 20.x for frontend assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
 
-# Install Playwright and Chrome globally (moved up for better caching)
-RUN npm install -g playwright@${PLAYWRIGHT_VERSION} && \
-    playwright install --with-deps chrome
-
-RUN apt-get update -y && \
-  apt-get install -y --no-install-recommends \
-    file \
-    && apt-get clean && rm -f /var/lib/apt/lists/*_*
-# Install Go for browsermux
-RUN curl -OL "https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" \
-    && tar -C /usr/local -xzf "go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" \
-    && rm "go${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
-# Add Go to PATH
-ENV PATH=/usr/local/go/bin:$PATH
-
-# Build browsermux
-WORKDIR /tmp/browsermux-build
-COPY docker/browsermux/go.mod docker/browsermux/go.sum ./
-RUN go mod download
-COPY docker/browsermux/cmd ./cmd/
-COPY docker/browsermux/internal ./internal/
-RUN CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/browsermux ./cmd/main.go
-RUN chmod +x /usr/local/bin/browsermux
-
-# Clean up Go installation and build artifacts
-RUN rm -rf /usr/local/go /tmp/browsermux-build
 
 # Create browseruser for proper permissions
 RUN groupadd -g 1000 browseruser && \
@@ -73,37 +42,5 @@ RUN apt-get update && \
     apt-get install -y sudo && \
     echo 'browseruser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
-
-# Install X/VNC stack so headful browsers can run inside the dev container
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      supervisor \
-      xvfb \
-      x11vnc \
-      novnc \
-      websockify \
-      xterm \
-      dbus-x11 \
-      x11-utils \
-      xdg-utils \
-      net-tools \
-      socat \
-      nginx \
-    && rm -f /etc/nginx/sites-enabled/default \
-    && apt-get clean && rm -f /var/lib/apt/lists/*_*
-
-ENV DISPLAY=":1" \
-    VNC_PORT=5900 \
-    NOVNC_PORT=6080 \
-    RESOLUTION_WIDTH=1920 \
-    RESOLUTION_HEIGHT=1080 \
-    RESOLUTION_DEPTH=24
-
-COPY docker/server/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/server/entrypoint.sh /usr/local/bin/server-entrypoint.sh
-COPY docker/server/nginx.conf /etc/nginx/conf.d/browsergrid.conf
-RUN chmod +x /usr/local/bin/server-entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/server-entrypoint.sh"]
 
 CMD ["mix", "phx.server"]

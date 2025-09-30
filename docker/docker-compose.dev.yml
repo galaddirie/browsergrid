@@ -12,7 +12,6 @@ x-browsergrid-environment: &browsergrid-env
   BROWSERGRID_POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
   BROWSERGRID_POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
   BROWSERGRID_POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
-  POOL_SIZE: 10
   
   SECRET_KEY_BASE: dev_secret_key_base_please_change_in_production_at_least_64_characters_long
   
@@ -25,22 +24,17 @@ x-browsergrid-common: &browsergrid-common
   image: browsergrid:latest
   env_file:
     - ../.env
-  environment:
-    <<: *browsergrid-env
   volumes:
     # Mount source code for live reloading
     - ../:/app
     - media_data:/var/lib/browsergrid/media
     - profiles_data:/var/lib/browsergrid/profiles
-    # Mount kubeconfig (read-only for app from named volume)
-    - kubeconfig_data:/app/kubeconfig
     # Cache mix dependencies
     - mix_deps_cache:/app/deps
     - mix_build_cache:/app/_build
     # Cache node_modules
     - node_modules_cache:/app/assets/node_modules
-    - go_mod_cache:/go/pkg/mod
-    # X11 socket for GUI applications
+
   working_dir: /app
   shm_size: 2gb
   depends_on:
@@ -105,7 +99,6 @@ services:
       - "${NOVNC_PORT:-6080}:6080"
     command: >
       sh -c "
-        sudo chown -R browseruser:browseruser /app/deps /app/_build /app/assets/node_modules 2>/dev/null || true &&
         mix deps.get &&
         cd assets && npm install && cd .. &&
         mix assets.setup &&
@@ -113,39 +106,13 @@ services:
         mix ecto.setup &&
         mix phx.server
       "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  test_runner:
-    <<: *browsergrid-common
-    container_name: browsergrid_test
-    volumes:
-      # Mount source code for live reloading
-      - ../:/app
-      - media_data:/var/lib/browsergrid/media
-      - profiles_data:/var/lib/browsergrid/profiles
-      - kubeconfig_data:/app/kubeconfig
-      # Cache mix dependencies
-      - mix_deps_cache:/app/deps
-      - mix_build_cache:/app/_build
-      # Cache node_modules
-      - node_modules_cache:/app/assets/node_modules
-      - go_mod_cache:/go/pkg/mod
-
-    environment:
-      <<: *browsergrid-env
-      MIX_ENV: test
-
-
-
-    command: >
-      sh -c "
-        sudo chown -R browseruser:browseruser /app/deps /app/_build /app/assets/node_modules 2>/dev/null || true &&
-        mix deps.get &&
-        cd assets && npm install && cd .. &&
-        mix assets.setup &&
-        mix assets.build &&
-        mix ecto.setup &&
-        tail -f /dev/null
-      "
 
 volumes:
   postgres_dev_data:
@@ -156,6 +123,7 @@ volumes:
   media_data:
   profiles_data:
   kubeconfig_data:
+  chrome_data:
 
 networks:
   browsergrid_server:

@@ -13,8 +13,7 @@ config :browsergrid, Browsergrid.Repo,
   password: System.get_env("BROWSERGRID_POSTGRES_PASSWORD", "postgres"),
   hostname: System.get_env("BROWSERGRID_POSTGRES_HOST", "localhost"),
   database: System.get_env("BROWSERGRID_POSTGRES_DB", "browsergrid_test#{System.get_env("MIX_TEST_PARTITION")}"),
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
+  pool: Ecto.Adapters.SQL.Sandbox
 
 config :browsergrid, Browsergrid.SessionRuntime,
   port_range: 55_000..56_000,

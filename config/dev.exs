@@ -7,8 +7,7 @@ if db_url do
   config :browsergrid, Browsergrid.Repo,
     url: db_url,
     stacktrace: true,
-    show_sensitive_data_on_connection_error: true,
-    pool_size: 10
+    show_sensitive_data_on_connection_error: true
 else
   config :browsergrid, Browsergrid.Repo,
     username: System.get_env("BROWSERGRID_POSTGRES_USER", "postgres"),
@@ -17,8 +16,7 @@ else
     port: String.to_integer(System.get_env("BROWSERGRID_POSTGRES_PORT", "5432")),
     database: System.get_env("BROWSERGRID_POSTGRES_DB", "browsergrid_dev"),
     stacktrace: true,
-    show_sensitive_data_on_connection_error: true,
-    pool_size: 10
+    show_sensitive_data_on_connection_error: true
 end
 
 # For development, we disable any cache and enable
