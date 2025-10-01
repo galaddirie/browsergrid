@@ -6,3 +6,6 @@ nodes:
       - containerPort: 30040
         hostPort: 4000
         protocol: TCP
+    extraMounts:
+      - hostPath: /mnt/c/Users/Galad/Documents/browsergrid
+        containerPath: /workspace

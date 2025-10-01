@@ -18,11 +18,13 @@ spec:
         - name: browsergrid
           image: browsergrid/app:dev
           imagePullPolicy: IfNotPresent
+          command: ["mix", "phx.server"]
+          workingDir: /app
           env:
             - name: PHX_SERVER
               value: "true"
             - name: MIX_ENV
-              value: "prod"
+              value: "dev"
             - name: SECRET_KEY_BASE
               value: "OZkIY6rZLw1Xto05fuelGhaBOeLS8ZSb6zJYunwkHyOatyMfzdPK4WHjIrpgV0fQ"
             - name: BROWSERGRID_DATABASE_URL
@@ -42,6 +44,13 @@ spec:
           ports:
             - name: http
               containerPort: 4000
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+            - name: deps
+              mountPath: /app/deps
+            - name: build
+              mountPath: /app/_build
           readinessProbe:
             httpGet:
               path: /healthz
@@ -54,6 +63,15 @@ spec:
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+      volumes:
+        - name: app-code
+          hostPath:
+            path: /workspace
+            type: Directory
+        - name: deps
+          emptyDir: {}
+        - name: build
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

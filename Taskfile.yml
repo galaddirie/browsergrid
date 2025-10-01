@@ -21,6 +21,18 @@ tasks:
         fi
       - kind get kubeconfig --name {{.KIND_CLUSTER}} > "{{.KUBECONFIG}}"
 
+  kind:recreate:
+    desc: Recreate the local kind cluster with updated configuration
+    preconditions:
+      - sh: command -v kind >/dev/null 2>&1
+        msg: "kind is required. Install from https://kind.sigs.k8s.io/"
+      - sh: command -v kubectl >/dev/null 2>&1
+        msg: "kubectl is required. Install from https://kubernetes.io/docs/tasks/tools/"
+    cmds:
+      - task: kind:delete
+      - kind create cluster --name {{.KIND_CLUSTER}} --config k8s/local/kind-config.yaml
+      - kind get kubeconfig --name {{.KIND_CLUSTER}} > "{{.KUBECONFIG}}"
+
   kind:delete:
     desc: Delete the local kind cluster
     cmds:
@@ -70,6 +82,49 @@ tasks:
     deps: [kind:create]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
+
+  postgres:start:
+    desc: Start local PostgreSQL for development
+    cmds:
+      - |
+        if ! docker ps -q -f name=browsergrid-postgres; then
+          docker run -d \
+            --name browsergrid-postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=browsergrid_dev \
+            -p 5432:5432 \
+            postgres:15-alpine
+          echo "PostgreSQL started"
+        else
+          echo "PostgreSQL already running"
+        fi
+
+  postgres:stop:
+    desc: Stop local PostgreSQL
+    cmds:
+      - docker stop browsergrid-postgres || true
+      - docker rm browsergrid-postgres || true
+
+  postgres:logs:
+    desc: View PostgreSQL logs
+    cmds:
+      - docker logs -f browsergrid-postgres
+
+  dev:
+    desc: Complete local development setup with volume mounts
+    cmds:
+      - task: postgres:start
+      - task: kind:recreate
+      - task: k8s:bootstrap
+      - task: browsers:load
+      - task: app:build
+      - task: app:deploy
+      - |
+        echo "Waiting for PostgreSQL to be ready..."
+        sleep 3
+        MIX_ENV=dev mix ecto.create
+        MIX_ENV=dev mix ecto.migrate
 
   destroy:
     desc: Tear down all local Kubernetes resources
