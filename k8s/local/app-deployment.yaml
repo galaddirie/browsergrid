@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: browsergrid
+  namespace: browsergrid-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: browsergrid
+  template:
+    metadata:
+      labels:
+        app: browsergrid
+    spec:
+      serviceAccountName: browsergrid-controller
+      containers:
+        - name: browsergrid
+          image: browsergrid/app:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PHX_SERVER
+              value: "true"
+            - name: MIX_ENV
+              value: "prod"
+            - name: SECRET_KEY_BASE
+              value: "OZkIY6rZLw1Xto05fuelGhaBOeLS8ZSb6zJYunwkHyOatyMfzdPK4WHjIrpgV0fQ"
+            - name: BROWSERGRID_DATABASE_URL
+              value: "ecto://postgres:postgres@host.docker.internal/browsergrid_dev"
+            - name: BROWSERGRID_REDIS_URL
+              value: "redis://host.docker.internal:6379"
+            - name: BROWSERGRID_ENABLE_KUBERNETES
+              value: "true"
+            - name: BROWSERGRID_K8S_NAMESPACE
+              value: "browsergrid-dev"
+            - name: BROWSERGRID_K8S_SERVICE_ACCOUNT
+              value: "browsergrid-session"
+            - name: BROWSERGRID_BROWSER_IMAGE_REPO
+              value: "browsergrid"
+            - name: BROWSERGRID_BROWSER_IMAGE_TAG
+              value: "latest"
+          ports:
+            - name: http
+              containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: browsergrid
+  namespace: browsergrid-dev
+spec:
+  type: NodePort
+  selector:
+    app: browsergrid
+  ports:
+    - name: http
+      port: 4000
+      targetPort: http
+      nodePort: 30040

@@ -20,7 +20,11 @@ Configuration files:
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- [Taskfile](https://taskfile.dev/#/installation) (`task` CLI)
+- [Kind](https://kind.sigs.k8s.io/) >= 0.20
+- `kubectl`
+- Docker
+- Local PostgreSQL & Redis
 - Git
 
 ### Quick Start
@@ -36,23 +40,56 @@ Configuration files:
    cp env.example .env
    ```
 
-3. Start the development environment:
+3. Bootstrap the Kubernetes cluster:
    ```bash
-   docker-compose -f docker-compose.dev.yml up
+   task k8s:bootstrap
    ```
 
-4. Access the application:
-   - Web interface: http://localhost:4000
-   - Database admin: http://localhost:8080
-   - Prometheus metrics: http://localhost:9568/metrics
+4. Deploy Browsergrid:
+   ```bash
+   task app:deploy
+   ```
 
-### Port Mapping
+5. Access the application:
+   ```bash
+   task app:port-forward
+   # Browsergrid is now available at http://localhost:4000
+   ```
 
-- **Web interface**: 4000
-- **Database**: 5432
-- **Database admin**: 8080
-- **CDP (Chrome DevTools)**: 9222 (fixed port)
-- **Prometheus metrics**: 9568
+### Detailed Kubernetes Development Setup
+
+Browsergrid uses a Taskfile-powered workflow that provisions a local Kind cluster and deploys the control plane alongside on-demand browser pods.
+
+#### One-time bootstrap
+
+```bash
+# Create the cluster and bootstrap namespace/RBAC
+task k8s:bootstrap
+
+# (Optional) build and load local browser images
+task browsers:load
+```
+
+#### Deploy Browsergrid into the cluster
+
+```bash
+# Build the Phoenix release image and push it into Kind, then apply manifests
+task app:deploy
+
+# Follow logs from the running pod
+task app:logs
+```
+
+#### Access the web UI
+
+Expose the in-cluster service on your workstation:
+
+```bash
+task app:port-forward
+# Browsergrid is now available at http://localhost:4000
+```
+
+When finished, tear everything down with `task destroy`.
 
 ## Features
 
@@ -87,13 +124,6 @@ The system emits telemetry events for:
 - Node resource usage and WebSocket connections
 - Performance metrics and timing
 
-## Production Deployment
-
-For production deployment, use the main Dockerfile and docker-compose.yml:
-
-```bash
-docker-compose up -d
-```
 
 ## Contributing
 
@@ -112,28 +142,7 @@ docker-compose up -d
 Copy `.env.example` to `.env` and configure:
 - Database credentials
 - Application secrets
-- Docker settings
-
-## Local Development (without Docker)
-
-If you prefer to run locally without Docker:
-
-1. Install dependencies:
-   ```bash
-   mix deps.get
-   ```
-
-2. Create and migrate your database:
-   ```bash
-   mix ecto.setup
-   ```
-
-3. Start Phoenix endpoint:
-   ```bash
-   mix phx.server
-   ```
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+- Kubernetes settings
 
 ### Testing
 

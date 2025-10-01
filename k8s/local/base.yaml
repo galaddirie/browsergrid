@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: browsergrid-dev
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: browsergrid-controller
+  namespace: browsergrid-dev
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: browsergrid-session
+  namespace: browsergrid-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: browsergrid-controller
+  namespace: browsergrid-dev
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: browsergrid-controller
+  namespace: browsergrid-dev
+subjects:
+  - kind: ServiceAccount
+    name: browsergrid-controller
+    namespace: browsergrid-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: browsergrid-controller

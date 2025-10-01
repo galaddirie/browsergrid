@@ -1,0 +1,77 @@
+version: '3'
+
+vars:
+  KIND_CLUSTER: browsergrid-dev
+  KUBECONFIG: "{{.ROOT_DIR}}/kubeconfig"
+
+tasks:
+  kind:create:
+    desc: Create the local kind cluster (browsergrid-dev)
+    preconditions:
+      - sh: command -v kind >/dev/null 2>&1
+        msg: "kind is required. Install from https://kind.sigs.k8s.io/"
+      - sh: command -v kubectl >/dev/null 2>&1
+        msg: "kubectl is required. Install from https://kubernetes.io/docs/tasks/tools/"
+    cmds:
+      - |
+        if ! kind get clusters | grep -q "{{.KIND_CLUSTER}}"; then
+          kind create cluster --name {{.KIND_CLUSTER}} --config k8s/local/kind-config.yaml
+        else
+          echo "kind cluster {{.KIND_CLUSTER}} already exists"
+        fi
+      - kind get kubeconfig --name {{.KIND_CLUSTER}} > "{{.KUBECONFIG}}"
+
+  kind:delete:
+    desc: Delete the local kind cluster
+    cmds:
+      - |
+        if kind get clusters | grep -q "{{.KIND_CLUSTER}}"; then
+          kind delete cluster --name {{.KIND_CLUSTER}}
+        else
+          echo "kind cluster {{.KIND_CLUSTER}} already removed"
+        fi
+      - rm -f "{{.KUBECONFIG}}"
+
+  k8s:bootstrap:
+    desc: Create base browsergrid namespace, service accounts, and RBAC
+    deps: [kind:create]
+    cmds:
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/base.yaml
+
+  browsers:load:
+    desc: Build and load browser images into the kind cluster
+    deps: [kind:create]
+    cmds:
+      - docker build -f docker/browsers/base/Dockerfile -t browsergrid/base:latest .
+      - docker build -f docker/browsers/chrome/Dockerfile -t browsergrid/chrome:latest .
+      - kind load docker-image browsergrid/base:latest browsergrid/chrome:latest --name {{.KIND_CLUSTER}}
+
+  app:build:
+    desc: Build the Browsergrid server image and load it into kind
+    deps: [kind:create]
+    cmds:
+      - docker build -f docker/server/Dockerfile -t browsergrid/app:dev .
+      - kind load docker-image browsergrid/app:dev --name {{.KIND_CLUSTER}}
+
+  app:deploy:
+    desc: Deploy Browsergrid into the local cluster
+    deps: [k8s:bootstrap, app:build]
+    cmds:
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/app-deployment.yaml
+
+  app:logs:
+    desc: Tail Browsergrid logs from the cluster
+    deps: [kind:create]
+    cmds:
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev logs -f deploy/browsergrid
+
+  app:port-forward:
+    desc: Expose the Browsergrid service on localhost:4000
+    deps: [kind:create]
+    cmds:
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
+
+  destroy:
+    desc: Tear down all local Kubernetes resources
+    cmds:
+      - task kind:delete
