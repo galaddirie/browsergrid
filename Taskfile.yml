@@ -58,75 +58,78 @@ tasks:
       - docker build -f docker/browsers/chrome/Dockerfile -t browsergrid/chrome:latest .
       - kind load docker-image browsergrid/base:latest browsergrid/chrome:latest --name {{.KIND_CLUSTER}}
 
-  app:build:
+  dev:build:
     desc: Build the Browsergrid server image and load it into kind
     deps: [kind:create]
     cmds:
       - docker build -f docker/server/Dockerfile -t browsergrid/app:dev .
       - kind load docker-image browsergrid/app:dev --name {{.KIND_CLUSTER}}
 
-  app:deploy:
+  dev:up:
     desc: Deploy Browsergrid into the local cluster
-    deps: [k8s:bootstrap, app:build]
+    deps: [k8s:bootstrap, dev:build]
     cmds:
-      - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/app-deployment.yaml
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/deployment.yaml
+  
+  dev:port-forward:
+    desc: Port forward the Browsergrid service
+    deps: [dev:up]
+    cmds:
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
 
-  app:logs:
+  dev:logs:
     desc: Tail Browsergrid logs from the cluster
     deps: [kind:create]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev logs -f deploy/browsergrid
 
-  app:port-forward:
-    desc: Expose the Browsergrid service on localhost:4000
-    deps: [kind:create]
-    cmds:
-      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
 
-  postgres:start:
-    desc: Start local PostgreSQL for development
+  resources:start:
+    desc: Start shared resources (PostgreSQL, Redis, Adminer) using docker-compose
+    cmds:
+      - docker-compose -f docker/docker-compose.resources.yml up -d
+
+  resources:stop:
+    desc: Stop shared resources using docker-compose
+    cmds:
+      - docker-compose -f docker/docker-compose.resources.yml down
+
+  resources:logs:
+    desc: View logs from shared resources
+    cmds:
+      - docker-compose -f docker/docker-compose.resources.yml logs -f
+
+  resources:wait:
+    desc: Wait for PostgreSQL to be ready in docker-compose
     cmds:
       - |
-        if ! docker ps -q -f name=browsergrid-postgres; then
-          docker run -d \
-            --name browsergrid-postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_USER=postgres \
-            -e POSTGRES_DB=browsergrid_dev \
-            -p 5432:5432 \
-            postgres:15-alpine
-          echo "PostgreSQL started"
-        else
-          echo "PostgreSQL already running"
-        fi
+        echo "Waiting for PostgreSQL to accept connections..."
+        for attempt in $(seq 1 60); do
+          if docker-compose -f docker/docker-compose.resources.yml exec -T postgres pg_isready -U postgres -d browsergrid_dev >/dev/null 2>&1; then
+            echo "PostgreSQL is ready"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "PostgreSQL did not become ready in time" >&2
+        exit 1
 
-  postgres:stop:
-    desc: Stop local PostgreSQL
-    cmds:
-      - docker stop browsergrid-postgres || true
-      - docker rm browsergrid-postgres || true
-
-  postgres:logs:
-    desc: View PostgreSQL logs
-    cmds:
-      - docker logs -f browsergrid-postgres
-
-  dev:
+  dev:init:
     desc: Complete local development setup with volume mounts
     cmds:
-      - task: postgres:start
+      - task: resources:start
+      - task: resources:wait
       - task: kind:recreate
       - task: k8s:bootstrap
       - task: browsers:load
-      - task: app:build
-      - task: app:deploy
+      - task: dev:build
+      - task: dev:up
       - |
-        echo "Waiting for PostgreSQL to be ready..."
-        sleep 3
         MIX_ENV=dev mix ecto.create
         MIX_ENV=dev mix ecto.migrate
 
   destroy:
-    desc: Tear down all local Kubernetes resources
+    desc: Tear down all local Kubernetes resources and stop resources
     cmds:
-      - task kind:delete
+      - task: resources:stop
+      - task: kind:delete
