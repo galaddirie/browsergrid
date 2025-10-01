@@ -8,15 +8,23 @@ defmodule BrowsergridWeb.SessionProxySocket do
 
   require Logger
 
-  def init(%{port: port, target: target} = state) do
+  def init(%{host: host, port: port, target: target} = state) do
     Process.flag(:trap_exit, true)
 
-    url = build_ws_url(port, target)
+    url = build_ws_url(host, port, target)
     headers = Map.get(state, :headers, [])
 
     case Client.start_link(url, self(), headers) do
       {:ok, pid} ->
-        {:ok, %{client: pid, connected?: false, pending: [], target: target, port: port}}
+        {:ok,
+         %{
+           client: pid,
+           connected?: false,
+           pending: [],
+           target: target,
+           port: port,
+           host: host
+         }}
 
       {:error, reason} ->
         Logger.error("failed to start upstream websocket: #{inspect(reason)}")
@@ -85,9 +93,9 @@ defmodule BrowsergridWeb.SessionProxySocket do
   defp to_remote_frame(:pong, payload), do: {:pong, payload}
   defp to_remote_frame(_other, payload), do: {:binary, payload}
 
-  defp build_ws_url(port, target) do
+  defp build_ws_url(host, port, target) do
     {path, query} = split_target(target)
-    base = "ws://127.0.0.1:#{port}#{path}"
+    base = "ws://#{host}:#{port}#{path}"
 
     case query do
       nil -> base

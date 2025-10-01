@@ -144,7 +144,7 @@ defmodule Browsergrid.Sessions do
         case SessionRuntime.describe(session_id) do
           {:ok, details} ->
             %{
-              port: details.port,
+              endpoint: details.endpoint,
               node: details.node,
               metadata: details.metadata
             }
@@ -194,7 +194,7 @@ defmodule Browsergrid.Sessions do
   """
   def get_connection_info(session_id) do
     with {:ok, %Session{id: id}} <- get_session(session_id),
-         {:ok, _port} <- SessionRuntime.local_port(id) do
+         {:ok, _endpoint} <- SessionRuntime.upstream_endpoint(id) do
       edge_cfg = Application.get_env(:browsergrid, :edge, [])
       host = Keyword.get(edge_cfg, :host, "edge.local")
       scheme = Keyword.get(edge_cfg, :scheme, "https")

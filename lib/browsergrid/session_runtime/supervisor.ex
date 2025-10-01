@@ -4,9 +4,7 @@ defmodule Browsergrid.SessionRuntime.Supervisor do
   """
   use Supervisor
 
-  alias Browsergrid.SessionRuntime
   alias Browsergrid.SessionRuntime.NodeListener
-  alias Browsergrid.SessionRuntime.PortAllocator
   alias Browsergrid.SessionRuntime.SessionRegistry
   alias Browsergrid.SessionRuntime.SessionSupervisor
   alias Browsergrid.SessionRuntime.StateStore
@@ -19,7 +17,6 @@ defmodule Browsergrid.SessionRuntime.Supervisor do
   def init(_opts) do
     children = [
       StateStore.child_spec([]),
-      {PortAllocator, [port_range: SessionRuntime.port_range()]},
       {SessionRegistry, []},
       {SessionSupervisor, []},
       {NodeListener, []}

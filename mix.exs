@@ -56,6 +56,7 @@ defmodule Browsergrid.MixProject do
       {:horde, "~> 0.9"},
       {:delta_crdt, "~> 0.6"},
       {:httpoison, "~> 2.0"},
+      {:k8s, "~> 2.7"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:websockex, "~> 0.4.3"},
@@ -65,7 +66,6 @@ defmodule Browsergrid.MixProject do
       {:redix, "~> 1.5"},
       {:yaml_elixir, "~> 2.9"},
       {:inertia, "~> 2.5"},
-      {:muontrap, "~> 1.6"},
 
       # Development and code quality tools
       {:dotenvy, "~> 1.1"},

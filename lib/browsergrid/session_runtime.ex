@@ -3,7 +3,7 @@ defmodule Browsergrid.SessionRuntime do
   Cluster-aware session runtime built on Horde.
 
   Provides helpers to start/lookup session actors and exposes
-  runtime configuration (port ranges, CDP command, state store adapter, etc.).
+  runtime configuration (state store adapter, Kubernetes settings, etc.).
   """
 
   alias Browsergrid.SessionRuntime.Session
@@ -14,27 +14,37 @@ defmodule Browsergrid.SessionRuntime do
   require Logger
 
   @default_config [
-    port_range: 51_000..59_000,
     checkpoint_interval_ms: 2_000,
     state_store: [
       adapter: Browsergrid.SessionRuntime.StateStore.DeltaCrdt,
       sync_interval_ms: 3_000,
       ttl_ms: to_timeout(minute: 30)
     ],
-
-    cdp: [
-      command: "browsermux",
-      ready_path: "/health",
-      ready_timeout_ms: 5_000,
-      ready_poll_interval_ms: 200,
-      max_message_size: 1_048_576,
-      connection_timeout_seconds: 10
-    ],
     browser: [
-      command: System.get_env("BROWSERGRID_BROWSER_BIN"),
-      mode: :command,
-      # 3 minutes
-      ready_timeout_ms: 60_000 * 3
+      mode: :kubernetes,
+      http_port: 80,
+      vnc_port: 6080,
+      ready_path: "/health",
+      ready_timeout_ms: 120_000,
+      ready_poll_interval_ms: 1_000
+    ],
+    kubernetes: [
+      enabled: true,
+      namespace: "browsergrid",
+      cluster_name: "default",
+      service_account: nil,
+      conn: :auto,
+      image_repository: "browsergrid",
+      image_tag: "latest",
+      image_overrides: %{},
+      request_cpu: "200m",
+      request_memory: "512Mi",
+      limit_cpu: "1",
+      limit_memory: "2Gi",
+      profile_volume_claim: nil,
+      profile_volume_sub_path_prefix: "sessions",
+      profile_volume_mount_path: "/home/user/data-dir",
+      extra_env: []
     ]
   ]
 
@@ -52,29 +62,19 @@ defmodule Browsergrid.SessionRuntime do
     Keyword.get(config(), :state_store, [])
   end
 
-  @spec cdp_config() :: keyword()
-  def cdp_config do
-    Keyword.get(config(), :cdp, [])
-  end
-
   @spec browser_config() :: keyword()
   def browser_config do
     Keyword.get(config(), :browser, [])
   end
 
-  @spec support_processes_config() :: list()
-  def support_processes_config do
-    Keyword.get(config(), :support_processes, [])
+  @spec kubernetes_config() :: keyword()
+  def kubernetes_config do
+    Keyword.get(config(), :kubernetes, [])
   end
 
   @spec checkpoint_interval_ms() :: non_neg_integer()
   def checkpoint_interval_ms do
     Keyword.get(config(), :checkpoint_interval_ms, 2_000)
-  end
-
-  @spec port_range() :: Range.t()
-  def port_range do
-    Keyword.get(config(), :port_range, 51_000..59_000)
   end
 
   @doc """
@@ -119,13 +119,13 @@ defmodule Browsergrid.SessionRuntime do
   end
 
   @doc """
-  Retrieve the local CDP port for an active session.
+  Retrieve the upstream connection details for an active session.
   """
-  @spec local_port(session_id()) :: {:ok, non_neg_integer()} | {:error, term()}
-  def local_port(session_id) when is_binary(session_id) do
+  @spec upstream_endpoint(session_id()) :: {:ok, map()} | {:error, term()}
+  def upstream_endpoint(session_id) when is_binary(session_id) do
     with {:ok, pid} <- lookup(session_id),
-         {:ok, port} <- GenServer.call(pid, :port) do
-      {:ok, port}
+         {:ok, endpoint} <- GenServer.call(pid, :endpoint) do
+      {:ok, endpoint}
     else
       :error -> {:error, :not_found}
       {:error, _} = error -> error

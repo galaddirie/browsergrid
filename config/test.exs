@@ -16,15 +16,14 @@ config :browsergrid, Browsergrid.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :browsergrid, Browsergrid.SessionRuntime,
-  port_range: 55_000..56_000,
   checkpoint_interval_ms: 200,
   state_store: [
     adapter: Browsergrid.SessionRuntime.StateStore.DeltaCrdt,
     sync_interval_ms: 200,
     ttl_ms: to_timeout(minute: 5)
   ],
-  cdp: [mode: :stub, ready_timeout_ms: 100, ready_poll_interval_ms: 50],
-  browser: [mode: :stub]
+  browser: [mode: :stub],
+  kubernetes: [enabled: false]
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

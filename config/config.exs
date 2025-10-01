@@ -23,47 +23,83 @@ config :browsergrid, Browsergrid.Repo,
   migration_timestamps: [type: :utc_datetime_usec]
 
 config :browsergrid, Browsergrid.SessionRuntime,
-  port_range: 51_000..59_000,
   checkpoint_interval_ms: 2_000,
   state_store: [
     adapter: Browsergrid.SessionRuntime.StateStore.DeltaCrdt,
     sync_interval_ms: 3_000,
     ttl_ms: to_timeout(minute: 30)
   ],
-  cdp: [
-    command: System.get_env("BROWSERGRID_CDP_BIN") || "browsermux",
-    ready_path: "/health",
-    ready_timeout_ms: 5_000,
-    ready_poll_interval_ms: 200,
-    browser_url: System.get_env("BROWSERGRID_BROWSER_URL"),
-    frontend_url: System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL") || "http://localhost:80",
-    max_message_size:
-      case System.get_env("BROWSERGRID_BROWSERMUX_MAX_MESSAGE_SIZE") do
-        nil -> 1_048_576
+  browser: [
+    mode: :kubernetes,
+    http_port:
+      System.get_env("BROWSERGRID_BROWSER_HTTP_PORT")
+      |> case do
+        nil -> 80
         value ->
           case Integer.parse(value) do
             {int, _} -> int
-            :error -> 1_048_576
+            :error -> 80
           end
       end,
-    connection_timeout_seconds:
-      case System.get_env("BROWSERGRID_BROWSERMUX_CONNECTION_TIMEOUT") do
-        nil -> 10
+    vnc_port:
+      System.get_env("BROWSERGRID_BROWSER_VNC_PORT")
+      |> case do
+        nil -> 6080
         value ->
           case Integer.parse(value) do
             {int, _} -> int
-            :error -> 10
+            :error -> 6080
+          end
+      end,
+    ready_path: System.get_env("BROWSERGRID_BROWSER_HEALTH_PATH") || "/health",
+    ready_timeout_ms:
+      System.get_env("BROWSERGRID_BROWSER_READY_TIMEOUT_MS")
+      |> case do
+        nil -> 120_000
+        value ->
+          case Integer.parse(value) do
+            {int, _} -> int
+            :error -> 120_000
+          end
+      end,
+    ready_poll_interval_ms:
+      System.get_env("BROWSERGRID_BROWSER_READY_POLL_MS")
+      |> case do
+        nil -> 1_000
+        value ->
+          case Integer.parse(value) do
+            {int, _} -> int
+            :error -> 1_000
           end
       end
   ],
-  browser: [
-    command: System.get_env("BROWSERGRID_BROWSER_BIN"),
-    mode: :command,
-    ready_path: "/json/version",
-    ready_timeout_ms: 15_000,
-    ready_poll_interval_ms: 200
-  ],
-  support_processes: []
+  kubernetes: [
+    enabled:
+      System.get_env("BROWSERGRID_ENABLE_KUBERNETES")
+      |> case do
+        nil -> true
+        value -> String.downcase(value) in ["1", "true", "yes"]
+      end,
+    namespace: System.get_env("BROWSERGRID_K8S_NAMESPACE") || "browsergrid",
+    cluster_name: System.get_env("BROWSERGRID_K8S_CLUSTER", "default"),
+    service_account: System.get_env("BROWSERGRID_K8S_SERVICE_ACCOUNT"),
+    image_repository: System.get_env("BROWSERGRID_BROWSER_IMAGE_REPO") || "browsergrid",
+    image_tag: System.get_env("BROWSERGRID_BROWSER_IMAGE_TAG") || "latest",
+    image_overrides: %{},
+    request_cpu: System.get_env("BROWSERGRID_BROWSER_CPU_REQUEST", "200m"),
+    request_memory: System.get_env("BROWSERGRID_BROWSER_MEMORY_REQUEST", "512Mi"),
+    limit_cpu: System.get_env("BROWSERGRID_BROWSER_CPU_LIMIT", "1"),
+    limit_memory: System.get_env("BROWSERGRID_BROWSER_MEMORY_LIMIT", "2Gi"),
+    profile_volume_claim: System.get_env("BROWSERGRID_PROFILE_PVC"),
+    profile_volume_sub_path_prefix: System.get_env("BROWSERGRID_PROFILE_SUBPATH_PREFIX", "sessions"),
+    profile_volume_mount_path:
+      System.get_env("BROWSERGRID_PROFILE_MOUNT_PATH") || "/home/user/data-dir",
+    extra_env: [
+      {"REMOTE_DEBUGGING_PORT", System.get_env("BROWSERGRID_REMOTE_DEBUG_PORT", "61000")},
+      {"PORT", System.get_env("BROWSERGRID_BROWSERMUX_PORT", "8080")},
+      {"FRONTEND_URL", System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL", "http://localhost:80")}
+    ]
+  ]
 
 # Configures the endpoint
 config :browsergrid, BrowsergridWeb.Endpoint,
@@ -97,6 +133,9 @@ config :browsergrid, :profiles,
   auto_cleanup_old_snapshots: true,
   max_profile_size_mb: 500,
   allowed_browser_types: [:chrome, :chromium, :firefox]
+
+config :browsergrid, :session_profiles_path,
+  System.get_env("BROWSERGRID_SESSION_PROFILES_PATH", "/var/lib/browsergrid/profiles")
 
 # Redis (pub/sub for route fanout)
 config :browsergrid, :redis,

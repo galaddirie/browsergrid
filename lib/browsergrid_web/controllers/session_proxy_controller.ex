@@ -10,13 +10,13 @@ defmodule BrowsergridWeb.SessionProxyController do
   def proxy(conn, %{"id" => session_id} = params) do
     path = build_path(Map.get(params, "path", []))
 
-    with {:ok, port} <- SessionRuntime.local_port(session_id),
+    with {:ok, %{host: host, port: port}} <- SessionRuntime.upstream_endpoint(session_id),
          {:ok, body, conn} <- read_full_body(conn),
          request =
            Finch.build(
              request_method(conn),
-             build_target_uri(port, path, conn.query_string),
-             proxy_request_headers(conn, port),
+             build_target_uri(host, port, path, conn.query_string),
+             proxy_request_headers(conn, host, port),
              body
            ),
          {:ok, %Finch.Response{status: status, headers: headers, body: response_body}} <-
@@ -42,10 +42,11 @@ defmodule BrowsergridWeb.SessionProxyController do
   def websocket(conn, %{"id" => session_id} = params) do
     target = Map.get(params, "target", "/")
 
-    case SessionRuntime.local_port(session_id) do
-      {:ok, port} ->
+    case SessionRuntime.upstream_endpoint(session_id) do
+      {:ok, %{host: host, port: port}} ->
         state = %{
           session_id: session_id,
+          host: host,
           port: port,
           target: target,
           headers: websocket_headers(conn)
@@ -89,13 +90,13 @@ defmodule BrowsergridWeb.SessionProxyController do
     "/" <> Enum.join(segments, "/")
   end
 
-  defp build_target_uri(port, path, ""), do: "http://127.0.0.1:#{port}#{path}"
-  defp build_target_uri(port, path, query), do: "http://127.0.0.1:#{port}#{path}?#{query}"
+  defp build_target_uri(host, port, path, ""), do: "http://#{host}:#{port}#{path}"
+  defp build_target_uri(host, port, path, query), do: "http://#{host}:#{port}#{path}?#{query}"
 
-  defp proxy_request_headers(conn, port) do
+  defp proxy_request_headers(conn, host, port) do
     conn.req_headers
     |> Enum.reject(fn {key, _} -> String.downcase(key) in @hop_by_hop_headers or key == "content-length" end)
-    |> List.keystore("host", 0, {"host", "127.0.0.1:#{port}"})
+    |> List.keystore("host", 0, {"host", "#{host}:#{port}"})
     |> put_forwarded_for(conn)
   end
 
