@@ -71,10 +71,6 @@ tasks:
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/deployment.yaml
   
-  dev:port-forward:
-    desc: Port forward the Browsergrid service
-    cmds:
-      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
 
   dev:logs:
     desc: Tail Browsergrid logs from the cluster
