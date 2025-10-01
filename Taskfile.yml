@@ -62,7 +62,7 @@ tasks:
     desc: Build the Browsergrid server image and load it into kind
     deps: [kind:create]
     cmds:
-      - docker build -f docker/server/Dockerfile -t browsergrid/app:dev .
+      - docker build -f docker/server/Dockerfile.dev -t browsergrid/app:dev .
       - kind load docker-image browsergrid/app:dev --name {{.KIND_CLUSTER}}
 
   dev:up:
@@ -73,13 +73,11 @@ tasks:
   
   dev:port-forward:
     desc: Port forward the Browsergrid service
-    deps: [dev:up]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev port-forward svc/browsergrid 4000:4000
 
   dev:logs:
     desc: Tail Browsergrid logs from the cluster
-    deps: [kind:create]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev logs -f deploy/browsergrid
 

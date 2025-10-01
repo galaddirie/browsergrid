@@ -70,6 +70,9 @@ defmodule BrowsergridWeb.Router do
     get "/health", HealthController, :health
   end
 
+  # Health check endpoint
+  get "/healthz", BrowsergridWeb.HealthController, :healthz
+
   scope "/sessions/:id", BrowsergridWeb do
     pipe_through :api
 

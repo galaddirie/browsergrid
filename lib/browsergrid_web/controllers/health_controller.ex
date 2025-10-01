@@ -13,4 +13,8 @@ defmodule BrowsergridWeb.HealthController do
 
     json(conn, cluster_status)
   end
+
+  def healthz(conn, _params) do
+    text(conn, "OK")
+  end
 end

@@ -3,6 +3,10 @@ ARG DEBIAN_VERSION=bookworm-slim
 
 FROM elixir:${ELIXIR_VERSION}-slim
 
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8"
+
 
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
@@ -19,12 +23,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 
-# Create browseruser for proper permissions
-RUN groupadd -g 1000 browseruser && \
-    useradd -r -u 1000 -g browseruser browseruser && \
-    mkdir -p /home/browseruser && \
-    chown browseruser:browseruser /home/browseruser
-
 # Install hex + rebar
 RUN mix local.hex --force && \
     mix local.rebar --force
@@ -32,15 +30,10 @@ RUN mix local.hex --force && \
 # Set development ENV
 ENV MIX_ENV="dev"
 
-# Default to UTF-8 inside the container
-ENV LANG="en_US.UTF-8" \
-    LANGUAGE="en_US:en" \
-    LC_ALL="en_US.UTF-8"
 
-# Install sudo for permission management
-RUN apt-get update && \
-    apt-get install -y sudo && \
-    echo 'browseruser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
-    apt-get clean && rm -f /var/lib/apt/lists/*_*
-
-CMD ["mix", "phx.server"]
+CMD mix deps.get && \
+    cd assets && npm install && cd .. && \
+    mix assets.setup && \
+    mix assets.build && \
+    mix ecto.setup && \
+    mix phx.server

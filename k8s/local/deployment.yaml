@@ -18,7 +18,7 @@ spec:
         - name: browsergrid
           image: browsergrid/app:dev
           imagePullPolicy: IfNotPresent
-          command: ["mix", "phx.server"]
+          command: ["sh", "-c", "mix deps.get && cd assets && npm install && cd .. && mix assets.setup && mix assets.build && mix ecto.setup && mix phx.server"]
           workingDir: /app
           env:
             - name: PHX_SERVER
