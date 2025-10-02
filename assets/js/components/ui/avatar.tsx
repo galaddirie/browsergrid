@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
 import { cn } from "@/lib/utils"
@@ -53,8 +54,8 @@ function AvatarFallback({
 
 const generateColor = (seed: string) => {
     let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    for (let index = 0; index < seed.length; index++) {
+      hash = seed.charCodeAt(index) + ((hash << 5) - hash);
     }
     const color = Math.floor(Math.abs(Math.sin(hash) * 16777215));
     return `#${color.toString(16).padStart(6, '0')}`;
@@ -97,4 +98,4 @@ const generateColor = (seed: string) => {
   
   AvatarGradientFallback.displayName = 'AvatarGradientFallback';
   
-  export { Avatar, AvatarImage, AvatarFallback };
+  export { Avatar, AvatarFallback,AvatarImage };

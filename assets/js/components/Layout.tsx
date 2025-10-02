@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
+
 import { usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
-import { HeaderPortal } from './HeaderPortal';
+
 import { Toaster } from './ui/sonner';
+import { HeaderPortal } from './HeaderPortal';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const { props } = usePage();

@@ -1,18 +1,19 @@
 
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import {
-  ChevronRight,
   AlertCircle,
+  ChevronRight,
+  FolderOpen,
   Package,
-  Terminal,
   Play,
   Settings,
-  FolderOpen,
+  Terminal,
 } from 'lucide-react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 
 interface DeploymentDetailsFormProps {
   data: {
@@ -159,14 +160,14 @@ export function DeploymentDetailsForm({
                 </p>
               </div>
               <Badge variant="outline" className="font-mono text-xs">
-                {data.parameters.filter((param: any) => param.key).length} parameters
+                {data.parameters.filter((parameter: any) => parameter.key).length} parameters
               </Badge>
             </div>
 
             <div className="space-y-2">
               {data.parameters
-                .filter((param: any) => param.key)
-                .map((param: any, index: number) => (
+                .filter((parameter: any) => parameter.key)
+                .map((parameter: any, index: number) => (
                   <div
                     key={index}
                     className="rounded-lg border bg-muted/5 p-3"
@@ -175,16 +176,16 @@ export function DeploymentDetailsForm({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">
-                            {param.label || param.key}
+                            {parameter.label || parameter.key}
                           </span>
                         </div>
                         <div className="mt-1 flex items-center gap-2">
                           <code className="font-mono text-xs text-muted-foreground">
-                            {param.key}
+                            {parameter.key}
                           </code>
-                          {param.description && (
+                          {parameter.description && (
                             <span className="text-xs text-muted-foreground">
-                              · {param.description}
+                              · {parameter.description}
                             </span>
                           )}
                         </div>

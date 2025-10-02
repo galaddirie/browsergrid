@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+
 import { Link, router } from '@inertiajs/react';
-import { Plus, User, Archive, Download, Upload, Trash2, Eye, HardDrive, Clock, Chrome, Globe } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Archive, Chrome, Clock, Download, Eye, Globe,HardDrive, Plus, Trash2, Upload, User } from 'lucide-react';
+
+import { Header } from '@/components/HeaderPortal';
+import Layout from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import Layout from '@/components/Layout';
-import { Header } from '@/components/HeaderPortal';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter,DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Type definitions
 interface Profile {
@@ -80,8 +82,8 @@ const formatBytes = (bytes: number | undefined) => {
   if (!bytes) return 'N/A';
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   if (bytes === 0) return '0 Bytes';
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  const index = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, index) * 100) / 100 + ' ' + sizes[index];
 };
 
 export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexProps) {

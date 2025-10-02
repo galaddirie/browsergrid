@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Info, Monitor, User, Cpu, Settings } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+
+import { Cpu, Info, Monitor, Settings,User } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Browser,
   BrowserVersion,
+  formDataToSession,
   OperatingSystem,
   Profile,
-  ScreenConfig,
   ResourceLimits,
+  ScreenConfig,
   Session,
-  SessionFormProps
-} from '@/types';
+  SessionFormData,
+  SessionFormProps,
+  sessionToFormData} from '@/types';
 
 export function SessionForm({
   session,
@@ -25,7 +29,7 @@ export function SessionForm({
 
   useEffect(() => {
     if (profiles && profiles.length > 0) {
-      const browserType = session.browser || 'chrome';
+      const browserType = session.browser_type || 'chrome';
       const filtered = profiles.filter(p =>
         p.browser_type === browserType && p.status === 'active'
       );
@@ -35,11 +39,11 @@ export function SessionForm({
         updateSession({ profile_id: undefined });
       }
     }
-  }, [session.browser, profiles]);
+  }, [session.browser_type, profiles]);
 
 
 
-  const updateSession = (updates: Partial<Session>) => {
+  const updateSession = (updates: Partial<SessionFormData>) => {
     onSessionChange({ ...session, ...updates });
   };
 
@@ -82,8 +86,8 @@ export function SessionForm({
             <div className="space-y-2">
               <Label className="text-xs font-medium text-gray-700 uppercase tracking-wider">Browser</Label>
               <Select
-                value={session.browser}
-                onValueChange={(value: Browser) => updateSession({ browser: value })}
+                value={session.browser_type}
+                onValueChange={(value: Browser) => updateSession({ browser_type: value })}
               >
                 <SelectTrigger className="h-9 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 transition-colors">
                   <SelectValue placeholder="Select browser" />
@@ -92,9 +96,6 @@ export function SessionForm({
                   <SelectItem value="chrome">Chrome</SelectItem>
                   <SelectItem value="chromium">Chromium</SelectItem>
                   <SelectItem value="firefox">Firefox</SelectItem>
-                  <SelectItem value="edge">Edge</SelectItem>
-                  <SelectItem value="webkit">Webkit</SelectItem>
-                  <SelectItem value="safari">Safari</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -199,9 +200,9 @@ export function SessionForm({
                     </div>
                   </SelectItem>
                 ))}
-                {availableProfiles.length === 0 && session.browser && (
+                {availableProfiles.length === 0 && session.browser_type && (
                   <div className="p-2 text-xs text-gray-500 text-center">
-                    No active profiles available for {session.browser}.
+                    No active profiles available for {session.browser_type}.
                     <a href="/profiles/new" className="text-blue-600 hover:underline ml-1">
                       Create one
                     </a>

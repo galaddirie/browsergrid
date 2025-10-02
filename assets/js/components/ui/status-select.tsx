@@ -1,6 +1,9 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect,useRef, useState } from 'react';
+
 import { Check, ChevronDown } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 
 export interface StatusOption {
   value: string;
@@ -28,12 +30,12 @@ export const StatusMultiSelect: React.FC<StatusMultiSelectDropdownProps> = ({
   onChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerReference = useRef<HTMLButtonElement>(null);
   const [dropdownWidth, setDropdownWidth] = useState(0);
 
   useEffect(() => {
-    if (triggerRef.current) {
-      setDropdownWidth(triggerRef.current.offsetWidth);
+    if (triggerReference.current) {
+      setDropdownWidth(triggerReference.current.offsetWidth);
     }
   }, []);
 
@@ -48,7 +50,7 @@ export const StatusMultiSelect: React.FC<StatusMultiSelectDropdownProps> = ({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          ref={triggerRef}
+          ref={triggerReference}
           variant="outline"
           className="w-full justify-between"
         >

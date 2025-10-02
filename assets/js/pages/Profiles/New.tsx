@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
+
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Chrome, Globe, Save } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
-import Layout from '@/components/Layout';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ProfileFormData {
   name: string;
@@ -28,10 +30,10 @@ export default function ProfilesNew() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: keyof ProfileFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(previous => ({ ...previous, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
+      setErrors(previous => {
+        const newErrors = { ...previous };
         delete newErrors[field];
         return newErrors;
       });

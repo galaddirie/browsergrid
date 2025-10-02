@@ -1,19 +1,22 @@
 import { useState } from 'react';
+
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import Layout from '@/components/Layout';
 import { SessionForm } from '@/components/SessionForm';
-import { Session, SessionEditProps } from '@/types';
+import { Button } from '@/components/ui/button';
+import { formDataToSession,Session, SessionEditProps, SessionFormData, sessionToFormData } from '@/types';
 
 export default function EditSession({ session, errors = {} }: SessionEditProps) {
-  const [sessionData, setSessionData] = useState<Partial<Session>>(session);
+  const [sessionData, setSessionData] = useState<Partial<SessionFormData>>(sessionToFormData(session));
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    
-    router.put(`/sessions/${session.id}`, { session: sessionData }, {
+
+    const backendData = formDataToSession(sessionData);
+    router.put(`/sessions/${session.id}`, { session: backendData }, {
       onFinish: () => setIsLoading(false),
       onError: (errors) => {
         console.error('Failed to update session:', errors);

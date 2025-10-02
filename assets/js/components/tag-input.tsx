@@ -1,8 +1,9 @@
-import React, { useState, useRef, KeyboardEvent, ChangeEvent } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import{ ChangeEvent,KeyboardEvent, useRef } from 'react';
+
 import { X } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 interface TagInputProps {
   tags: string[];
@@ -12,18 +13,18 @@ interface TagInputProps {
 // TODO: OF USER ADDS COMMA, ADD TAG
 // TODO: REDESIGN TAG INPUT
 export function TagInput({ tags, setTags }: TagInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputReference = useRef<HTMLInputElement>(null);
 
   const addTag = (tag: string) => {
     if (tag && !tags.includes(tag)) {
       setTags([...tags, tag]);
-      inputRef.current!.value = '';
+      inputReference.current!.value = '';
     }
   };
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
-    inputRef.current?.focus();
+    inputReference.current?.focus();
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -34,12 +35,12 @@ export function TagInput({ tags, setTags }: TagInputProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !inputRef.current?.value && tags.length > 0) {
+    if (e.key === 'Backspace' && !inputReference.current?.value && tags.length > 0) {
       e.preventDefault();
       const lastTag = tags[tags.length - 1];
       if (!lastTag) return;
       removeTag(lastTag);
-      inputRef.current!.value = lastTag;
+      inputReference.current!.value = lastTag;
     }
   };
 
@@ -61,7 +62,7 @@ export function TagInput({ tags, setTags }: TagInputProps) {
         ))}
         <Input
           id="tag-input"
-          ref={inputRef}
+          ref={inputReference}
           type="text"
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}

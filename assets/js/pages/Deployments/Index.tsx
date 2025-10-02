@@ -1,12 +1,14 @@
 import React from 'react';
+
 import { Link } from '@inertiajs/react';
-import { Plus, Package, Play, Trash2, Eye } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import Layout from '@/components/Layout';
+import { Eye,Package, Play, Plus, Trash2 } from 'lucide-react';
+
 import { useSetHeader } from '@/components/HeaderPortal';
+import Layout from '@/components/Layout';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {

@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { useForm } from '@inertiajs/react';
-import { FolderOpen, ChevronLeft } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+
 import { SparklesIcon } from '@heroicons/react/24/solid';
+import { useForm } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import { ChevronLeft,FolderOpen } from 'lucide-react';
+
+import { Header } from '@/components/HeaderPortal';
+import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import Layout from '@/components/Layout';
-import { UploadZipForm } from './form-parts/upload';
+
 import { ConfigureDeploymentForm } from './form-parts/content';
 import { DeploymentParametersForm } from './form-parts/param';
 import { DeploymentDetailsForm } from './form-parts/review';
-import { Header } from '@/components/HeaderPortal';
+import { UploadZipForm } from './form-parts/upload';
   
 const Stepper = ({ steps, currentStep }: { steps: string[], currentStep: number }) => {
   return (
@@ -75,19 +78,19 @@ export default function DeploymentUpload() {
   const data = form.data;
   const setData = form.setData;
   const processing = form.processing;
-  // @ts-ignore - Avoiding deep type instantiation issue
+  // @ts-expect-error - Avoiding deep type instantiation issue
   const errors = form.errors;
   const clearErrors = form.clearErrors;
   const setError = form.setError;
 
   const nextStep = () => {
     if (validateStep()) {
-      setStep(prev => Math.min(prev + 1, steps.length - 1));
+      setStep(previous => Math.min(previous + 1, steps.length - 1));
     }
   };
 
-  const prevStep = () => {
-    setStep(prev => Math.max(prev - 1, 0));
+  const previousStep = () => {
+    setStep(previous => Math.max(previous - 1, 0));
   };
 
   const validateStep = () => {
@@ -127,13 +130,13 @@ export default function DeploymentUpload() {
           return false;
         });
         
-        const invalidParams = data.parameters.some((param, index) => {
-          if (param.key || param.label || param.description) {
-            if (!param.key) {
+        const invalidParams = data.parameters.some((parameter, index) => {
+          if (parameter.key || parameter.label || parameter.description) {
+            if (!parameter.key) {
               setError(`parameters.${index}.key`, 'Parameter key is required');
               return true;
             }
-            if (!param.label) {
+            if (!parameter.label) {
               setError(`parameters.${index}.label`, 'Parameter label is required');
               return true;
             }
@@ -156,7 +159,7 @@ export default function DeploymentUpload() {
       const cleanedData = {
         ...data,
         environment_variables: data.environment_variables.filter(env => env.key && env.value),
-        parameters: data.parameters.filter(param => param.key && param.label),
+        parameters: data.parameters.filter(parameter => parameter.key && parameter.label),
         tags: data.tags.filter(tag => tag.trim() !== ''),
       };
 
@@ -189,11 +192,11 @@ export default function DeploymentUpload() {
       case 0:
         return <UploadZipForm data={data} setData={setData} errors={errors} onNext={nextStep} />;
       case 1:
-        return <ConfigureDeploymentForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={prevStep} />;
+        return <ConfigureDeploymentForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={previousStep} />;
       case 2:
-        return <DeploymentParametersForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={prevStep} />;
+        return <DeploymentParametersForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={previousStep} />;
       case 3:
-        return <DeploymentDetailsForm data={data} errors={errors} processing={processing} onPrev={prevStep} onSubmit={onSubmit} />;
+        return <DeploymentDetailsForm data={data} errors={errors} processing={processing} onPrev={previousStep} onSubmit={onSubmit} />;
       default:
         return null;
     }

@@ -1,5 +1,7 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+
+import { AlertCircle, CheckCircle, Loader2,XCircle } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 

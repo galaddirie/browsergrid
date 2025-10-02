@@ -34,7 +34,7 @@ export function LiveVNCFrame({
         style={{ minHeight: '400px' }}
       />
       <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-        Session: {sessionId.substring(0, 8)}...
+        Session: {sessionId.slice(0, 8)}...
       </div>
     </div>
   );

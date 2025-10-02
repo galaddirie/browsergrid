@@ -1,9 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, Play, Settings, Package, Trash2, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, ExternalLink,Package, Play, Settings, Trash2 } from 'lucide-react';
+
+import Layout from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Layout from '@/components/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
@@ -126,7 +127,7 @@ export default function DeploymentShow({ deployment }) {
                 <div className="flex justify-between py-1">
                   <span className="text-xs text-neutral-600 dark:text-neutral-400">Session ID</span>
                   <span className="font-mono text-xs text-neutral-900 dark:text-neutral-100">
-                    {deployment.session_id.substring(0, 8)}...
+                    {deployment.session_id.slice(0, 8)}...
                   </span>
                 </div>
               )}
@@ -199,19 +200,19 @@ export default function DeploymentShow({ deployment }) {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3">
-                {deployment.parameters.map((param: any, index: number) => (
+                {deployment.parameters.map((parameter: any, index: number) => (
                   <div key={index} className="border rounded-lg p-3 bg-neutral-50 dark:bg-neutral-900">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
-                        {param.label}
+                        {parameter.label}
                       </span>
                       <span className="font-mono text-xs text-neutral-600 dark:text-neutral-400">
-                        {param.key}
+                        {parameter.key}
                       </span>
                     </div>
-                    {param.description && (
+                    {parameter.description && (
                       <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                        {param.description}
+                        {parameter.description}
                       </p>
                     )}
                   </div>

@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect,useState } from 'react';
+
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, ExternalLink, Settings, StopCircle, Wifi, WifiOff } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import Layout from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Layout from '@/components/Layout';
-import { Session } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSessionsChannel } from '@/hooks/useSessionsChannel';
+import { Session, sessionToFormData } from '@/types';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
@@ -87,7 +89,7 @@ export default function SessionShow({ session }: { session: Session }) {
                 Session Details
               </h1>
               <p className="text-sm text-neutral-600 mt-1">
-                {currentSession.id?.substring(0, 8)}... • {currentSession.browser} {currentSession.version}
+                {currentSession.id?.slice(0, 8)}... • {currentSession.browser_type} {currentSession.options?.version}
               </p>
             </div>
           </div>
@@ -140,18 +142,18 @@ export default function SessionShow({ session }: { session: Session }) {
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Created</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.created_at ? new Date(currentSession.created_at).toLocaleString() : 'N/A'}
+                  {currentSession.inserted_at ? new Date(currentSession.inserted_at).toLocaleString() : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Provider</span>
-                <span className="text-xs text-neutral-900">{currentSession.provider}</span>
+                <span className="text-xs text-neutral-900">{currentSession.options?.provider || 'N/A'}</span>
               </div>
-              {currentSession.expires_at && (
+              {currentSession.options?.timeout && (
                 <div className="flex justify-between py-1">
-                  <span className="text-xs text-neutral-600">Expires</span>
+                  <span className="text-xs text-neutral-600">Timeout</span>
                   <span className="text-xs text-neutral-900">
-                    {new Date(currentSession.expires_at).toLocaleString()}
+                    {currentSession.options.timeout} minutes
                   </span>
                 </div>
               )}
@@ -165,49 +167,27 @@ export default function SessionShow({ session }: { session: Session }) {
             <CardContent className="space-y-2">
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Browser</span>
-                <span className="text-xs text-neutral-900">{currentSession.browser} {currentSession.version}</span>
+                <span className="text-xs text-neutral-900">{currentSession.browser_type} {currentSession.options?.version}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">OS</span>
-                <span className="text-xs text-neutral-900">{currentSession.operating_system}</span>
+                <span className="text-xs text-neutral-900">{currentSession.options?.operating_system || 'N/A'}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Mode</span>
-                <span className="text-xs text-neutral-900">{currentSession.headless ? 'Headless' : 'GUI'}</span>
+                <span className="text-xs text-neutral-900">{currentSession.options?.headless ? 'Headless' : 'GUI'}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Screen</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.screen?.width}×{currentSession.screen?.height}
+                  {currentSession.options?.screen_width || 1920}×{currentSession.options?.screen_height || 1080}
                 </span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {currentSession.live_url && (
-          <Card className="border-neutral-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-neutral-900">Live Browser View</CardTitle>
-              <p className="text-xs text-neutral-600">
-                Real-time view of the browser session. Click and interact directly with the browser.
-              </p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="relative bg-black rounded-lg overflow-hidden h-[600px]">
-                <iframe
-                  src={currentSession.live_url}
-                  className="w-full h-full border-0"
-                  allow="fullscreen"
-                  title={`Live browser session ${currentSession.id}`}
-                />
-                <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  Session: {currentSession.id?.substring(0, 8)}...
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Live browser view not available from backend */}
       </div>
     </Layout>
   );

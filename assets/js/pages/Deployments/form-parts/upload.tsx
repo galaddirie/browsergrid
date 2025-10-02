@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { Upload, Package, X, AlertCircle } from "lucide-react";
+
+import { AlertCircle,Package, Upload, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 interface UploadZipFormProps {
@@ -18,7 +20,7 @@ export const UploadZipForm = ({
   onNext,
 }: UploadZipFormProps) => {
   const [dragActive, setDragActive] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputReference = useRef<HTMLInputElement | null>(null);
 
   const isZip = (file: File) => {
     const byType = [
@@ -28,14 +30,14 @@ export const UploadZipForm = ({
       "application/x-compressed",
       "application/octet-stream",
     ].includes(file.type);
-    const byExt = file.name.toLowerCase().endsWith(".zip");
-    return byType || byExt;
+    const byExtension = file.name.toLowerCase().endsWith(".zip");
+    return byType || byExtension;
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    const files = Array.from(e.dataTransfer.files || []);
+    const files = [...e.dataTransfer.files || []];
     const zip = files.find(isZip);
     if (zip) setData("archive", zip);
   };
@@ -54,8 +56,8 @@ export const UploadZipForm = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+        onClick={() => inputReference.current?.click()}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputReference.current?.click()}
         onDrop={handleDrop}
         onDragOver={(e) => {
           e.preventDefault();
@@ -83,7 +85,7 @@ export const UploadZipForm = ({
               <p className="text-xs text-muted-foreground">or click to browse</p>
             </div>
             <input
-              ref={inputRef}
+              ref={inputReference}
               id="file-upload"
               type="file"
               accept=".zip"

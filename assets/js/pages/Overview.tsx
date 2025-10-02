@@ -1,8 +1,10 @@
 import React from 'react';
-import { Globe, Layers, Activity, Package } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Layout from '@/components/Layout';
+
+import { Activity, Globe, Layers, Package } from 'lucide-react';
+
 import { Header } from '@/components/HeaderPortal';
+import Layout from '@/components/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Overview({ stats, sessions }: { stats: any, sessions: any }) {
   const statsCards = [
@@ -77,7 +79,7 @@ export default function Overview({ stats, sessions }: { stats: any, sessions: an
                 {sessions.map((session) => (
                   <div key={session.id} className="flex items-center justify-between p-2 border rounded">
                     <div>
-                      <div className="font-medium">{session.id?.substring(0, 8)}...</div>
+                      <div className="font-medium">{session.id?.slice(0, 8)}...</div>
                       <div className="text-sm text-muted-foreground">
                         {session.browser} {session.version} • {session.operating_system}
                       </div>

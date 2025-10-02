@@ -1,21 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useEffect,useState } from 'react';
+
 import { Link, router } from '@inertiajs/react';
-import { Plus, RefreshCw, Globe, ExternalLink, Eye, StopCircle, Trash2, CheckSquare, Square, Wifi, WifiOff } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { CheckSquare, ExternalLink, Eye, Globe, Plus, RefreshCw, Square, StopCircle, Trash2, Wifi, WifiOff } from 'lucide-react';
+
+import { Header } from '@/components/HeaderPortal';
+import Layout from '@/components/Layout';
+import { SessionForm } from '@/components/SessionForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import Layout from '@/components/Layout';
-import { Header } from '@/components/HeaderPortal';
-import { SessionForm } from '@/components/SessionForm';
-import { Session } from '@/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useSessionsChannel } from '@/hooks/useSessionsChannel';
+import { formDataToSession,Session, SessionFormData } from '@/types';
 
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -60,8 +62,8 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isChannelConnected, setIsChannelConnected] = useState(false);
-  const [session, setSession] = useState<Partial<Session>>({
-    browser: 'chrome',
+  const [session, setSession] = useState<Partial<SessionFormData>>({
+    browser_type: 'chrome',
     version: 'latest',
     operating_system: 'linux',
     headless: false,
@@ -84,7 +86,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   useEffect(() => {
     if (isModalOpen) {
       setSession({
-        browser: 'chrome',
+        browser_type: 'chrome',
         version: 'latest',
         operating_system: 'linux',
         headless: false,
@@ -114,23 +116,23 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   const { isConnected } = useSessionsChannel({
     onSessionCreated: (newSession) => {
       console.log('Real-time: Session created', newSession);
-      setSessionsList(prev => [newSession, ...prev]);
-      setSessionsTotal(prev => prev + 1);
+      setSessionsList(previous => [newSession, ...previous]);
+      setSessionsTotal(previous => previous + 1);
     },
     onSessionUpdated: (updatedSession) => {
       console.log('Real-time: Session updated', updatedSession);
-      setSessionsList(prev =>
-        prev.map(session =>
+      setSessionsList(previous =>
+        previous.map(session =>
           session.id === updatedSession.id ? updatedSession : session
         )
       );
     },
     onSessionDeleted: (sessionId) => {
       console.log('Real-time: Session deleted', sessionId);
-      setSessionsList(prev => prev.filter(session => session.id !== sessionId));
-      setSessionsTotal(prev => prev - 1);
-      setSelectedSessions(prev => {
-        const newSet = new Set(prev);
+      setSessionsList(previous => previous.filter(session => session.id !== sessionId));
+      setSessionsTotal(previous => previous - 1);
+      setSelectedSessions(previous => {
+        const newSet = new Set(previous);
         newSet.delete(sessionId);
         return newSet;
       });
@@ -156,10 +158,11 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
     failed: sessionsList?.filter((s: Session) => ['failed', 'crashed'].includes(s.status ?? '')).length || 0,
   };
 
-  const handleCreateSession = async (sessionData: Partial<Session>) => {
+  const handleCreateSession = async (sessionData: Partial<SessionFormData>) => {
     setIsLoading(true);
-    
-    router.post('/sessions', { session: sessionData }, {
+
+    const backendData = formDataToSession(sessionData);
+    router.post('/sessions', { session: backendData }, {
       onFinish: () => {
         setIsLoading(false);
         setIsModalOpen(false);
@@ -238,7 +241,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
 
     setIsBulkDeleting(true);
     try {
-      const validSessionIds = Array.from(selectedSessions).filter(id => id && id.trim());
+      const validSessionIds = [...selectedSessions].filter(id => id && id.trim());
 
       if (validSessionIds.length === 0) {
         console.error('No valid session IDs to delete');
@@ -437,19 +440,19 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                       <TableCell className="py-3">
                         <div className="space-y-0.5">
                           <div className="font-mono text-xs font-medium text-neutral-900">
-                            {session.id?.substring(0, 8)}...
+                            {session.id?.slice(0, 8)}...
                           </div>
                           <div className="text-xs text-neutral-500">
-                            {session.operating_system} • {session.headless ? 'Headless' : 'GUI'}
+                            {session.options?.operating_system || 'N/A'} • {session.options?.headless ? 'Headless' : 'GUI'}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
                           <Globe className="h-3 w-3 text-neutral-400" />
-                          <span className="font-medium text-neutral-900 text-xs">{session.browser}</span>
+                          <span className="font-medium text-neutral-900 text-xs">{session.browser_type}</span>
                           <Badge variant="outline" className="text-xs border-neutral-200 text-neutral-600 px-1.5 py-0">
-                            {session.version}
+                            {session.options?.version || 'latest'}
                           </Badge>
                         </div>
                       </TableCell>
@@ -459,10 +462,10 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                       <TableCell className="py-3">
                         <div className="space-y-0.5">
                           <div className="text-xs text-neutral-900">
-                            {session.created_at ? new Date(session.created_at).toLocaleDateString() : 'N/A'}
+                            {session.inserted_at ? new Date(session.inserted_at).toLocaleDateString() : 'N/A'}
                           </div>
                           <div className="text-xs text-neutral-500">
-                            {session.created_at ? new Date(session.created_at).toLocaleTimeString() : ''}
+                            {session.inserted_at ? new Date(session.inserted_at).toLocaleTimeString() : ''}
                           </div>
                         </div>
                       </TableCell>
@@ -565,7 +568,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
             <p className="text-sm text-neutral-600">
               Are you sure you want to delete the session{' '}
               <span className="font-mono font-medium text-neutral-900">
-                {sessionToDelete?.id?.substring(0, 8)}...
+                {sessionToDelete?.id?.slice(0, 8)}...
               </span>
               ?
             </p>

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
+
 import { Channel } from 'phoenix';
+
 import { getSocket } from '@/lib/phoenix-socket';
 import { Session } from '@/types';
 
@@ -18,13 +20,13 @@ export function useSessionsChannel({
   onConnect,
   onDisconnect
 }: UseSessionsChannelProps = {}) {
-  const channelRef = useRef<Channel | null>(null);
+  const channelReference = useRef<Channel | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
     const channel = socket.channel('sessions');
 
-    channelRef.current = channel;
+    channelReference.current = channel;
     // TODO: Add types
     channel.join()
       .receive('ok', (response) => {
@@ -64,16 +66,16 @@ export function useSessionsChannel({
     });
 
     return () => {
-      if (channelRef.current) {
-        channelRef.current.leave();
-        channelRef.current = null;
+      if (channelReference.current) {
+        channelReference.current.leave();
+        channelReference.current = null;
       }
     };
   }, [onSessionCreated, onSessionUpdated, onSessionDeleted, onConnect, onDisconnect]);
 
   return {
-    channel: channelRef.current,
-    isConnected: channelRef.current?.state === 'joined'
+    channel: channelReference.current,
+    isConnected: channelReference.current?.state === 'joined'
   };
 }
 

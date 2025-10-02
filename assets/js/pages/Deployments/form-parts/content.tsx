@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect,useState } from 'react';
+
+import { Play,Plus, Upload, X } from 'lucide-react';
+
+import { TagInput } from '@/components/tag-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Upload, X, Play } from 'lucide-react';
-import { TagInput } from '@/components/tag-input';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ConfigureDeploymentFormProps {
   data: {
@@ -21,6 +23,7 @@ interface ConfigureDeploymentFormProps {
     environment_variables: { key: string; value: string; }[];
     parameters: { key: string; label: string; description: string; }[];
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setData: (field: string, value: any) => void;
   errors: any;
   onNext: () => void;
@@ -29,8 +32,8 @@ interface ConfigureDeploymentFormProps {
 
 const generateColor = (seed: string) => {
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  for (let index = 0; index < seed.length; index++) {
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
   }
   const color = Math.floor(Math.abs(Math.sin(hash) * 16777215));
   return `#${color.toString(16).padStart(6, '0')}`;
@@ -80,7 +83,7 @@ export const ConfigureDeploymentForm = ({
   };
 
   const removeEnvironmentVariable = (index: number) => {
-    const updated = data.environment_variables.filter((_: any, i: number) => i !== index);
+    const updated = data.environment_variables.filter((_: any, index_: number) => index_ !== index);
     setData('environment_variables', updated);
   };
 
@@ -95,7 +98,7 @@ export const ConfigureDeploymentForm = ({
   };
 
   const removeParameter = (index: number) => {
-    const updated = data.parameters.filter((_: any, i: number) => i !== index);
+    const updated = data.parameters.filter((_: any, index_: number) => index_ !== index);
     setData('parameters', updated);
   };
 
@@ -311,18 +314,18 @@ export const ConfigureDeploymentForm = ({
           </div>
 
           <div className="space-y-2">
-            {data.environment_variables.map((envVar: any, index: number) => (
+            {data.environment_variables.map((envVariable: any, index: number) => (
               <div key={index} className="flex gap-2 items-center">
                 <Input
                   placeholder="KEY"
-                  value={envVar.key}
+                  value={envVariable.key}
                   onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
                   className="font-mono text-sm"
                 />
                 <span className="text-gray-400">=</span>
                 <Input
                   placeholder="value"
-                  value={envVar.value}
+                  value={envVariable.value}
                   onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
                   className="font-mono text-sm"
                 />
@@ -366,7 +369,7 @@ export const ConfigureDeploymentForm = ({
           </div>
 
           <div className="space-y-3">
-            {data.parameters.map((param: any, index: number) => (
+            {data.parameters.map((parameter: any, index: number) => (
               <div key={index} className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <h4 className="font-medium text-sm">Parameter {index + 1}</h4>
@@ -383,18 +386,18 @@ export const ConfigureDeploymentForm = ({
                 <div className="grid grid-cols-1 gap-3">
                   <Input
                     placeholder="Parameter key (e.g. max_pages)"
-                    value={param.key}
+                    value={parameter.key}
                     onChange={(e) => updateParameter(index, 'key', e.target.value)}
                     className="font-mono text-sm"
                   />
                   <Input
                     placeholder="Display label (e.g. Maximum Pages)"
-                    value={param.label}
+                    value={parameter.label}
                     onChange={(e) => updateParameter(index, 'label', e.target.value)}
                   />
                   <Textarea
                     placeholder="Description of what this parameter controls"
-                    value={param.description}
+                    value={parameter.description}
                     onChange={(e) => updateParameter(index, 'description', e.target.value)}
                     className="min-h-[60px]"
                   />

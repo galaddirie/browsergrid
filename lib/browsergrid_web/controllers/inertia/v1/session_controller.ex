@@ -31,10 +31,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
 
 
   def create(conn, %{"session" => session_params}) do
-    # Transform browser parameter to browser_type for the schema
-    transformed_params = transform_session_params(session_params)
-
-    case Sessions.create_session(transformed_params) do
+    case Sessions.create_session(session_params) do
       {:ok, session} ->
         conn
         |> put_flash(:info, "Session created successfully")
@@ -71,12 +68,9 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   def update(conn, %{"id" => id, "session" => session_params}) do
-    # Transform browser parameter to browser_type for the schema
-    transformed_params = transform_session_params(session_params)
-
     case Sessions.get_session(id) do
       {:ok, existing_session} ->
-        case Sessions.update_session(existing_session, transformed_params) do
+        case Sessions.update_session(existing_session, session_params) do
           {:ok, session} ->
             conn
             |> put_flash(:info, "Session updated successfully")
@@ -137,16 +131,6 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
       end
 
     %{"base" => [message]}
-  end
-
-  defp transform_session_params(params) do
-    params
-    |> Map.new(fn {key, value} ->
-      case key do
-        "browser" -> {"browser_type", String.to_atom(value)}
-        _ -> {key, value}
-      end
-    end)
   end
 
 end

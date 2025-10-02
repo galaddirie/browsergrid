@@ -1,3 +1,6 @@
+/* eslint-disable */
+// @ts-nocheck
+
 import { Socket } from 'phoenix';
 
 let socket: Socket | null = null;

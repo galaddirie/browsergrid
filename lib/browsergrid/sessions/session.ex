@@ -7,7 +7,7 @@ defmodule Browsergrid.Sessions.Session do
 
   @derive {Jason.Encoder, except: [:__meta__, :profile]}
 
-  @browser_types [:chrome, :chromium]
+  @browser_types [:chrome, :chromium, :firefox]
   @statuses [:pending, :running, :stopped, :error, :starting, :stopping]
 
   @type t :: %__MODULE__{
@@ -37,7 +37,7 @@ defmodule Browsergrid.Sessions.Session do
 
   def changeset(session, attrs) do
     session
-    |> cast(attrs, [:name, :browser_type, :status, :options, :cluster, :profile_id, :profile_snapshot_created])
+    |> cast(attrs, [:name, :browser_type, :status, :options, :cluster, :profile_id, :profile_snapshot_created, :headless, :is_pooled, :operating_system, :provider, :version, :webhooks_enabled])
     |> validate_required([:browser_type, :status])
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_inclusion(:status, @statuses)
@@ -48,7 +48,7 @@ defmodule Browsergrid.Sessions.Session do
 
   def create_changeset(attrs) do
     %__MODULE__{}
-    |> cast(attrs, [:name, :browser_type, :options, :cluster, :profile_id])
+    |> cast(attrs, [:name, :browser_type, :options, :cluster, :profile_id, :headless, :is_pooled, :operating_system, :provider, :version, :webhooks_enabled])
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_profile_browser_compatibility()
     |> put_change(:status, :pending)
@@ -101,8 +101,22 @@ defmodule Browsergrid.Sessions.Session do
       "profile_enabled" => get_field(changeset, :profile_id) != nil
     }
 
+    # Extract additional fields from changeset and put them in options
+    extra_options = %{}
+    extra_options = put_extra_option(changeset, extra_options, :headless)
+    extra_options = put_extra_option(changeset, extra_options, :is_pooled)
+    extra_options = put_extra_option(changeset, extra_options, :operating_system)
+    extra_options = put_extra_option(changeset, extra_options, :provider)
+    extra_options = put_extra_option(changeset, extra_options, :version)
+    extra_options = put_extra_option(changeset, extra_options, :webhooks_enabled)
+
     options = get_field(changeset, :options) || %{}
-    processed_options = process_option_values(options)
+    # Merge extra options with existing options
+    all_options = Map.merge(options, extra_options)
+
+    # Handle nested structures from frontend
+    flattened_options = flatten_frontend_options(all_options)
+    processed_options = process_option_values(flattened_options)
     merged_options = Map.merge(default_options, processed_options)
 
     put_change(changeset, :options, merged_options)
@@ -136,6 +150,46 @@ defmodule Browsergrid.Sessions.Session do
     end
   end
   defp process_option_value(_key, value), do: value
+
+  # Extract cast fields that should go into options
+  defp put_extra_option(changeset, options, field) do
+    case get_change(changeset, field) do
+      nil -> options
+      value -> Map.put(options, Atom.to_string(field), value)
+    end
+  end
+
+  # Flatten nested frontend options into the format expected by the schema
+  defp flatten_frontend_options(options) do
+    options
+    |> flatten_screen_options()
+    |> flatten_resource_limits_options()
+  end
+
+  defp flatten_screen_options(options) do
+    case options["screen"] do
+      nil -> options
+      screen when is_map(screen) ->
+        options
+        |> Map.delete("screen")
+        |> Map.put("screen_width", screen["width"] || 1920)
+        |> Map.put("screen_height", screen["height"] || 1080)
+        |> Map.put("screen_dpi", screen["dpi"] || 96)
+        |> Map.put("screen_scale", screen["scale"] || 1.0)
+    end
+  end
+
+  defp flatten_resource_limits_options(options) do
+    case options["resource_limits"] do
+      nil -> options
+      limits when is_map(limits) ->
+        options
+        |> Map.delete("resource_limits")
+        |> Map.put("cpu_cores", limits["cpu"])
+        |> Map.put("memory_limit", limits["memory"])
+        |> Map.put("timeout", limits["timeout_minutes"] || 30)
+    end
+  end
 
   defp generate_session_name do
     "Session #{:rand.uniform(9999)}"

@@ -1,6 +1,37 @@
 import React, { useState } from 'react';
+
+import {
+  AlignJustify,
+  ArrowUp10,
+  Box,
+  Calendar,
+  CalendarClock,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Equal,
+  EqualNot,
+  Filter,
+  FilterX,
+  List,
+  Plus,
+  Settings,
+  ToggleLeft,
+  Trash2,
+  Type,
+  Upload,
+  X,
+} from 'lucide-react';
+import { v4 as uuid } from 'uuid';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -8,39 +39,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Type,
-  ToggleLeft,
-  Calendar,
-  Clock,
-  CalendarClock,
-  Upload,
-  List,
-  Box,
-  AlignJustify,
-  ChevronUp,
-  ChevronDown,
-  Trash2,
-  Plus,
-  X,
-  ArrowUp10,
-  Equal,
-  EqualNot,
-  Filter,
-  FilterX,
-  ChevronRight,
-  ChevronLeft,
-  Settings,
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { v4 as uuid } from 'uuid';
-import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const FIELD_TYPES: {
   type: "string" | "number" | "boolean" | "date" | "time" | "datetime" | "file" | "select" | "array" | "object";
@@ -125,11 +127,11 @@ interface FieldType {
   hidden: boolean;
   readOnly: boolean;
   options: any;
-  conditions: Array<{
+  conditions: {
     field: string;
     operator: string;
     value: string;
-  }>;
+  }[];
 }
 
 interface DeploymentParametersFormProps {
@@ -202,7 +204,7 @@ export function DeploymentParametersForm({
 
   const removeField = (index: number) => {
     const fieldId = fields[index]?.customId;
-    const updatedFields = fields.filter((_, i) => i !== index);
+    const updatedFields = fields.filter((_, index_) => index_ !== index);
     
     updatePackageData({
       fields: updatedFields
@@ -788,11 +790,11 @@ function TypeSpecificOptions({
     const newOptions = { ...field.options };
     
     let current = newOptions;
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      if (!current[pathParts[i]]) {
-        current[pathParts[i]] = {};
+    for (let index = 0; index < pathParts.length - 1; index++) {
+      if (!current[pathParts[index]]) {
+        current[pathParts[index]] = {};
       }
-      current = current[pathParts[i]];
+      current = current[pathParts[index]];
     }
     current[pathParts[pathParts.length - 1]] = value;
     
@@ -1133,7 +1135,7 @@ function ConditionsEditor({
   };
 
   const removeCondition = (index: number) => {
-    const newConditions = conditions.filter((_, i) => i !== index);
+    const newConditions = conditions.filter((_, index_) => index_ !== index);
     onUpdateField({ conditions: newConditions });
   };
 
@@ -1179,20 +1181,20 @@ function ConditionsEditor({
         </div>
       ) : (
         <div className="space-y-3">
-          {conditions.map((condition, idx) => (
+          {conditions.map((condition, index) => (
             <div
-              key={idx}
+              key={index}
               className="flex items-center gap-2 rounded-md bg-muted/50 p-3"
             >
               <Input
                 className="flex-1 text-xs"
                 placeholder="Field name"
                 value={condition.field}
-                onChange={(e) => updateCondition(idx, { field: e.target.value })}
+                onChange={(e) => updateCondition(index, { field: e.target.value })}
               />
               <Select
                 value={condition.operator}
-                onValueChange={(value: string) => updateCondition(idx, { operator: value })}
+                onValueChange={(value: string) => updateCondition(index, { operator: value })}
               >
                 <SelectTrigger className="w-[120px] p-1 text-xs">
                   <SelectValue />
@@ -1214,11 +1216,11 @@ function ConditionsEditor({
                 className="flex-1 text-xs"
                 placeholder="Value"
                 value={condition.value}
-                onChange={(e) => updateCondition(idx, { value: e.target.value })}
+                onChange={(e) => updateCondition(index, { value: e.target.value })}
               />
               <button
                 type="button"
-                onClick={() => removeCondition(idx)}
+                onClick={() => removeCondition(index)}
                 className="p-2 text-muted-foreground transition-colors hover:text-destructive"
               >
                 <X className="h-4 w-4" />
