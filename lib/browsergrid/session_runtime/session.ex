@@ -224,7 +224,7 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp determine_browser_type(opts, snapshot, metadata) do
-    user_pref = opts[:browser] |> Keyword.get(:type)
+    user_pref = opts[:browser] && Keyword.get(opts[:browser], :type)
     snapshot_pref = normalize_browser_type(snapshot["browser_type"])
     metadata_pref = normalize_browser_type(Map.get(metadata, "browser_type"))
 

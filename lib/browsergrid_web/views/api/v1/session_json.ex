@@ -69,7 +69,6 @@ defmodule BrowsergridWeb.API.V1.SessionJSON do
     |> Map.merge(%{
       profile_id: session.profile_id,
       profile: serialize_profile(session.profile),
-      profile_snapshot_created: session.profile_snapshot_created,
       inserted_at: session.inserted_at,
       updated_at: session.updated_at
     })

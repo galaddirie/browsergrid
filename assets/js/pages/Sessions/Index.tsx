@@ -65,9 +65,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   const [session, setSession] = useState<Partial<SessionFormData>>({
     browser_type: 'chrome',
     version: 'latest',
-    operating_system: 'linux',
     headless: false,
-    provider: 'docker',
     screen: {
       width: 1920,
       height: 1080,
@@ -79,8 +77,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
       memory: '4GB',
       timeout_minutes: 30,
     },
-    webhooks_enabled: false,
-    is_pooled: false,
+
   });
 
   useEffect(() => {
@@ -88,9 +85,8 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
       setSession({
         browser_type: 'chrome',
         version: 'latest',
-        operating_system: 'linux',
         headless: false,
-        provider: 'docker',
+
         screen: {
           width: 1920,
           height: 1080,
@@ -102,8 +98,6 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
           memory: '4GB',
           timeout_minutes: 30,
         },
-        webhooks_enabled: false,
-        is_pooled: false,
       });
     }
   }, [isModalOpen]);
@@ -442,9 +436,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                           <div className="font-mono text-xs font-medium text-neutral-900">
                             {session.id?.slice(0, 8)}...
                           </div>
-                          <div className="text-xs text-neutral-500">
-                            {session.options?.operating_system || 'N/A'} • {session.options?.headless ? 'Headless' : 'GUI'}
-                          </div>
+
                         </div>
                       </TableCell>
                       <TableCell className="py-3">

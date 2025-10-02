@@ -145,10 +145,7 @@ export default function SessionShow({ session }: { session: Session }) {
                   {currentSession.inserted_at ? new Date(currentSession.inserted_at).toLocaleString() : 'N/A'}
                 </span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Provider</span>
-                <span className="text-xs text-neutral-900">{currentSession.options?.provider || 'N/A'}</span>
-              </div>
+
               {currentSession.options?.timeout && (
                 <div className="flex justify-between py-1">
                   <span className="text-xs text-neutral-600">Timeout</span>
@@ -168,10 +165,6 @@ export default function SessionShow({ session }: { session: Session }) {
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Browser</span>
                 <span className="text-xs text-neutral-900">{currentSession.browser_type} {currentSession.options?.version}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">OS</span>
-                <span className="text-xs text-neutral-900">{currentSession.options?.operating_system || 'N/A'}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Mode</span>

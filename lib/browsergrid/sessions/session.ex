@@ -2,7 +2,6 @@ defmodule Browsergrid.Sessions.Session do
   @moduledoc """
   Ecto schema for a browser session with profile support
   """
-
   use Browsergrid.Schema
 
   @derive {Jason.Encoder, except: [:__meta__, :profile]}
@@ -10,188 +9,152 @@ defmodule Browsergrid.Sessions.Session do
   @browser_types [:chrome, :chromium, :firefox]
   @statuses [:pending, :running, :stopped, :error, :starting, :stopping]
 
-  @type t :: %__MODULE__{
-    id: Ecto.UUID.t() | nil,
-    name: String.t() | nil,
-    browser_type: atom() | nil,
-    status: atom() | nil,
-    options: map() | nil,
-    cluster: String.t() | nil,
-    profile_id: Ecto.UUID.t() | nil,
-    profile_snapshot_created: boolean()
-  }
+  defmodule ScreenOptions do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :width, :integer, default: 1920
+      field :height, :integer, default: 1080
+      field :dpi, :integer, default: 96
+      field :scale, :float, default: 1.0
+    end
+
+    def changeset(schema, params) do
+      schema
+      |> cast(params, [:width, :height, :dpi, :scale])
+      |> validate_number(:width, greater_than: 0)
+      |> validate_number(:height, greater_than: 0)
+    end
+  end
+
+  defmodule ResourceLimits do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :cpu, :string
+      field :memory, :string
+      field :timeout_minutes, :integer, default: 30
+    end
+
+    def changeset(schema, params) do
+      cast(schema, params, [:cpu, :memory, :timeout_minutes])
+    end
+  end
+
+  defmodule SessionOptions do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :headless, :boolean, default: false
+      field :timeout, :integer, default: 30
+      embeds_one :screen, ScreenOptions, on_replace: :update
+      embeds_one :resource_limits, ResourceLimits, on_replace: :update
+    end
+
+    def changeset(schema, params) do
+      schema
+      |> cast(params, [:headless, :timeout])
+      |> cast_embed(:screen)
+      |> cast_embed(:resource_limits)
+    end
+  end
 
   schema "sessions" do
     field :name, :string
     field :browser_type, Ecto.Enum, values: @browser_types, default: :chrome
     field :status, Ecto.Enum, values: @statuses, default: :pending
-    field :options, :map, default: %{}
     field :cluster, :string
     field :profile_snapshot_created, :boolean, default: false
 
-    # Profile association
+    # Use map for backward compatibility, but validate with embedded schema
+    field :options, :map, default: %{}
+
     belongs_to :profile, Browsergrid.Profiles.Profile, type: :binary_id
 
     timestamps()
   end
 
+  # Simplified changesets
   def changeset(session, attrs) do
     session
-    |> cast(attrs, [:name, :browser_type, :status, :options, :cluster, :profile_id, :profile_snapshot_created, :headless, :is_pooled, :operating_system, :provider, :version, :webhooks_enabled])
+    |> cast(attrs, [:name, :browser_type, :status, :cluster, :profile_id, :profile_snapshot_created])
     |> validate_required([:browser_type, :status])
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_inclusion(:status, @statuses)
-    |> validate_profile_browser_compatibility()
+    |> cast_and_validate_options(attrs)
+    |> validate_profile_compatibility()
     |> put_default_name()
-    |> put_default_options()
   end
 
   def create_changeset(attrs) do
     %__MODULE__{}
-    |> cast(attrs, [:name, :browser_type, :options, :cluster, :profile_id, :headless, :is_pooled, :operating_system, :provider, :version, :webhooks_enabled])
+    |> cast(attrs, [:name, :browser_type, :cluster, :profile_id])
     |> validate_inclusion(:browser_type, @browser_types)
-    |> validate_profile_browser_compatibility()
     |> put_change(:status, :pending)
     |> put_change(:profile_snapshot_created, false)
+    |> cast_and_validate_options(attrs)
+    |> validate_profile_compatibility()
     |> put_default_name()
-    |> put_default_options()
   end
 
-  def status_changeset(%__MODULE__{} = session, new_status)
-      when new_status in @statuses do
+  def status_changeset(session, new_status) when new_status in @statuses do
     change(session, status: new_status)
   end
 
-  defp validate_profile_browser_compatibility(changeset) do
-    profile_id = get_field(changeset, :profile_id)
-    browser_type = get_field(changeset, :browser_type)
+  # Private helpers
+  defp cast_and_validate_options(changeset, attrs) do
+    options = get_field(changeset, :options) || %{}
+    incoming = Map.get(attrs, "options") || Map.get(attrs, :options) || %{}
 
-    if profile_id && browser_type do
-      # Load profile to check browser compatibility
-      case Browsergrid.Profiles.get_profile(profile_id) do
-        nil ->
-          add_error(changeset, :profile_id, "profile not found")
-        profile ->
-          if profile.browser_type != browser_type do
-            add_error(changeset, :profile_id,
-              "profile browser type (#{profile.browser_type}) doesn't match session browser type (#{browser_type})")
-          else
-            changeset
-          end
+    # Merge and normalize options
+    merged = Map.merge(default_options(), options) |> Map.merge(incoming)
+
+    # Validate using embedded schema
+    case SessionOptions.changeset(%SessionOptions{}, merged) do
+      %{valid?: true} = opts_changeset ->
+        # Convert back to map for storage
+        validated_options = Ecto.Changeset.apply_changes(opts_changeset) |> Map.from_struct()
+        put_change(changeset, :options, Map.merge(merged, validated_options))
+
+      _invalid ->
+        changeset
+    end
+  end
+
+  defp validate_profile_compatibility(changeset) do
+    with profile_id when not is_nil(profile_id) <- get_field(changeset, :profile_id),
+         browser_type when not is_nil(browser_type) <- get_field(changeset, :browser_type),
+         profile when not is_nil(profile) <- Browsergrid.Profiles.get_profile(profile_id) do
+      if profile.browser_type == browser_type do
+        changeset
+      else
+        add_error(changeset, :profile_id,
+          "browser type mismatch: profile is #{profile.browser_type}, session is #{browser_type}")
       end
+    else
+      _ -> changeset
+    end
+  end
+
+  defp put_default_name(changeset) do
+    if get_field(changeset, :name) in [nil, ""] do
+      put_change(changeset, :name, "Session #{:rand.uniform(9999)}")
     else
       changeset
     end
   end
 
-  defp put_default_name(changeset) do
-    case get_field(changeset, :name) do
-      nil -> put_change(changeset, :name, generate_session_name())
-      "" -> put_change(changeset, :name, generate_session_name())
-      _ -> changeset
-    end
-  end
-
-  defp put_default_options(changeset) do
-    default_options = %{
+  defp default_options do
+    %{
       "headless" => false,
       "timeout" => 30,
-      "screen_width" => 1920,
-      "screen_height" => 1080,
-      "profile_enabled" => get_field(changeset, :profile_id) != nil
+      "screen" => %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0}
     }
-
-    # Extract additional fields from changeset and put them in options
-    extra_options = %{}
-    extra_options = put_extra_option(changeset, extra_options, :headless)
-    extra_options = put_extra_option(changeset, extra_options, :is_pooled)
-    extra_options = put_extra_option(changeset, extra_options, :operating_system)
-    extra_options = put_extra_option(changeset, extra_options, :provider)
-    extra_options = put_extra_option(changeset, extra_options, :version)
-    extra_options = put_extra_option(changeset, extra_options, :webhooks_enabled)
-
-    options = get_field(changeset, :options) || %{}
-    # Merge extra options with existing options
-    all_options = Map.merge(options, extra_options)
-
-    # Handle nested structures from frontend
-    flattened_options = flatten_frontend_options(all_options)
-    processed_options = process_option_values(flattened_options)
-    merged_options = Map.merge(default_options, processed_options)
-
-    put_change(changeset, :options, merged_options)
-  end
-
-  defp process_option_values(options) do
-    options
-    |> Enum.map(fn {key, value} -> {key, process_option_value(key, value)} end)
-    |> Map.new()
-  end
-
-  defp process_option_value("headless", value) when is_binary(value) do
-    value == "true"
-  end
-  defp process_option_value("timeout", value) when is_binary(value) do
-    case Integer.parse(value) do
-      {int, _} -> int
-      :error -> 30
-    end
-  end
-  defp process_option_value("screen_width", value) when is_binary(value) do
-    case Integer.parse(value) do
-      {int, _} -> int
-      :error -> 1920
-    end
-  end
-  defp process_option_value("screen_height", value) when is_binary(value) do
-    case Integer.parse(value) do
-      {int, _} -> int
-      :error -> 1080
-    end
-  end
-  defp process_option_value(_key, value), do: value
-
-  # Extract cast fields that should go into options
-  defp put_extra_option(changeset, options, field) do
-    case get_change(changeset, field) do
-      nil -> options
-      value -> Map.put(options, Atom.to_string(field), value)
-    end
-  end
-
-  # Flatten nested frontend options into the format expected by the schema
-  defp flatten_frontend_options(options) do
-    options
-    |> flatten_screen_options()
-    |> flatten_resource_limits_options()
-  end
-
-  defp flatten_screen_options(options) do
-    case options["screen"] do
-      nil -> options
-      screen when is_map(screen) ->
-        options
-        |> Map.delete("screen")
-        |> Map.put("screen_width", screen["width"] || 1920)
-        |> Map.put("screen_height", screen["height"] || 1080)
-        |> Map.put("screen_dpi", screen["dpi"] || 96)
-        |> Map.put("screen_scale", screen["scale"] || 1.0)
-    end
-  end
-
-  defp flatten_resource_limits_options(options) do
-    case options["resource_limits"] do
-      nil -> options
-      limits when is_map(limits) ->
-        options
-        |> Map.delete("resource_limits")
-        |> Map.put("cpu_cores", limits["cpu"])
-        |> Map.put("memory_limit", limits["memory"])
-        |> Map.put("timeout", limits["timeout_minutes"] || 30)
-    end
-  end
-
-  defp generate_session_name do
-    "Session #{:rand.uniform(9999)}"
   end
 end

@@ -81,7 +81,7 @@ export default function Overview({ stats, sessions }: { stats: any, sessions: an
                     <div>
                       <div className="font-medium">{session.id?.slice(0, 8)}...</div>
                       <div className="text-sm text-muted-foreground">
-                        {session.browser} {session.version} • {session.operating_system}
+                        {session.browser} {session.version}
                       </div>
                     </div>
                     <div className="text-sm">

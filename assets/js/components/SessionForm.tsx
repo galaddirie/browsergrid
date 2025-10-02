@@ -118,40 +118,7 @@ export function SessionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-gray-700 uppercase tracking-wider">Operating System</Label>
-              <Select
-                value={session.operating_system}
-                onValueChange={(value: OperatingSystem) => updateSession({ operating_system: value })}
-              >
-                <SelectTrigger className="h-9 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 transition-colors">
-                  <SelectValue placeholder="Select OS" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="linux">Linux</SelectItem>
-                  <SelectItem value="windows">Windows</SelectItem>
-                  <SelectItem value="macos">macOS</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-gray-700 uppercase tracking-wider">Provider</Label>
-              <Select
-                value={session.provider || 'docker'}
-                onValueChange={(value: string) => updateSession({ provider: value })}
-              >
-                <SelectTrigger className="h-9 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 transition-colors">
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="docker">Docker</SelectItem>
-                  <SelectItem value="local">Local</SelectItem>
-                  <SelectItem value="kubernetes">Kubernetes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+  
 
           <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
             <div className="flex items-center gap-2">
@@ -389,37 +356,9 @@ export function SessionForm({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                <Label htmlFor="webhooks" className="text-sm text-gray-700 cursor-pointer">Enable webhooks</Label>
-              </div>
-              <Switch
-                id="webhooks"
-                checked={session.webhooks_enabled || false}
-                onCheckedChange={(checked: boolean) => updateSession({ webhooks_enabled: checked })}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                <Label htmlFor="pooled" className="text-sm text-gray-700 cursor-pointer">Use session pooling</Label>
-              </div>
-              <Switch
-                id="pooled"
-                checked={session.is_pooled || false}
-                onCheckedChange={(checked: boolean) => updateSession({ is_pooled: checked })}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </div>
           </div>
         </div>
-      </div>
-    </div>
+
 
   );
 } 

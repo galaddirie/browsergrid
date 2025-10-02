@@ -13,8 +13,7 @@ defmodule Browsergrid.Factory do
         "screen_width" => 1920,
         "screen_height" => 1080
       },
-      cluster: "default",
-      profile_snapshot_created: false
+      cluster: "default"
     }
   end
 

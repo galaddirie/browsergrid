@@ -25,11 +25,7 @@ export interface Session {
   status?: string;
   options?: {
     headless?: boolean;
-    is_pooled?: boolean;
-    operating_system?: OperatingSystem;
-    provider?: string;
     version?: BrowserVersion;
-    webhooks_enabled?: boolean;
     screen_width?: number;
     screen_height?: number;
     screen_dpi?: number;
@@ -42,7 +38,6 @@ export interface Session {
   };
   cluster?: string;
   profile_id?: string;
-  profile_snapshot_created?: boolean;
   inserted_at?: string;
   updated_at?: string;
   // Optional profile relation (when preloaded)
@@ -69,14 +64,10 @@ export interface SessionFormData {
   name?: string;
   browser_type?: Browser;
   version?: BrowserVersion;
-  operating_system?: OperatingSystem;
   headless?: boolean;
-  provider?: string;
   profile_id?: string;
   screen?: ScreenConfig;
   resource_limits?: ResourceLimits;
-  webhooks_enabled?: boolean;
-  is_pooled?: boolean;
 }
 
 // API Response Interface (matches API view)
@@ -88,11 +79,7 @@ export interface SessionAPI {
   cluster?: string;
   options: {
     headless?: boolean;
-    is_pooled?: boolean;
-    operating_system?: OperatingSystem;
-    provider?: string;
     version?: BrowserVersion;
-    webhooks_enabled?: boolean;
     screen_width?: number;
     screen_height?: number;
     screen_dpi?: number;
@@ -121,35 +108,10 @@ export interface SessionEditProps {
   errors?: Record<string, string>;
 }
 
-// Utility functions for converting between Session and SessionFormData
-export function sessionToFormData(session: Session): SessionFormData {
-  const options = session.options || {};
-
-  return {
-    id: session.id,
-    name: session.name,
-    browser_type: session.browser_type,
-    version: options.version as BrowserVersion,
-    operating_system: options.operating_system as OperatingSystem,
-    headless: options.headless,
-    provider: options.provider,
-    profile_id: session.profile_id || undefined,
-    screen: options.screen_width ? {
-      width: options.screen_width,
-      height: options.screen_height || 1080,
-      dpi: options.screen_dpi || 96,
-      scale: options.screen_scale || 1.0
-    } : undefined,
-    resource_limits: (options.cpu_cores !== undefined || options.memory_limit !== undefined || options.timeout !== undefined) ? {
-      cpu: options.cpu_cores,
-      memory: options.memory_limit,
-      timeout_minutes: options.timeout
-    } : undefined,
-    webhooks_enabled: options.webhooks_enabled,
-    is_pooled: options.is_pooled
-  };
-}
-
+/**
+ * Convert form data to API payload
+ * Flattens nested structures into options map
+ */
 export function formDataToSession(formData: SessionFormData): Partial<Session> {
   const session: Partial<Session> = {
     name: formData.name,
@@ -158,28 +120,73 @@ export function formDataToSession(formData: SessionFormData): Partial<Session> {
     options: {}
   };
 
-  const options: any = {};
+  // Simple fields that go into options
+  const simpleOptions = {
+    version: formData.version,
+    headless: formData.headless,
 
-  if (formData.version) options.version = formData.version;
-  if (formData.operating_system) options.operating_system = formData.operating_system;
-  if (formData.headless !== undefined) options.headless = formData.headless;
-  if (formData.provider) options.provider = formData.provider;
-  if (formData.webhooks_enabled !== undefined) options.webhooks_enabled = formData.webhooks_enabled;
-  if (formData.is_pooled !== undefined) options.is_pooled = formData.is_pooled;
+  };
 
+  // Add simple options (filter out undefined)
+  Object.entries(simpleOptions).forEach(([key, value]) => {
+    if (value !== undefined) {
+      session.options![key] = value;
+    }
+  });
+
+  // Flatten screen config into options
   if (formData.screen) {
-    options.screen_width = formData.screen.width;
-    options.screen_height = formData.screen.height;
-    options.screen_dpi = formData.screen.dpi;
-    options.screen_scale = formData.screen.scale;
+    session.options!.screen_width = formData.screen.width;
+    session.options!.screen_height = formData.screen.height;
+    session.options!.screen_dpi = formData.screen.dpi;
+    session.options!.screen_scale = formData.screen.scale;
   }
 
+  // Flatten resource limits into options
   if (formData.resource_limits) {
-    if (formData.resource_limits.cpu !== undefined) options.cpu_cores = formData.resource_limits.cpu;
-    if (formData.resource_limits.memory) options.memory_limit = formData.resource_limits.memory;
-    if (formData.resource_limits.timeout_minutes !== undefined) options.timeout = formData.resource_limits.timeout_minutes;
+    if (formData.resource_limits.cpu !== undefined) {
+      session.options!.cpu_cores = formData.resource_limits.cpu;
+    }
+    if (formData.resource_limits.memory) {
+      session.options!.memory_limit = formData.resource_limits.memory;
+    }
+    if (formData.resource_limits.timeout_minutes !== undefined) {
+      session.options!.timeout = formData.resource_limits.timeout_minutes;
+    }
   }
 
-  session.options = options;
   return session;
+}
+
+/**
+ * Convert API session to form data
+ * Extracts options back into nested structure
+ */
+export function sessionToFormData(session: Session): SessionFormData {
+  const options = session.options || {};
+
+  return {
+    name: session.name,
+    browser_type: session.browser_type,
+    profile_id: session.profile_id,
+
+    // Extract simple options
+    version: options.version as BrowserVersion,
+    headless: options.headless,
+
+    // Reconstruct screen config
+    screen: {
+      width: options.screen_width || 1920,
+      height: options.screen_height || 1080,
+      dpi: options.screen_dpi || 96,
+      scale: options.screen_scale || 1.0
+    },
+
+    // Reconstruct resource limits
+    resource_limits: {
+      cpu: options.cpu_cores,
+      memory: options.memory_limit,
+      timeout_minutes: options.timeout || 30
+    }
+  };
 }

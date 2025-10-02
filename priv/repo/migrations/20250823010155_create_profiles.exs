@@ -2,7 +2,6 @@ defmodule Browsergrid.Repo.Migrations.CreateProfiles do
   use Ecto.Migration
 
   def change do
-    # Create profiles table
     create table(:profiles, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :name, :string, null: false
@@ -25,7 +24,6 @@ defmodule Browsergrid.Repo.Migrations.CreateProfiles do
     create index(:profiles, [:last_used_at])
     create unique_index(:profiles, [:name, :user_id])
 
-    # Create profile snapshots table
     create table(:profile_snapshots, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :version, :integer, null: false
@@ -42,7 +40,6 @@ defmodule Browsergrid.Repo.Migrations.CreateProfiles do
     create index(:profile_snapshots, [:version])
     create index(:profile_snapshots, [:created_by_session_id])
 
-    # Add profile reference to sessions table
     alter table(:sessions) do
       add :profile_id, references(:profiles, type: :binary_id, on_delete: :nilify_all)
       add :profile_snapshot_created, :boolean, default: false
