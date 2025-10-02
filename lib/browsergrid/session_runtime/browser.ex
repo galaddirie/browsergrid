@@ -57,8 +57,8 @@ defmodule Browsergrid.SessionRuntime.Browser do
     ready_path = Keyword.get(config, :ready_path, "/health")
     started_at = System.monotonic_time(:millisecond)
 
-    with {:ok, client} <- Kubernetes.client(),
-         {:ok, pod} <- wait_for_pod_ready(client, state, poll_ms, timeout_ms, started_at),
+    with {:ok, conn} <- Kubernetes.client(),
+         {:ok, pod} <- wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at),
          {:ok, pod_ip} <- extract_pod_ip(pod),
          :ok <- wait_for_http_ready(pod_ip, state.http_port, ready_path, poll_ms, timeout_ms, started_at) do
       {:ok, %{state | pod_ip: pod_ip}}
@@ -73,10 +73,11 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   def stop(%{mode: :kubernetes, pod_name: pod_name, namespace: namespace}) do
-    with {:ok, client} <- Kubernetes.client() do
-      op = K8s.Client.delete("v1", :pod, pod_name, namespace: namespace, gracePeriodSeconds: 0)
+    with {:ok, conn} <- Kubernetes.client() do
+      op = K8s.Client.delete("v1", :pod, [namespace: namespace, name: pod_name])
+           |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
 
-      case Kubernetes.run(client, op) do
+      case Kubernetes.run(conn, op) do
         {:ok, _} -> :ok
         {:error, %K8s.Client.APIError{reason: :not_found}} -> :ok
         {:error, reason} ->
@@ -122,7 +123,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
       if is_nil(http_port) do
         {:error, :missing_http_port_configuration}
       else
-        with {:ok, client} <- Kubernetes.client(),
+        with {:ok, conn} <- Kubernetes.client(),
              namespace <- Keyword.get(kube_config, :namespace, "browsergrid"),
              pod_name <- pod_name(session_id),
              spec <-
@@ -135,8 +136,8 @@ defmodule Browsergrid.SessionRuntime.Browser do
                  kube_config,
                  pod_name
                ),
-             :ok <- ensure_pod_absent(client, namespace, pod_name),
-             {:ok, _pod} <- create_pod(client, namespace, spec) do
+             :ok <- ensure_pod_absent(conn, namespace, pod_name),
+             {:ok, _pod} <- create_pod(conn, namespace, spec) do
           {:ok,
            %{
              mode: :kubernetes,
@@ -156,10 +157,10 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp create_pod(client, namespace, spec) do
-    op = K8s.Client.create("v1", :pod, spec, namespace: namespace)
+  defp create_pod(conn, namespace, spec) do
+    op = K8s.Client.create("v1", :pod, spec, [namespace: namespace])
 
-    case Kubernetes.run(client, op) do
+    case Kubernetes.run(conn, op) do
       {:ok, pod} -> {:ok, pod}
       {:error, %K8s.Client.APIError{reason: :already_exists}} ->
         {:error, :pod_already_exists}
@@ -170,12 +171,13 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp ensure_pod_absent(client, namespace, pod_name) do
-    op = K8s.Client.delete("v1", :pod, pod_name, namespace: namespace, gracePeriodSeconds: 0)
+  defp ensure_pod_absent(conn, namespace, pod_name) do
+    op = K8s.Client.delete("v1", :pod, [namespace: namespace, name: pod_name])
+         |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
 
-    case Kubernetes.run(client, op) do
+    case Kubernetes.run(conn, op) do
       {:ok, _} ->
-        wait_for_deletion(client, namespace, pod_name, 30, 500)
+        wait_for_deletion(conn, namespace, pod_name, 30, 500)
 
       {:error, %K8s.Client.APIError{reason: :not_found}} ->
         :ok
@@ -186,15 +188,15 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp wait_for_deletion(client, namespace, pod_name, 0, _poll), do: :ok
+  defp wait_for_deletion(_client, _namespace, _pod_name, 0, _poll), do: :ok
 
-  defp wait_for_deletion(client, namespace, pod_name, attempts, poll) do
-    op = K8s.Client.get("v1", :pod, pod_name, namespace: namespace)
+  defp wait_for_deletion(conn, namespace, pod_name, attempts, poll) do
+    op = K8s.Client.get("v1", :pod, [namespace: namespace, name: pod_name])
 
-    case Kubernetes.run(client, op) do
+    case Kubernetes.run(conn, op) do
       {:ok, _pod} ->
         Process.sleep(poll)
-        wait_for_deletion(client, namespace, pod_name, attempts - 1, poll)
+        wait_for_deletion(conn, namespace, pod_name, attempts - 1, poll)
 
       {:error, %K8s.Client.APIError{reason: :not_found}} ->
         :ok
@@ -204,13 +206,13 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp wait_for_pod_ready(client, state, poll_ms, timeout_ms, started_at) do
+  defp wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at) do
     now = System.monotonic_time(:millisecond)
 
     if now - started_at > timeout_ms do
       {:error, :timeout}
     else
-      case fetch_pod(client, state) do
+      case fetch_pod(conn, state) do
         {:ok, pod} ->
           case {pod_phase(pod), containers_ready?(pod)} do
             {"Running", true} -> {:ok, pod}
@@ -218,12 +220,12 @@ defmodule Browsergrid.SessionRuntime.Browser do
               {:error, {:pod_failed, phase, pod}}
             _ ->
               Process.sleep(poll_ms)
-              wait_for_pod_ready(client, state, poll_ms, timeout_ms, started_at)
+              wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
           end
 
         {:error, %K8s.Client.APIError{reason: :not_found}} ->
           Process.sleep(poll_ms)
-          wait_for_pod_ready(client, state, poll_ms, timeout_ms, started_at)
+          wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
 
         {:error, reason} ->
           {:error, reason}
@@ -231,7 +233,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp wait_for_http_ready(_host, _port, _path, _poll_ms, timeout_ms, started_at)
+  defp wait_for_http_ready(_host, _port, _path, _poll_ms, timeout_ms, _started_at)
        when timeout_ms <= 0 do
     {:error, :timeout}
   end
@@ -263,9 +265,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp fetch_pod(client, %{pod_name: pod_name, namespace: namespace}) do
-    op = K8s.Client.get("v1", :pod, pod_name, namespace: namespace)
-    Kubernetes.run(client, op)
+  defp fetch_pod(conn, %{pod_name: pod_name, namespace: namespace}) do
+    op = K8s.Client.get("v1", :pod, [namespace: namespace, name: pod_name])
+    Kubernetes.run(conn, op)
   end
 
   defp pod_phase(pod) do

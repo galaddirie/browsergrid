@@ -10,17 +10,15 @@ defmodule Browsergrid.Kubernetes do
 
   require Logger
 
-  @spec client() :: {:ok, K8s.Client.t()} | {:error, term()}
+  @spec client() :: {:ok, K8s.Conn.t()} | {:error, term()}
   def client do
     config = SessionRuntime.kubernetes_config()
 
-    with {:ok, conn} <- build_conn(config),
-         {:ok, client} <- K8s.Client.connect(conn) do
-      {:ok, client}
-    else
-      {:error, reason} = error ->
-        Logger.error("failed to establish kubernetes client: #{inspect(reason)}")
-        error
+    case build_conn(config) do
+      {:ok, conn} -> {:ok, conn}
+      {:error, reason} ->
+        Logger.error("failed to establish kubernetes connection: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -71,9 +69,9 @@ defmodule Browsergrid.Kubernetes do
     end
   end
 
-  @spec run(K8s.Client.t(), K8s.Operation.t()) :: {:ok, map()} | {:error, term()}
-  def run(client, %K8s.Operation{} = operation) do
-    case K8s.Client.run(client, operation) do
+  @spec run(K8s.Conn.t(), K8s.Operation.t()) :: {:ok, map()} | {:error, term()}
+  def run(conn, %K8s.Operation{} = operation) do
+    case K8s.Client.run(conn, operation) do
       {:ok, _} = ok -> ok
       {:error, %K8s.Client.APIError{} = error} -> {:error, error}
       {:error, reason} -> {:error, reason}
