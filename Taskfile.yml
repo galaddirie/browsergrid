@@ -67,7 +67,7 @@ tasks:
 
   dev:up:
     desc: Deploy Browsergrid into the local cluster
-    deps: [k8s:bootstrap, dev:build]
+    deps: [k8s:bootstrap, dev:build, resources:start]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/deployment.yaml
 
