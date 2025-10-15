@@ -22,6 +22,12 @@ defmodule BrowsergridWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :session_proxy do
+    plug :accepts, ["json", "html"]
+    plug :fetch_session
+    plug :put_secure_browser_headers
+  end
+
   scope "/", BrowsergridWeb do
     pipe_through :browser
 
@@ -74,7 +80,7 @@ defmodule BrowsergridWeb.Router do
   get "/healthz", BrowsergridWeb.HealthController, :healthz
 
   scope "/sessions/:id", BrowsergridWeb do
-    pipe_through :api
+    pipe_through :session_proxy
 
     match :*, "/http/*path", SessionProxyController, :proxy
     get "/ws", SessionProxyController, :websocket
