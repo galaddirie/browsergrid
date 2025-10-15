@@ -79,7 +79,8 @@ defmodule Browsergrid.SessionRuntime.Browser do
 
       case Kubernetes.run(conn, op) do
         {:ok, _} -> :ok
-        {:error, %K8s.Client.APIError{reason: :not_found}} -> :ok
+        {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
+          :ok
         {:error, reason} ->
           Logger.error("failed to delete pod #{pod_name} in namespace #{namespace}: #{inspect(reason)}")
           {:error, reason}
@@ -158,7 +159,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   defp create_pod(conn, namespace, spec) do
-    op = K8s.Client.create("v1", :pod, spec, [namespace: namespace])
+    op = K8s.Client.create("v1", :pod, [namespace: namespace], spec)
 
     case Kubernetes.run(conn, op) do
       {:ok, pod} -> {:ok, pod}
@@ -179,7 +180,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
       {:ok, _} ->
         wait_for_deletion(conn, namespace, pod_name, 30, 500)
 
-      {:error, %K8s.Client.APIError{reason: :not_found}} ->
+      {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
         :ok
 
       {:error, reason} ->
@@ -198,7 +199,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
         Process.sleep(poll)
         wait_for_deletion(conn, namespace, pod_name, attempts - 1, poll)
 
-      {:error, %K8s.Client.APIError{reason: :not_found}} ->
+      {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
         :ok
 
       {:error, _} ->
@@ -223,7 +224,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
               wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
           end
 
-        {:error, %K8s.Client.APIError{reason: :not_found}} ->
+        {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
           Process.sleep(poll_ms)
           wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
 
