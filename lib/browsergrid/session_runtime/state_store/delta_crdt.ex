@@ -90,6 +90,7 @@ defmodule Browsergrid.SessionRuntime.StateStore.DeltaCrdt do
       ttl = ttl_ms()
       entry = %{data: snapshot, updated_at: now, expires_at: now + ttl}
       DeltaCrdt.put(crdt, session_id, entry, :infinity)
+      :ok
     end
   end
 

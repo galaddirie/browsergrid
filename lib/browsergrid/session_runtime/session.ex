@@ -67,7 +67,7 @@ defmodule Browsergrid.SessionRuntime.Session do
       StateStore.put(session_id, build_snapshot(state))
       {:ok, schedule_checkpoint(state)}
     else
-      {:error, reason} = error ->
+      {:error, reason} ->
         Logger.error("Session init failed: #{inspect(reason)}")
         {:stop, reason}
     end

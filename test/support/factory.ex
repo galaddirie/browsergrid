@@ -7,13 +7,11 @@ defmodule Browsergrid.Factory do
       name: sequence(:name, &"Session #{&1}"),
       browser_type: :chrome,
       status: :pending,
-      options: %{
-        "headless" => false,
-        "timeout" => 30,
-        "screen_width" => 1920,
-        "screen_height" => 1080
-      },
-      cluster: "default"
+      cluster: "default",
+      screen: %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0},
+      limits: %{"cpu" => nil, "memory" => nil, "timeout_minutes" => 30},
+      headless: false,
+      timeout: 30
     }
   end
 
@@ -94,8 +92,7 @@ defmodule Browsergrid.Factory do
 
     build(:session,
       profile_id: profile.id,
-      browser_type: profile.browser_type,
-      options: Map.put(%{}, "profile_enabled", true)
+      browser_type: profile.browser_type
     )
   end
 
@@ -105,5 +102,16 @@ defmodule Browsergrid.Factory do
     insert(:route, id: session.id)
 
     session
+  end
+
+  def session_audit_factory do
+    session = insert(:session)
+
+    %Browsergrid.Sessions.Audit{
+      id: Ecto.UUID.generate(),
+      action: "session_started",
+      metadata: %{"browser_type" => "chrome", "cluster" => "default"},
+      session_id: session.id
+    }
   end
 end

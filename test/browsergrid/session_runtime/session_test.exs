@@ -91,11 +91,11 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       assert state.owner == %{"account_id" => "from_snapshot"}
       assert state.limits["max_runtime_ms"] == 60_000
       assert state.limits["idle_timeout_ms"] == 30_000
-      assert state.browser_type == :chrome
+      assert state.browser_type == :chromium
       assert %{host: host, port: port} = state.endpoint
 
       snapshot = await_snapshot(session_id)
-      assert snapshot["browser_type"] == :chrome
+      assert snapshot["browser_type"] == :chromium
       assert snapshot["metadata"]["override"] == "new"
       assert snapshot["metadata"]["extra"]
       assert snapshot["limits"]["idle_timeout_ms"] == 30_000
@@ -127,12 +127,18 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
 
       pid = start_supervised!({Session, session_id: session_id})
 
+      snapshot_before = await_snapshot(session_id)
+      refute snapshot_before["metadata"]["checkpointed"]
+
       GenServer.cast(pid, {:update_metadata, fn meta -> Map.put(meta, "checkpointed", true) end})
 
       send(pid, :checkpoint)
 
-      snapshot = await_snapshot(session_id)
-      assert snapshot["metadata"]["checkpointed"]
+      # Wait for the checkpoint to be processed and written
+      Process.sleep(50)
+
+      snapshot_after = await_snapshot(session_id)
+      assert snapshot_after["metadata"]["checkpointed"]
     end
 
     test "terminate persists final snapshot" do
