@@ -82,8 +82,7 @@ defmodule BrowsergridWeb.Router do
   scope "/sessions/:id", BrowsergridWeb do
     pipe_through :session_proxy
 
-    match :*, "/http/*path", SessionProxyController, :proxy
-    get "/ws", SessionProxyController, :websocket
+    match :*, "/edge/*path", SessionProxyController, :proxy
   end
 
   # API V1 Routes - Main API
