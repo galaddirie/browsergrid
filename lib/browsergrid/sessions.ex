@@ -46,9 +46,15 @@ defmodule Browsergrid.Sessions do
   end
 
   def create_session_with_profile(attrs, profile_id) do
-    attrs
-    |> Map.put("profile_id", profile_id)
-    |> create_session()
+    case Browsergrid.Profiles.get_profile(profile_id) do
+      nil ->
+        {:error, :not_found}
+      profile ->
+        attrs
+        |> Map.put(:profile_id, profile_id)
+        |> Map.put_new(:browser_type, profile.browser_type)
+        |> create_session()
+    end
   end
 
   def clone_session(%Session{} = session) do
@@ -231,11 +237,11 @@ defmodule Browsergrid.Sessions do
 
   defp serialize_limits(nil), do: %{}
   defp serialize_limits(%Ecto.Association.NotLoaded{}), do: %{}
-  defp serialize_limits(limits) do
+  defp serialize_limits(limits) when is_map(limits) do
     %{
-      "cpu" => limits.cpu,
-      "memory" => limits.memory,
-      "timeout_minutes" => limits.timeout_minutes
+      "cpu" => Map.get(limits, "cpu"),
+      "memory" => Map.get(limits, "memory"),
+      "timeout_minutes" => Map.get(limits, "timeout_minutes")
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
     |> Map.new()
