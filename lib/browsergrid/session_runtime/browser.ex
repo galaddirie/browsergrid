@@ -489,8 +489,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
       |> String.trim("-")
 
     hash =
-      session_id
-      |> :crypto.hash(:sha256)
+      :crypto.hash(:sha256, session_id)
       |> Base.encode16(case: :lower)
       |> binary_part(0, 6)
 
