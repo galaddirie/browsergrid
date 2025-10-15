@@ -226,8 +226,8 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp build_endpoint(nil), do: nil
-  defp build_endpoint(%{pod_ip: host, http_port: port, vnc_port: vnc}) do
-    %{host: host, port: port, vnc_port: vnc, scheme: "http"}
+  defp build_endpoint(%{pod_ip: host, http_port: port}) do
+    %{host: host, port: port, scheme: "http"}
   end
 
   defp describe(state) do
@@ -267,12 +267,7 @@ defmodule Browsergrid.SessionRuntime.Session do
 
   defp serialize_endpoint(nil), do: nil
   defp serialize_endpoint(%{host: host, port: port} = endpoint) do
-    base = %{"host" => host, "port" => port, "scheme" => Map.get(endpoint, :scheme, "http")}
-
-    case Map.get(endpoint, :vnc_port) do
-      nil -> base
-      vnc -> Map.put(base, "vnc_port", vnc)
-    end
+    %{"host" => host, "port" => port, "scheme" => Map.get(endpoint, :scheme, "http")}
   end
 
   defp schedule_checkpoint(state) do

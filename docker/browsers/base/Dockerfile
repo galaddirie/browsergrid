@@ -25,8 +25,6 @@ ENV LC_ALL=en_US.UTF-8
 
 # Screen environment
 ENV DISPLAY=:1
-ENV VNC_PORT=5900
-ENV VNC_PASSWORD=password
 ENV RESOLUTION_WIDTH=1920
 ENV RESOLUTION_HEIGHT=1080
 ENV RESOLUTION_DEPTH=24
@@ -43,13 +41,10 @@ ENV SW_SERVER_PORT=8082
 RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     xvfb \
-    x11vnc \
-    novnc \
     xterm \
     dbus-x11 \
     net-tools \
     software-properties-common \
-    websockify \
     locales \
     tzdata \
     ca-certificates \

@@ -23,7 +23,6 @@ defmodule Browsergrid.SessionRuntime do
     browser: [
       mode: :kubernetes,
       http_port: 80,
-      vnc_port: 6080,
       ready_path: "/health",
       ready_timeout_ms: 120_000,
       ready_poll_interval_ms: 1_000

@@ -41,16 +41,6 @@ config :browsergrid, Browsergrid.SessionRuntime,
             :error -> 80
           end
       end,
-    vnc_port:
-      System.get_env("BROWSERGRID_BROWSER_VNC_PORT")
-      |> case do
-        nil -> 6080
-        value ->
-          case Integer.parse(value) do
-            {int, _} -> int
-            :error -> 6080
-          end
-      end,
     ready_path: System.get_env("BROWSERGRID_BROWSER_HEALTH_PATH") || "/health",
     ready_timeout_ms:
       System.get_env("BROWSERGRID_BROWSER_READY_TIMEOUT_MS")

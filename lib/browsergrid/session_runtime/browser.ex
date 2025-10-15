@@ -22,7 +22,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
           namespace: String.t() | nil,
           pod_ip: String.t() | nil,
           http_port: non_neg_integer(),
-          vnc_port: non_neg_integer() | nil,
           profile_mount_path: String.t() | nil,
           stub: map() | nil
         }
@@ -106,7 +105,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
        namespace: nil,
        pod_ip: "127.0.0.1",
        http_port: 0,
-       vnc_port: nil,
        profile_mount_path: profile_dir,
        stub: %{pid: pid, ref: ref}
      }}
@@ -149,7 +147,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
              namespace: namespace,
              pod_ip: nil,
              http_port: http_port,
-             vnc_port: Keyword.get(config, :vnc_port),
              profile_mount_path: Keyword.get(kube_config, :profile_volume_mount_path),
              stub: nil
            }}
@@ -290,7 +287,6 @@ defmodule Browsergrid.SessionRuntime.Browser do
   defp build_pod_spec(session_id, profile_dir, context, browser_type, config, kube_config, pod_name) do
     image = image_for(kube_config, browser_type)
     http_port = Keyword.fetch!(config, :http_port)
-    vnc_port = Keyword.get(config, :vnc_port)
     profile_mount_path = Keyword.get(kube_config, :profile_volume_mount_path, "/home/user/data-dir")
 
     {volumes, mounts} = volume_config(kube_config, session_id, profile_dir, profile_mount_path)
@@ -301,15 +297,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
       |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
       |> Enum.map(fn {k, v} -> %{"name" => k, "value" => to_string(v)} end)
 
-    ports =
-      [
-        %{"containerPort" => http_port, "name" => "http"}
-      ] ++
-        if vnc_port do
-          [%{"containerPort" => vnc_port, "name" => "vnc"}]
-        else
-          []
-        end
+    ports = [
+      %{"containerPort" => http_port, "name" => "http"}
+    ]
 
     resources = %{
       "requests" => %{
