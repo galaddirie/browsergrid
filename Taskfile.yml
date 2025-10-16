@@ -3,6 +3,8 @@ version: '3'
 vars:
   KIND_CLUSTER: browsergrid-dev
   KUBECONFIG: "{{.ROOT_DIR}}/kubeconfig"
+  BROWSER: '{{.BROWSER | default "chrome"}}'
+  BROWSER_TYPES: "chrome chromium"
 
 tasks:
   kind:create:
@@ -51,12 +53,53 @@ tasks:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" apply -f k8s/local/base.yaml
 
   browsers:load:
-    desc: Build and load browser images into the kind cluster
-    deps: [kind:create]
+    desc: Build and load browser images into the kind cluster (use BROWSER=chrome|chromium)
+    deps: [kind:create, browsers:build]
     cmds:
-      - docker build -f docker/browsers/base/Dockerfile -t browsergrid/base:latest .
-      - docker build -f docker/browsers/chrome/Dockerfile -t browsergrid/chrome:latest .
-      - kind load docker-image browsergrid/base:latest browsergrid/chrome:latest --name {{.KIND_CLUSTER}}
+      - kind load docker-image browsergrid/base:latest browsergrid/{{.BROWSER}}:latest --name {{.KIND_CLUSTER}}
+
+  browsers:build:
+    desc: Build browser images using docker-compose (use BROWSER=chrome|chromium)
+    cmds:
+      - |
+        if ! echo "{{.BROWSER_TYPES}}" | grep -q "{{.BROWSER}}"; then
+          echo "Error: Invalid browser type '{{.BROWSER}}'"
+          echo "Supported browsers: {{.BROWSER_TYPES}}"
+          exit 1
+        fi
+        echo "Building browser base..."
+        BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml build base
+        echo "Building {{.BROWSER}} image..."
+        BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml build browser
+
+  browsers:up:
+    desc: Spin up browser container in docker-compose (use BROWSER=chrome|chromium)
+    cmds:
+      - |
+        if ! echo "{{.BROWSER_TYPES}}" | grep -q "{{.BROWSER}}"; then
+          echo "Error: Invalid browser type '{{.BROWSER}}'"
+          echo "Supported browsers: {{.BROWSER_TYPES}}"
+          exit 1
+        fi
+        echo "Starting services with {{.BROWSER}}..."
+        BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml up -d browser
+
+  browsers:logs:
+    desc: View logs from browser container (use BROWSER=chrome|chromium)
+    cmds:
+      - BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml logs -f browser
+
+  browsers:shell:
+    desc: Open shell in browser container (use BROWSER=chrome|chromium)
+    cmds:
+      - |
+        echo "Opening shell in {{.BROWSER}} container..."
+        BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml exec browser /bin/bash
+
+  browsers:down:
+    desc: Stop browser container (use BROWSER=chrome|chromium)
+    cmds:
+      - BROWSER={{.BROWSER}} docker-compose -f docker/docker-compose.browsers.yml down
 
   dev:build:
     desc: Build the Browsergrid server image and load it into kind
