@@ -74,6 +74,7 @@ tasks:
 
   browsers:up:
     desc: Spin up browser container in docker-compose (use BROWSER=chrome|chromium)
+    deps: [browsers:build]
     cmds:
       - |
         if ! echo "{{.BROWSER_TYPES}}" | grep -q "{{.BROWSER}}"; then
