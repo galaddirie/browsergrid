@@ -50,23 +50,149 @@ defmodule BrowsergridWeb.SessionProxyController do
   end
 
   defp handle_http(conn, session_id, path, base_path) do
-    with {:ok, %{host: host, port: port}} <- SessionRuntime.upstream_endpoint(session_id),
-         {:ok, body, conn} <- read_full_body(conn),
-         request = build_proxied_request(conn, host, port, path, body, base_path),
-         {:ok, response} <- Finch.request(request, Browsergrid.Finch) do
-      send_proxied_response(conn, response)
+    with {:ok, %{host: host, port: port}} <- SessionRuntime.upstream_endpoint(session_id) do
+      cond do
+        stream_request?(conn, path) ->
+          stream_proxied_response(conn, host, port, path, base_path)
+
+        true ->
+          with {:ok, body, conn} <- read_full_body(conn),
+               request = build_proxied_request(conn, host, port, path, body, base_path),
+               {:ok, response} <- Finch.request(request, Browsergrid.Finch) do
+            send_proxied_response(conn, response)
+          else
+            {:error, :not_found} ->
+              send_resp(conn, 404, "session not running")
+
+            {:error, %Mint.TransportError{} = reason} ->
+              Logger.error("proxy transport error: #{inspect(reason)}")
+              send_resp(conn, 502, "upstream error")
+
+            {:error, reason} ->
+              Logger.error("proxy failed: #{inspect(reason)}")
+              send_resp(conn, 500, "proxy failure")
+          end
+      end
     else
       {:error, :not_found} ->
         send_resp(conn, 404, "session not running")
-
-      {:error, %Mint.TransportError{} = reason} ->
-        Logger.error("proxy transport error: #{inspect(reason)}")
-        send_resp(conn, 502, "upstream error")
 
       {:error, reason} ->
         Logger.error("proxy failed: #{inspect(reason)}")
         send_resp(conn, 500, "proxy failure")
     end
+  end
+
+  defp stream_request?(conn, path) do
+    request_method(conn) == :get and path == "/stream"
+  end
+
+  defp stream_proxied_response(conn, host, port, path, base_path) do
+    request =
+      Finch.build(
+        :get,
+        build_target_uri(host, port, path, conn.query_string),
+        proxy_request_headers(conn, host, port, base_path)
+      )
+
+    initial_state = %{
+      conn: conn,
+      status: nil,
+      chunked?: false
+    }
+
+    case Finch.stream(request, Browsergrid.Finch, initial_state, &stream_chunk/2,
+           receive_timeout: :infinity
+         ) do
+      {:ok, %{conn: streamed_conn}} ->
+        Plug.Conn.halt(streamed_conn)
+
+      {:error, reason, %{conn: streamed_conn, chunked?: true}} ->
+        Logger.error("stream proxy failed after starting response: #{inspect(reason)}")
+        Plug.Conn.halt(streamed_conn)
+
+      {:error, reason, %{conn: streamed_conn}} ->
+        Logger.error("stream proxy failed: #{inspect(reason)}")
+
+        streamed_conn
+        |> send_resp(502, "upstream error")
+        |> Plug.Conn.halt()
+    end
+  end
+
+  defp stream_chunk(event, {:cont, inner_state}) do
+    stream_chunk(event, inner_state)
+  end
+
+  defp stream_chunk(event, {:halt, inner_state}) do
+    stream_chunk(event, inner_state)
+  end
+
+  defp stream_chunk({:status, status}, state) do
+    {:cont, %{state | status: status}}
+  end
+
+  defp stream_chunk(
+         {:headers, headers},
+         %{conn: conn, status: status, chunked?: chunked?} = state
+       ) do
+    conn =
+      conn
+      |> put_proxy_resp_headers(headers)
+      |> Plug.Conn.delete_resp_header("content-length")
+      |> Plug.Conn.delete_resp_header("transfer-encoding")
+      |> put_cors_headers()
+
+    conn =
+      if chunked? do
+        conn
+      else
+        Plug.Conn.send_chunked(conn, status || 200)
+      end
+
+    {:cont, %{state | conn: conn, chunked?: true}}
+  end
+
+  defp stream_chunk({:data, data}, %{conn: conn} = state) do
+    case Plug.Conn.chunk(conn, data) do
+      {:ok, updated_conn} ->
+        {:cont, %{state | conn: updated_conn}}
+
+      {:error, :closed} ->
+        {:halt, %{state | conn: conn}}
+
+      {:error, reason} ->
+        Logger.warning("failed to stream chunk: #{inspect(reason)}")
+        {:halt, %{state | conn: conn}}
+    end
+  end
+
+  defp stream_chunk({:trailers, trailers}, %{conn: conn} = state) do
+    conn =
+      Enum.reduce(trailers, conn, fn {key, value}, acc ->
+        Plug.Conn.put_resp_header(acc, key, value)
+      end)
+
+    {:cont, %{state | conn: conn}}
+  end
+
+  defp stream_chunk(:done, state), do: {:cont, state}
+
+  defp stream_chunk({:error, reason}, %{conn: conn} = state) do
+    Logger.warning("stream error", reason: inspect(reason))
+    {:halt, %{state | conn: conn}}
+  end
+
+  defp stream_chunk(other, state) do
+    Logger.debug("Unhandled stream event: #{inspect(other)}, state: #{inspect(state)}")
+    {:cont, state}
+  end
+
+  defp put_cors_headers(conn) do
+    conn
+    |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
+    |> Plug.Conn.put_resp_header("access-control-allow-methods", "GET, OPTIONS")
+    |> Plug.Conn.put_resp_header("access-control-allow-headers", "Range")
   end
 
   defp request_method(conn) do
@@ -119,7 +245,8 @@ defmodule BrowsergridWeb.SessionProxyController do
   defp append_query(path, query), do: path <> "?" <> query
 
   defp proxy_request_headers(conn, host, port, base_path) do
-    {external_host, external_host_with_prefix, external_scheme} = external_connection_parts(conn, base_path)
+    {external_host, external_host_with_prefix, external_scheme} =
+      external_connection_parts(conn, base_path)
 
     conn.req_headers
     |> Enum.reject(fn {key, _} ->
@@ -160,7 +287,12 @@ defmodule BrowsergridWeb.SessionProxyController do
         [{"x-forwarded-for", forwarded} | headers]
 
       {"x-forwarded-for", existing} ->
-        List.keyreplace(headers, "x-forwarded-for", 0, {"x-forwarded-for", existing <> ", " <> forwarded})
+        List.keyreplace(
+          headers,
+          "x-forwarded-for",
+          0,
+          {"x-forwarded-for", existing <> ", " <> forwarded}
+        )
     end
   end
 
@@ -172,11 +304,14 @@ defmodule BrowsergridWeb.SessionProxyController do
 
   defp websocket_headers(conn, base_path) do
     forwarding_headers(conn, base_path) ++
-      Enum.filter(conn.req_headers, fn {key, _} -> String.downcase(key) in ["sec-websocket-protocol", "origin"] end)
+      Enum.filter(conn.req_headers, fn {key, _} ->
+        String.downcase(key) in ["sec-websocket-protocol", "origin"]
+      end)
   end
 
   defp forwarding_headers(conn, base_path) do
-    {external_host, external_host_with_prefix, external_scheme} = external_connection_parts(conn, base_path)
+    {external_host, external_host_with_prefix, external_scheme} =
+      external_connection_parts(conn, base_path)
 
     forwarded_ip =
       conn.remote_ip
