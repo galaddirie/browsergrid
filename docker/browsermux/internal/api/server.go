@@ -3,10 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -111,7 +113,13 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	clientID, err := s.cdpProxy.AddClient(conn, metadata)
 	if err != nil {
-		log.Printf("Error adding client: %v", err)
+		if errors.Is(err, browser.ErrSessionLocked) {
+			log.Printf("Rejecting client connection: session already locked by another client")
+			closeMsg := websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "session already locked by another client")
+			_ = conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(time.Second))
+		} else {
+			log.Printf("Error adding client: %v", err)
+		}
 		conn.Close()
 		return
 	}

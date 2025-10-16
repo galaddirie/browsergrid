@@ -2,6 +2,7 @@ package browser
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -197,6 +198,22 @@ func TestCDPProxyClientManagement(t *testing.T) {
 			t.Error("Expected ClientConnected event to be dispatched")
 		}
 
+		t.Run("Reject additional client while locked", func(t *testing.T) {
+			conn2, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+			if err != nil {
+				t.Skip("Cannot establish second WebSocket connection for test:", err)
+			}
+			defer conn2.Close()
+
+			_, err = proxy.AddClient(conn2, map[string]interface{}{
+				"user_agent": "test-agent-2",
+			})
+
+			if !errors.Is(err, ErrSessionLocked) {
+				t.Fatalf("Expected ErrSessionLocked, got %v", err)
+			}
+		})
+
 		t.Run("RemoveClient", func(t *testing.T) {
 			err := proxy.RemoveClient(clientID)
 			if err != nil {
@@ -216,6 +233,25 @@ func TestCDPProxyClientManagement(t *testing.T) {
 			if disconnectEvents == 0 {
 				t.Error("Expected ClientDisconnected event to be dispatched")
 			}
+
+			t.Run("Allow new client after lock released", func(t *testing.T) {
+				conn3, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+				if err != nil {
+					t.Skip("Cannot establish replacement WebSocket connection for test:", err)
+				}
+				defer conn3.Close()
+
+				replacementID, err := proxy.AddClient(conn3, map[string]interface{}{
+					"user_agent": "test-agent-3",
+				})
+				if err != nil {
+					t.Fatalf("Expected new client to attach after lock release, got %v", err)
+				}
+
+				if err := proxy.RemoveClient(replacementID); err != nil {
+					t.Fatalf("Failed to cleanup replacement client: %v", err)
+				}
+			})
 		})
 	})
 }

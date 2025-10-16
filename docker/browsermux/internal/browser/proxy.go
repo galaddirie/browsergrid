@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -14,6 +15,8 @@ var _ ClientManager = (*CDPProxy)(nil)
 var _ ConnectionManager = (*CDPProxy)(nil)
 var _ MessageHandler = (*CDPProxy)(nil)
 
+var ErrSessionLocked = errors.New("session locked by first attached client")
+
 type CDPProxy struct {
 	browserConn     *websocket.Conn
 	clients         map[string]*Client
@@ -23,6 +26,7 @@ type CDPProxy struct {
 	mu              sync.RWMutex
 	connected       bool
 	shutdown        chan struct{}
+	firstClientID   string
 }
 
 type CDPProxyConfig struct {
@@ -215,6 +219,18 @@ func (p *CDPProxy) AddClient(conn *websocket.Conn, metadata map[string]interface
 	client := NewClient(clientID, conn, p.eventDispatcher, p, metadata)
 
 	p.mu.Lock()
+	if p.firstClientID != "" {
+		if _, exists := p.clients[p.firstClientID]; exists {
+			p.mu.Unlock()
+			return "", ErrSessionLocked
+		}
+		p.firstClientID = ""
+	}
+
+	if p.firstClientID == "" {
+		p.firstClientID = clientID
+	}
+
 	p.clients[clientID] = client
 	p.mu.Unlock()
 
@@ -246,6 +262,10 @@ func (p *CDPProxy) RemoveClient(clientID string) error {
 
 	close(client.Send)
 	delete(p.clients, clientID)
+
+	if clientID == p.firstClientID {
+		p.firstClientID = ""
+	}
 
 	p.eventDispatcher.Dispatch(Event{
 		Type:       EventClientDisconnected,
