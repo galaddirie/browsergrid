@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrowserMux Screencast Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 32px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        .stream-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+
+        .stream-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .controls {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="range"] {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .range-value {
+            min-width: 50px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button.secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        button.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        button.danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .control-row {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 BrowserMux Screencast Test</h1>
+            <p>Test your browser screencast streaming connection</p>
+        </div>
+
+        <div class="content">
+            <div class="stream-container" id="streamContainer">
+                <div class="placeholder" id="placeholder">
+                    Click "Start Stream" to begin
+                </div>
+                <img id="streamImage" class="hidden" alt="Screencast Stream">
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Stream URL</label>
+                    <input type="text" id="streamUrl" value="http://localhost/stream" placeholder="Enter stream URL">
+                </div>
+
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Quality (1-100)</label>
+                        <div class="range-container">
+                            <input type="range" id="quality" min="1" max="100" value="80">
+                            <span class="range-value" id="qualityValue">80</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>FPS (1-60)</label>
+                        <div class="range-container">
+                            <input type="range" id="fps" min="1" max="60" value="30">
+                            <span class="range-value" id="fpsValue">30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Width (px)</label>
+                        <input type="number" id="width" value="1920" min="1">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Height (px)</label>
+                        <input type="number" id="height" value="1080" min="1">
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button class="primary" id="startBtn" onclick="startStream()">Start Stream</button>
+                    <button class="danger hidden" id="stopBtn" onclick="stopStream()">Stop Stream</button>
+                    <button class="secondary" id="refreshBtn" onclick="refreshStream()" disabled>Refresh</button>
+                </div>
+
+                <div id="status" class="status info">
+                    Ready to connect. Configure your settings and click "Start Stream".
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isStreaming = false;
+        let currentStreamUrl = '';
+
+        // Update range value displays
+        document.getElementById('quality').addEventListener('input', (e) => {
+            document.getElementById('qualityValue').textContent = e.target.value;
+            if (isStreaming) {
+                refreshStream();
+            }
+        });
+
+        document.getElementById('fps').addEventListener('input', (e) => {
+            document.getElementById('fpsValue').textContent = e.target.value;
+            if (isStreaming) {
+                refreshStream();
+            }
+        });
+
+        document.getElementById('width').addEventListener('change', () => {
+            if (isStreaming) {
+                refreshStream();
+            }
+        });
+
+        document.getElementById('height').addEventListener('change', () => {
+            if (isStreaming) {
+                refreshStream();
+            }
+        });
+
+        function buildStreamUrl() {
+            const baseUrl = document.getElementById('streamUrl').value;
+            const quality = document.getElementById('quality').value;
+            const fps = document.getElementById('fps').value;
+            const width = document.getElementById('width').value;
+            const height = document.getElementById('height').value;
+            const timestamp = Date.now();
+
+            const params = new URLSearchParams();
+            params.set('quality', quality);
+            params.set('fps', fps);
+            params.set('width', width);
+            params.set('height', height);
+            params.set('_', timestamp);
+
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function startStream() {
+            const streamImage = document.getElementById('streamImage');
+            const placeholder = document.getElementById('placeholder');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            currentStreamUrl = buildStreamUrl();
+            
+            updateStatus(`Connecting to ${currentStreamUrl}...`, 'info');
+
+            streamImage.onload = () => {
+                isStreaming = true;
+                placeholder.classList.add('hidden');
+                streamImage.classList.remove('hidden');
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                refreshBtn.disabled = false;
+                updateStatus('✓ Stream connected successfully!', 'success');
+            };
+
+            streamImage.onerror = () => {
+                updateStatus('✗ Failed to connect to stream. Please check the URL and try again.', 'error');
+                stopStream();
+            };
+
+            streamImage.src = currentStreamUrl;
+        }
+
+        function stopStream() {
+            const streamImage = document.getElementById('streamImage');
+            const placeholder = document.getElementById('placeholder');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            isStreaming = false;
+            streamImage.src = '';
+            streamImage.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            refreshBtn.disabled = true;
+            
+            updateStatus('Stream stopped.', 'info');
+        }
+
+        function refreshStream() {
+            if (!isStreaming) return;
+            
+            const streamImage = document.getElementById('streamImage');
+            currentStreamUrl = buildStreamUrl();
+            streamImage.src = currentStreamUrl;
+            
+            updateStatus('Stream refreshed with new settings.', 'success');
+        }
+
+        // Allow Enter key to start stream
+        document.getElementById('streamUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !isStreaming) {
+                startStream();
+            }
+        });
+
+        console.log('BrowserMux Screencast Test loaded successfully');
+        console.log('Stream endpoint:', document.getElementById('streamUrl').value);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screencast Demo Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .status {
+            background: #dcfce7;
+            color: #166534;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            margin-top: 30px;
+        }
+
+        .info-box h3 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #6b7280;
+        }
+
+        .info-box li {
+            margin-bottom: 8px;
+        }
+
+        .animated-box {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin: 30px auto;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+
+        .timer {
+            font-size: 72px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 30px 0;
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>✨ Screencast Ready!</h1>
+        <div class="status">✓ This page supports screencasting</div>
+        
+        <p>
+            This is a regular HTML page that supports Chrome DevTools Protocol screencasting.
+            You can use this page to test your BrowserMux screencast functionality.
+        </p>
+
+        <div class="animated-box"></div>
+
+        <div class="timer" id="timer">00:00</div>
+
+        <div class="info-box">
+            <h3>💡 Testing Instructions:</h3>
+            <ul>
+                <li>Keep this page open in your browser connected to BrowserMux</li>
+                <li>Open <code>screencast-test.html</code> in another browser window</li>
+                <li>Click "Start Stream" and you should see this page being streamed</li>
+                <li>The timer and animated box should be visible in the stream</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="margin-top: 20px;">
+            <h3>🚫 Pages that DON'T work for screencasting:</h3>
+            <ul>
+                <li><code>chrome://newtab</code> - Chrome internal page</li>
+                <li><code>chrome://settings</code> - Chrome settings</li>
+                <li><code>about:blank</code> - Empty page</li>
+                <li>Any <code>chrome://</code> or <code>chrome-untrusted://</code> URL</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="margin-top: 20px; background: #dbeafe; border-left: 4px solid #3b82f6;">
+            <h3>🎯 Pro Tip:</h3>
+            <p style="margin: 0; color: #1e40af;">
+                You can also navigate to any regular website (like https://example.com) 
+                for screencast testing. This demo page just makes it easier to see that 
+                screencasting is working with the animated elements!
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Simple timer to show page is active
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('timer').textContent = 
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }, 1000);
+
+        console.log('Screencast demo page loaded!');
+        console.log('This page supports CDP screencasting.');
+    </script>
+</body>
+</html>
+
