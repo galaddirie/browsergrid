@@ -196,3 +196,45 @@ go.work.sum
 
 # Kubernetes config
 kubeconfig
+
+
+#golang
+
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+# Ignore all compiled Go binaries
+*.test
+*.prof
+
+# Dependency directories
+# Go module cache
+/pkg/mod/
+
+# Build artifacts
+# Compiled binaries for the current project
+/bin/
+/obj/
+/build/
+
+# Editor/IDE specific files
+.idea/
+.vscode/
+*.swp
+*.bak
+*~
+.DS_Store # macOS specific
+
+# Log files
+*.log
+
+# Environment variables and sensitive data
+.env
+.env.*
+
+# Test results
+testdata/
+
+.gocache/
