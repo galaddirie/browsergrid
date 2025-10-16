@@ -10,10 +10,9 @@
 //    1) navigate & extract structured data (+ screenshot)
 //    2) fetch & validate a JSON endpoint
 //    3) negative navigation (expected failure)
-//    4) screencasting via CDP commands
 // - Emit a single JSON summary to stdout (success or error)
 
-import { chromium, Browser, Page, CDPSession } from 'playwright';
+import { chromium, Browser, Page } from 'playwright';
 
 const CONFIG = {
     baseUrl: process.env.BROWSER_CDP_ENDPOINT || 'http://localhost',
@@ -178,89 +177,6 @@ async function testNegativeNavigation(browser: Browser) {
 }
 
 
-async function testScreencasting(browser: Browser) {
-    const page = await browser.newPage();
-    page.setDefaultTimeout(CONFIG.defaultTimeoutMs);
-
-    try {
-        console.info('Testing CDP screencasting functionality');
-        
-        // Get CDP session for raw commands
-        const cdp = await page.context().newCDPSession(page);
-        
-        // Navigate to a simple page for screencasting
-        await page.goto('https://example.com', {
-            waitUntil: 'domcontentloaded',
-            timeout: CONFIG.defaultTimeoutMs,
-        });
-
-        console.info('Starting screencast via CDP');
-        
-        // Start screencasting using raw CDP command
-        const startResult = await cdp.send('Page.startScreencast', {
-            format: 'png',
-            quality: 80,
-            maxWidth: 1920,
-            maxHeight: 1080,
-            everyNthFrame: 1
-        });
-        
-        console.info('Screencast started', { result: startResult });
-
-        // Wait a bit to capture some frames
-        await page.waitForTimeout(2000);
-
-        // Collect screencast frames
-        const frames: any[] = [];
-        const frameHandler = (event: any) => {
-            frames.push({
-                data: event.data,
-                timestamp: Date.now(),
-                frameNumber: frames.length + 1
-            });
-        };
-
-        cdp.on('Page.screencastFrame', frameHandler);
-
-        // Wait for a few frames
-        await page.waitForTimeout(3000);
-
-        // Stop screencasting
-        console.info('Stopping screencast via CDP');
-        const stopResult = await cdp.send('Page.stopScreencast');
-        
-        // Remove the event handler
-        cdp.off('Page.screencastFrame', frameHandler);
-
-        console.info('Screencast stopped', { 
-            result: stopResult, 
-            framesCaptured: frames.length 
-        });
-
-        return {
-            startResult,
-            stopResult,
-            framesCaptured: frames.length,
-            frameData: frames.map(f => ({
-                frameNumber: f.frameNumber,
-                timestamp: f.timestamp,
-                dataLength: f.data.length
-            })),
-            cdpCommandsSupported: true
-        };
-
-    } catch (error) {
-        console.warn('Screencasting test failed', { error: (error as Error).message });
-        return {
-            error: (error as Error).message,
-            cdpCommandsSupported: false
-        };
-    } finally {
-        await safeClosePage(page, 'screencast test page');
-    }
-}
-
-
 async function safeClosePage(page: Page, label: string) {
     try {
         await page.close();
@@ -286,7 +202,6 @@ async function main() {
         const navExtract = await testNavigateAndExtract(browser);
         const jsonProbe = await testJsonProbe(browser);
         const negative = await testNegativeNavigation(browser);
-        const screencast = await testScreencasting(browser);
 
         const durationMs = Date.now() - start;
         const result = {
@@ -305,17 +220,15 @@ async function main() {
                 },
                 execution_time_iso: nowIso(),
                 duration_ms: durationMs,
-                pages_processed: 4,
+                pages_processed: 3,
             },
             metrics: {
-                total_pages: 4,
+                total_pages: 3,
                 errors_handled: 1,
                 screenshot_captured: true,
                 data_extracted: true,
-                screencasting_tested: true,
             },
             negative_navigation: negative,
-            screencasting_test: screencast,
         };
 
         return result;

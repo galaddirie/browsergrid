@@ -23,6 +23,8 @@ export interface Session {
   name?: string;
   browser_type?: Browser;
   status?: string;
+  live_url?: string;
+  stream_url?: string;
   options?: {
     headless?: boolean;
     version?: BrowserVersion;
@@ -76,6 +78,8 @@ export interface SessionAPI {
   name: string;
   browser_type: Browser;
   status: string;
+  live_url?: string;
+  stream_url?: string;
   cluster?: string;
   options: {
     headless?: boolean;

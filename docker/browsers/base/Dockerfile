@@ -36,6 +36,14 @@ ENV GID=1000
 
 ENV REMOTE_DEBUGGING_PORT=61000
 ENV SW_SERVER_PORT=8082
+ENV STREAM_SERVER_PORT=8083
+ENV STREAM_FPS=25
+ENV STREAM_BITRATE=1500k
+ENV STREAM_MAXRATE=2000k
+ENV STREAM_BUFSIZE=4000k
+ENV STREAM_QUALITY=realtime
+ENV STREAM_CPU_USED=5
+ENV STREAM_THREADS=4
 
 # Install system packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -70,6 +78,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm1 \
     libasound2 \
     nginx \
+    ffmpeg \
     sudo \
     && apt-get autoclean \
     && apt-get autoremove \
@@ -125,6 +134,7 @@ COPY docker/browsers/base/entrypoint.sh /usr/local/bin/
 COPY docker/browsers/base/check_profile_permissions.sh /usr/local/bin/
 COPY docker/browsers/base/nginx/nginx.conf /etc/nginx/sites-available/browsergrid
 COPY docker/browsers/base/nginx/setup_nginx.sh /usr/local/bin/
+COPY docker/browsers/base/stream-server.js /opt/browsergrid/stream-server.js
 
 # Configure nginx properly
 RUN rm -f /etc/nginx/sites-enabled/default && \
@@ -136,6 +146,7 @@ RUN chmod -R +x /opt/browsergrid/scripts/ && \
     chmod +x /usr/local/bin/entrypoint.sh && \
     chmod +x /usr/local/bin/check_profile_permissions.sh && \
     chmod +x /usr/local/bin/setup_nginx.sh && \
+    chown browseruser:browseruser /opt/browsergrid/stream-server.js && \
     chown -R browseruser:browseruser /opt/browsergrid/scripts
 
 # Set up user directories

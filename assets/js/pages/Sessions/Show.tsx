@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowLeft, ExternalLink, Settings, StopCircle, Wifi, WifiOff } from 'lucide-react';
 
 import Layout from '@/components/Layout';
+import { StreamViewer } from '@/components/StreamViewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +49,9 @@ export default function SessionShow({ session }: { session: Session }) {
     const terminal = ['completed', 'failed', 'expired', 'crashed', 'timed_out', 'terminated'];
     return terminal.includes(status);
   };
+
+  const streamUrl = currentSession.stream_url || (currentSession.id ? `/sessions/${currentSession.id}/edge/stream` : undefined);
+  const isStreamActive = !isTerminalStatus(currentSession.status ?? '');
 
   useEffect(() => {
     setCurrentSession(session);
@@ -180,7 +184,20 @@ export default function SessionShow({ session }: { session: Session }) {
           </Card>
         </div>
 
-        {/* Live browser view not available from backend */}
+        <Card className="border-neutral-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-900">Live Browser Stream</CardTitle>
+            <p className="text-xs text-neutral-500">Real-time Xvfb preview for quick diagnostics.</p>
+          </CardHeader>
+          <CardContent>
+            <StreamViewer
+              sessionId={currentSession.id}
+              streamUrl={streamUrl}
+              isActive={isStreamActive}
+              className="max-h-[640px]"
+            />
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
