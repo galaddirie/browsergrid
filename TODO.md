@@ -3,7 +3,7 @@
 - [x] connect to phoneix channels for streaming
 - [x] use sonnar instead of phoneix flash messages
 - [ ] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
-- [ ] Edge routing ( /bg/:id should proxy to session host )
+- [ ] Edge routing ( /browsers/:id should proxy to session host )
 
 - [ ] Webhook integration
 - [ ] idle browser nodes for fast acquisition
@@ -23,3 +23,5 @@
 - [ ] test to see if we can test 1 million sessions ( fake pods/containers) 
 
 - [ ] Deployment integration
+- [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
+- [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
