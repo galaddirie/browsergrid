@@ -82,12 +82,14 @@ defmodule Browsergrid.ApiKeys.RateLimiter do
   end
 
   defp default_limit do
-    Application.get_env(:browsergrid, __MODULE__, [])
+    :browsergrid
+    |> Application.get_env(__MODULE__, [])
     |> Keyword.get(:limit, 120)
   end
 
   defp default_interval do
-    Application.get_env(:browsergrid, __MODULE__, [])
+    :browsergrid
+    |> Application.get_env(__MODULE__, [])
     |> Keyword.get(:interval_ms, 60_000)
   end
 end

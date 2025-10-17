@@ -46,5 +46,3 @@ defmodule Browsergrid.Repo.Migrations.AddObanAndRoutesAndAudits do
     Oban.Migrations.down(version: 1)
   end
 end
-
-

@@ -10,11 +10,11 @@ defmodule BrowsergridWeb.API.V1.ApiKeyJSON do
   end
 
   def create(%{api_key: api_key, token: token}) do
-    %{data: serialize(api_key) |> Map.put(:token, token)}
+    %{data: api_key |> serialize() |> Map.put(:token, token)}
   end
 
   def regenerate(%{api_key: api_key, token: token}) do
-    %{data: serialize(api_key) |> Map.put(:token, token)}
+    %{data: api_key |> serialize() |> Map.put(:token, token)}
   end
 
   def revoke(%{api_key: api_key}) do
@@ -43,7 +43,7 @@ defmodule BrowsergridWeb.API.V1.ApiKeyJSON do
 
   defp encode_datetime(nil), do: nil
   defp encode_datetime(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
-  defp encode_datetime(%NaiveDateTime{} = ndt), do: DateTime.from_naive!(ndt, "Etc/UTC") |> DateTime.to_iso8601()
+  defp encode_datetime(%NaiveDateTime{} = ndt), do: ndt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_iso8601()
 
   defp status(%APIKey{revoked_at: revoked_at}) when not is_nil(revoked_at), do: "revoked"
 

@@ -1,5 +1,6 @@
 defmodule BrowsergridWeb.Inertia.V1.DashboardController do
   use BrowsergridWeb, :controller
+
   alias Browsergrid.Sessions
 
   def overview(conn, _params) do

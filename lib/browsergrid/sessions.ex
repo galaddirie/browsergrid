@@ -5,10 +5,11 @@ defmodule Browsergrid.Sessions do
   import Ecto.Query, warn: false
 
   alias Browsergrid.Repo
-  alias Browsergrid.Sessions.Session
   alias Browsergrid.SessionRuntime
+  alias Browsergrid.Sessions.Session
 
   require Logger
+
   def list_sessions(opts \\ []) do
     Session
     |> maybe_preload(opts)
@@ -49,6 +50,7 @@ defmodule Browsergrid.Sessions do
     case Browsergrid.Profiles.get_profile(profile_id) do
       nil ->
         {:error, :not_found}
+
       profile ->
         attrs
         |> Map.put(:profile_id, profile_id)
@@ -58,7 +60,7 @@ defmodule Browsergrid.Sessions do
   end
 
   def clone_session(%Session{} = session) do
-    %{
+    create_session(%{
       name: "#{session.name} (Clone)",
       browser_type: session.browser_type,
       screen: session.screen,
@@ -66,8 +68,7 @@ defmodule Browsergrid.Sessions do
       headless: session.headless,
       timeout: session.timeout,
       profile_id: session.profile_id
-    }
-    |> create_session()
+    })
   end
 
   def update_session(%Session{} = session, attrs) do
@@ -119,7 +120,6 @@ defmodule Browsergrid.Sessions do
     stop_session(session)
   end
 
-
   def get_session_info(session_id) do
     with {:ok, session} <- get_session(session_id),
          {:ok, runtime} <- get_runtime_details(session_id) do
@@ -142,7 +142,6 @@ defmodule Browsergrid.Sessions do
     end
   end
 
-
   def get_sessions_by_profile(profile_id) do
     Session
     |> where(profile_id: ^profile_id)
@@ -164,7 +163,6 @@ defmodule Browsergrid.Sessions do
     |> Repo.exists?()
   end
 
-
   def get_statistics do
     sessions = list_sessions()
     by_status = Enum.frequencies_by(sessions, & &1.status)
@@ -177,7 +175,6 @@ defmodule Browsergrid.Sessions do
       failed: Map.get(by_status, :error, 0) + Map.get(by_status, :stopped, 0)
     }
   end
-
 
   defdelegate change_session(session, attrs \\ %{}), to: Session, as: :changeset
 
@@ -210,13 +207,16 @@ defmodule Browsergrid.Sessions do
   defp get_runtime_details(session_id) do
     case SessionRuntime.describe(session_id) do
       {:ok, details} ->
-        {:ok, %{
-          endpoint: details.endpoint,
-          node: details.node,
-          metadata: details.metadata
-        }}
+        {:ok,
+         %{
+           endpoint: details.endpoint,
+           node: details.node,
+           metadata: details.metadata
+         }}
+
       {:error, :not_found} ->
         {:ok, nil}
+
       error ->
         error
     end
@@ -226,10 +226,11 @@ defmodule Browsergrid.Sessions do
     host = Keyword.get(config, :host, "edge.local")
     scheme = Keyword.get(config, :scheme, "https")
 
-    scheme = case type do
-      :ws -> if scheme == "https", do: "wss", else: "ws"
-      :http -> scheme
-    end
+    scheme =
+      case type do
+        :ws -> if scheme == "https", do: "wss", else: "ws"
+        :http -> scheme
+      end
 
     protocol = if type == :ws, do: "ws", else: "http"
     "#{scheme}://#{host}/sessions/#{session_id}/#{protocol}"
@@ -237,6 +238,7 @@ defmodule Browsergrid.Sessions do
 
   defp serialize_limits(nil), do: %{}
   defp serialize_limits(%Ecto.Association.NotLoaded{}), do: %{}
+
   defp serialize_limits(limits) when is_map(limits) do
     %{
       "cpu" => Map.get(limits, "cpu"),
@@ -255,10 +257,10 @@ defmodule Browsergrid.Sessions do
     end
   end
 
-
   defp broadcast_if_ok({:ok, session}, event) do
     broadcast({event, session})
   end
+
   defp broadcast_if_ok(error, _event), do: error
 
   defp broadcast({:created, session}) do

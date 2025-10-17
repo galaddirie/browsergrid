@@ -4,9 +4,11 @@ defmodule Browsergrid.Deployments do
   """
 
   import Ecto.Query, warn: false
-  alias Browsergrid.Repo
+
   alias Browsergrid.Deployments.Deployment
+  alias Browsergrid.Repo
   alias Browsergrid.Sessions
+
   require Logger
 
   @doc """
@@ -69,11 +71,12 @@ defmodule Browsergrid.Deployments do
     }
 
     with {:ok, session} <- Sessions.create_session(session_params),
-         {:ok, deployment} <- update_deployment(deployment, %{
-           status: :deploying,
-           session_id: session.id,
-           last_deployed_at: DateTime.utc_now()
-         }) do
+         {:ok, deployment} <-
+           update_deployment(deployment, %{
+             status: :deploying,
+             session_id: session.id,
+             last_deployed_at: DateTime.utc_now()
+           }) do
       {:ok, {deployment, session}}
     end
   end
@@ -87,8 +90,7 @@ defmodule Browsergrid.Deployments do
     by_status =
       deployments
       |> Enum.group_by(& &1.status)
-      |> Enum.map(fn {status, deployments} -> {status, length(deployments)} end)
-      |> Map.new()
+      |> Map.new(fn {status, deployments} -> {status, length(deployments)} end)
 
     %{
       total: length(deployments),

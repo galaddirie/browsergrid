@@ -37,7 +37,18 @@ defmodule Browsergrid.ApiKeys.APIKey do
 
   def update_changeset(api_key, attrs) do
     api_key
-    |> cast(attrs, [:name, :key_hash, :prefix, :last_four, :created_by, :revoked_at, :expires_at, :last_used_at, :usage_count, :metadata])
+    |> cast(attrs, [
+      :name,
+      :key_hash,
+      :prefix,
+      :last_four,
+      :created_by,
+      :revoked_at,
+      :expires_at,
+      :last_used_at,
+      :usage_count,
+      :metadata
+    ])
     |> ensure_metadata()
     |> validate_required([:name, :prefix, :last_four])
     |> validate_length(:prefix, min: @prefix_length, max: 12)
@@ -52,7 +63,7 @@ defmodule Browsergrid.ApiKeys.APIKey do
   def active?(%__MODULE__{revoked_at: nil, expires_at: expires_at}) do
     case expires_at do
       nil -> true
-      %DateTime{} = dt -> DateTime.compare(dt, DateTime.utc_now()) == :gt
+      %DateTime{} = dt -> DateTime.after?(dt, DateTime.utc_now())
       _ -> false
     end
   end

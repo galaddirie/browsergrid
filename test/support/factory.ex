@@ -1,4 +1,5 @@
 defmodule Browsergrid.Factory do
+  @moduledoc false
   use ExMachina.Ecto, repo: Browsergrid.Repo
 
   def session_factory do
@@ -31,8 +32,10 @@ defmodule Browsergrid.Factory do
     session_id = Ecto.UUID.generate()
 
     %Browsergrid.Routing.Route{
-      id: session_id,  # Routes use session_id as primary key
-      ip: sequence(:ip, &"10.0.0.#{rem(&1, 254) + 1}"),  # Ensure valid IP range
+      # Routes use session_id as primary key
+      id: session_id,
+      # Ensure valid IP range
+      ip: sequence(:ip, &"10.0.0.#{rem(&1, 254) + 1}"),
       port: 80,
       version: System.system_time(:nanosecond)
     }
@@ -45,7 +48,7 @@ defmodule Browsergrid.Factory do
       original_filename: sequence(:original_filename, &"original_file_#{&1}.zip"),
       storage_path: sequence(:storage_path, &"uploads/2024/01/01/file_#{&1}.zip"),
       content_type: "application/zip",
-      size: :rand.uniform(1000000),
+      size: :rand.uniform(1_000_000),
       backend: :local,
       metadata: %{},
       category: "profiles"
@@ -61,7 +64,7 @@ defmodule Browsergrid.Factory do
       profile_id: profile.id,
       media_file_id: media_file.id,
       version: sequence(:version, & &1),
-      storage_size_bytes: :rand.uniform(1000000),
+      storage_size_bytes: :rand.uniform(1_000_000),
       metadata: %{
         "created_at" => DateTime.utc_now(),
         "test" => true

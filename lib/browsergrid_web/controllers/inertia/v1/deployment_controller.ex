@@ -1,5 +1,6 @@
 defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
   use BrowsergridWeb, :controller
+
   alias Browsergrid.Deployments
   alias Browsergrid.Media
 
@@ -27,14 +28,12 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
   end
 
   def new(conn, _params) do
-    conn
-    |> render_inertia("Deployments/New")
+    render_inertia(conn, "Deployments/New")
   end
 
   def create(conn, params) do
     with {:ok, validated_params} <- validate_upload_params(params),
          {:ok, deployment} <- handle_deployment_upload(validated_params) do
-
       conn
       |> put_flash(:info, "Deployment created successfully")
       |> redirect(to: ~p"/deployments/#{deployment.id}")
@@ -152,7 +151,9 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
           :ok -> errors
           {:error, message} -> Map.put(errors, :environment_variables, [message])
         end
-      _ -> errors
+
+      _ ->
+        errors
     end
   end
 
@@ -163,7 +164,9 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
           :ok -> errors
           {:error, message} -> Map.put(errors, :parameters, [message])
         end
-      _ -> errors
+
+      _ ->
+        errors
     end
   end
 
@@ -174,27 +177,37 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
           {:ok, decoded} -> {:ok, decoded}
           {:error, _} -> {:error, :invalid_json}
         end
-      value when is_list(value) -> {:ok, value}
-      _ -> {:ok, []}
+
+      value when is_list(value) ->
+        {:ok, value}
+
+      _ ->
+        {:ok, []}
     end
   end
 
   defp validate_env_var_format(env_vars) do
-    valid? = Enum.all?(env_vars, fn
-      %{"key" => key, "value" => value} when is_binary(key) and is_binary(value) ->
-        String.trim(key) != "" and String.trim(value) != ""
-      _ -> false
-    end)
+    valid? =
+      Enum.all?(env_vars, fn
+        %{"key" => key, "value" => value} when is_binary(key) and is_binary(value) ->
+          String.trim(key) != "" and String.trim(value) != ""
+
+        _ ->
+          false
+      end)
 
     if valid?, do: :ok, else: {:error, "Environment variables must have non-empty key and value"}
   end
 
   defp validate_parameter_format(parameters) do
-    valid? = Enum.all?(parameters, fn
-      %{"key" => key, "label" => label} when is_binary(key) and is_binary(label) ->
-        String.trim(key) != "" and String.trim(label) != ""
-      _ -> false
-    end)
+    valid? =
+      Enum.all?(parameters, fn
+        %{"key" => key, "label" => label} when is_binary(key) and is_binary(label) ->
+          String.trim(key) != "" and String.trim(label) != ""
+
+        _ ->
+          false
+      end)
 
     if valid?, do: :ok, else: {:error, "Parameters must have non-empty key and label"}
   end
@@ -244,8 +257,9 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
           {:ok, decoded} -> Map.put(params, field, decoded)
           {:error, _} -> params
         end
-      _ -> params
+
+      _ ->
+        params
     end
   end
-
 end

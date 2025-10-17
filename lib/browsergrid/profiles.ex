@@ -3,12 +3,15 @@ defmodule Browsergrid.Profiles do
   The Profiles context - manages browser profile lifecycle and persistence.
   """
 
-  import Ecto.Query, warn: false
   import Ecto.Changeset
-  alias Browsergrid.Repo
-  alias Browsergrid.Profiles.{Profile, ProfileSnapshot}
+  import Ecto.Query, warn: false
+
   alias Browsergrid.Media
+  alias Browsergrid.Profiles.Profile
+  alias Browsergrid.Profiles.ProfileSnapshot
+  alias Browsergrid.Repo
   alias Browsergrid.Storage
+
   require Logger
 
   @doc """
@@ -48,7 +51,8 @@ defmodule Browsergrid.Profiles do
   Creates a profile.
   """
   def create_profile(attrs \\ %{}) do
-    Profile.create_changeset(attrs)
+    attrs
+    |> Profile.create_changeset()
     |> Repo.insert()
   end
 
@@ -94,6 +98,7 @@ defmodule Browsergrid.Profiles do
   Returns the binary content of the zip file.
   """
   def download_profile_data(%Profile{media_file_id: nil}), do: {:error, :no_profile_data}
+
   def download_profile_data(%Profile{} = profile) do
     profile = Repo.preload(profile, :media_file)
 
@@ -119,8 +124,11 @@ defmodule Browsergrid.Profiles do
                  "profile_id" => profile.id,
                  "version" => profile.version + 1,
                  "session_id" => session_id
-               }) do
-          {:ok, file} -> file
+               }
+             ) do
+          {:ok, file} ->
+            file
+
           {:error, reason} ->
             Logger.error("Failed to upload profile data: #{inspect(reason)}")
             Repo.rollback(reason)
@@ -162,18 +170,19 @@ defmodule Browsergrid.Profiles do
   def get_statistics(user_id \\ nil) do
     base_query = Profile
 
-    query = if user_id do
-      where(base_query, [p], p.user_id == ^user_id)
-    else
-      base_query
-    end
+    query =
+      if user_id do
+        where(base_query, [p], p.user_id == ^user_id)
+      else
+        base_query
+      end
 
     profiles = Repo.all(query)
 
     %{
       total: length(profiles),
-      by_browser: Enum.group_by(profiles, & &1.browser_type) |> Enum.map(fn {k, v} -> {k, length(v)} end) |> Map.new(),
-      by_status: Enum.group_by(profiles, & &1.status) |> Enum.map(fn {k, v} -> {k, length(v)} end) |> Map.new(),
+      by_browser: profiles |> Enum.group_by(& &1.browser_type) |> Map.new(fn {k, v} -> {k, length(v)} end),
+      by_status: profiles |> Enum.group_by(& &1.status) |> Map.new(fn {k, v} -> {k, length(v)} end),
       active: Enum.count(profiles, &(&1.status == :active)),
       total_storage_bytes: Enum.reduce(profiles, 0, fn p, acc -> (p.storage_size_bytes || 0) + acc end)
     }
@@ -195,7 +204,7 @@ defmodule Browsergrid.Profiles do
       |> change(%{
         media_file_id: snapshot.media_file_id,
         storage_size_bytes: snapshot.storage_size_bytes,
-        metadata: Map.merge(profile.metadata, %{"restored_from_version" => snapshot.version})
+        metadata: Map.put(profile.metadata, "restored_from_version", snapshot.version)
       })
       |> Repo.update!()
     end)

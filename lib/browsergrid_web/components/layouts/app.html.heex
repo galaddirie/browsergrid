@@ -11,38 +11,34 @@
 
     <div class="flex items-center space-x-6">
       <nav class="flex space-x-6">
-        <a 
-          href="/dashboard" 
+        <a
+          href="/dashboard"
           class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if @current_path == "/dashboard", do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
         >
-          <.icon name="lucide-layout-dashboard" class="h-4 w-4" />
-          Overview
+          <.icon name="lucide-layout-dashboard" class="h-4 w-4" /> Overview
         </a>
-        <a 
-          href="/sessions" 
+        <a
+          href="/sessions"
           class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if @current_path == "/sessions", do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
         >
-          <.icon name="lucide-globe" class="h-4 w-4" />
-          Browser Sessions
+          <.icon name="lucide-globe" class="h-4 w-4" /> Browser Sessions
         </a>
-        <a 
-          href="/profiles" 
+        <a
+          href="/profiles"
           class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if @current_path == "/profiles", do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
         >
-          <.icon name="lucide-user" class="h-4 w-4" />
-          Profiles
+          <.icon name="lucide-user" class="h-4 w-4" /> Profiles
         </a>
-        <a 
-          href="/deployments" 
+        <a
+          href="/deployments"
           class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if @current_path == "/deployments", do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
         >
-          <.icon name="lucide-box" class="h-4 w-4" />
-          Deployments
+          <.icon name="lucide-box" class="h-4 w-4" /> Deployments
         </a>
       </nav>
       
-      <!-- Theme Toggle Button -->
-      <button 
+<!-- Theme Toggle Button -->
+      <button
         id="theme-toggle"
         class="flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors"
         aria-label="Toggle theme"
@@ -51,12 +47,10 @@
         <.icon name="lucide-moon" class="h-4 w-4 block dark:hidden" />
       </button>
     </div>
-
   </div>
 </header>
 
-
 <main>
-    <.flash_group flash={@flash} />
-    {@inner_content}
+  <.flash_group flash={@flash} />
+  {@inner_content}
 </main>

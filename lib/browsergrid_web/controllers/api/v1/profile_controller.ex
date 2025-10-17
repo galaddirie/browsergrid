@@ -60,7 +60,9 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
          {:ok, _} <- Profiles.delete_profile(profile) do
       send_resp(conn, :no_content, "")
     else
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       true ->
         conn
         |> put_status(:conflict)
@@ -83,11 +85,15 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
          {:ok, zip_content} <- Profiles.download_profile_data(profile) do
       conn
       |> put_resp_content_type("application/zip")
-      |> put_resp_header("content-disposition",
-           "attachment; filename=\"profile_#{profile.name}_v#{profile.version}.zip\"")
+      |> put_resp_header(
+        "content-disposition",
+        "attachment; filename=\"profile_#{profile.name}_v#{profile.version}.zip\""
+      )
       |> send_resp(200, zip_content)
     else
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       {:error, :no_profile_data} ->
         conn
         |> put_status(:not_found)
@@ -119,7 +125,7 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
 
   def restore_snapshot(conn, %{"id" => id, "snapshot_id" => snapshot_id}) do
     with profile when not is_nil(profile) <- Profiles.get_profile(id),
-         snapshots <- Profiles.list_profile_snapshots(profile),
+         snapshots = Profiles.list_profile_snapshots(profile),
          snapshot when not is_nil(snapshot) <- Enum.find(snapshots, &(&1.id == snapshot_id)),
          {:ok, restored_profile} <- Profiles.restore_from_snapshot(profile, snapshot) do
       render(conn, :update, profile: restored_profile)
@@ -145,7 +151,6 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
     stats = Profiles.get_statistics(user_id)
     render(conn, :statistics, stats: stats)
   end
-
 
   # Private functions
 

@@ -1,8 +1,6 @@
 import Config
 import Dotenvy
 
-
-
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -28,6 +26,10 @@ if System.get_env("PHX_SERVER") do
   config :browsergrid, BrowsergridWeb.Endpoint, server: true
 end
 
+# Set node name and cookie for releases
+node_name =
+  System.get_env("NODE_NAME") ||
+    "browsergrid@#{System.get_env("POD_IP", "127.0.0.1")}"
 
 config :browsergrid, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
@@ -35,15 +37,8 @@ config :browsergrid,
   cluster_strategy: System.get_env("CLUSTER_STRATEGY", "gossip"),
   cluster_cookie: String.to_atom(System.get_env("CLUSTER_COOKIE", "browsergrid-secret-cookie"))
 
-# Set node name and cookie for releases
-node_name =
-  System.get_env("NODE_NAME") ||
-    "browsergrid@#{System.get_env("POD_IP", "127.0.0.1")}"
-
 System.put_env("RELEASE_NODE", node_name)
 System.put_env("RELEASE_COOKIE", System.get_env("CLUSTER_COOKIE", "browsergrid-secret-cookie"))
-
-
 
 if config_env() == :prod do
   database_url =
@@ -141,11 +136,11 @@ end
 # Runtime overrides for Redis / Edge
 redis_url =
   System.get_env("REDIS_URL") ||
-  System.get_env("BROWSERGRID_REDIS_URL") ||
-  case System.get_env("REDIS_ADDR") || System.get_env("BROWSERGRID_REDIS_ADDR") do
-    nil -> nil
-    addr -> "redis://" <> addr
-  end
+    System.get_env("BROWSERGRID_REDIS_URL") ||
+    case System.get_env("REDIS_ADDR") || System.get_env("BROWSERGRID_REDIS_ADDR") do
+      nil -> nil
+      addr -> "redis://" <> addr
+    end
 
 if redis_url do
   config :browsergrid, :redis,
@@ -160,9 +155,6 @@ if edge_host do
     host: edge_host,
     scheme: System.get_env("EDGE_SCHEME", "wss")
 end
-
-
-
 
 # storage config
 

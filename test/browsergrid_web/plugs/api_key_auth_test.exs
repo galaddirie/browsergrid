@@ -30,7 +30,8 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuthTest do
     opts = APIKeyAuth.init([])
 
     conn =
-      build_conn(:get, "/?token=#{token}")
+      :get
+      |> build_conn("/?token=#{token}")
       |> APIKeyAuth.call(opts)
 
     refute conn.halted

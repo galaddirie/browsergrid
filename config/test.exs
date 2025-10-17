@@ -25,9 +25,6 @@ config :browsergrid, Browsergrid.SessionRuntime,
   browser: [mode: :stub],
   kubernetes: [enabled: false]
 
-# Use system temp directory for session profiles in tests
-config :browsergrid, :session_profiles_path, System.tmp_dir!()
-
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :browsergrid, BrowsergridWeb.Endpoint,
@@ -44,6 +41,9 @@ config :browsergrid, Oban,
 config :browsergrid, :redis,
   url: "redis://localhost:6379",
   route_channel: "route-updates-test"
+
+# Use system temp directory for session profiles in tests
+config :browsergrid, :session_profiles_path, System.tmp_dir!()
 
 # Test storage configuration
 config :browsergrid, :storage,

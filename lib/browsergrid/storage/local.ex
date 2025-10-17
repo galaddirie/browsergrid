@@ -8,6 +8,7 @@ defmodule Browsergrid.Storage.Local do
   @behaviour Browsergrid.Storage
 
   alias Browsergrid.Storage
+
   require Logger
 
   @impl true
@@ -17,18 +18,18 @@ defmodule Browsergrid.Storage.Local do
 
     with :ok <- File.mkdir_p(dir),
          :ok <- File.write(full_path, content) do
-
       stat = File.stat!(full_path)
 
-      {:ok, %Storage.File{
-        path: path,
-        size: stat.size,
-        content_type: opts[:content_type] || MIME.from_path(path),
-        metadata: opts[:metadata] || %{},
-        created_at: DateTime.utc_now(),
-        backend: :local,
-        url: url(path)
-      }}
+      {:ok,
+       %Storage.File{
+         path: path,
+         size: stat.size,
+         content_type: opts[:content_type] || MIME.from_path(path),
+         metadata: opts[:metadata] || %{},
+         created_at: DateTime.utc_now(),
+         backend: :local,
+         url: url(path)
+       }}
     else
       {:error, reason} ->
         Logger.error("Failed to write file #{path}: #{inspect(reason)}")
@@ -45,9 +46,11 @@ defmodule Browsergrid.Storage.Local do
   @impl true
   def delete(path) do
     full_path = full_path(path)
+
     case File.rm(full_path) do
       :ok -> :ok
-      {:error, :enoent} -> :ok  # File doesn't exist, consider it deleted
+      # File doesn't exist, consider it deleted
+      {:error, :enoent} -> :ok
       error -> error
     end
   end
@@ -70,11 +73,13 @@ defmodule Browsergrid.Storage.Local do
     base_dir = storage_dir()
     pattern = Path.join([base_dir, prefix, "**"])
 
-    files = Path.wildcard(pattern)
-    |> Enum.filter(&File.regular?/1)
-    |> Enum.map(fn file ->
-      Path.relative_to(file, base_dir)
-    end)
+    files =
+      pattern
+      |> Path.wildcard()
+      |> Enum.filter(&File.regular?/1)
+      |> Enum.map(fn file ->
+        Path.relative_to(file, base_dir)
+      end)
 
     {:ok, files}
   end

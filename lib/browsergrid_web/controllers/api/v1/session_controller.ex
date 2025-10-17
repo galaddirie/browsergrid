@@ -1,7 +1,8 @@
 defmodule BrowsergridWeb.API.V1.SessionController do
   use BrowsergridWeb, :controller
 
-  alias Browsergrid.{Sessions, Repo}
+  alias Browsergrid.Repo
+  alias Browsergrid.Sessions
 
   action_fallback BrowsergridWeb.API.V1.FallbackController
 

@@ -7,6 +7,7 @@ defmodule Browsergrid.Edge.Directory do
   (`lookup/1`) and can be combined with a local socket server for HAProxy/NGINX.
   """
   use GenServer
+
   require Logger
 
   @table :edge_routes
@@ -58,6 +59,7 @@ defmodule Browsergrid.Edge.Directory do
     with {:ok, %{"type" => type} = msg} <- Jason.decode(payload) do
       handle_route_event(type, msg)
     end
+
     {:noreply, state}
   end
 

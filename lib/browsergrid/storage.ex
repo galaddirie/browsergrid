@@ -72,9 +72,12 @@ defmodule Browsergrid.Storage do
   """
   def sanitize_filename(filename) when is_binary(filename) do
     filename
-    |> String.replace(~r/[^\w\-_\.]/, "_")  # Replace non-word chars with underscore
-    |> String.replace(~r/_+/, "_")          # Collapse multiple underscores
-    |> String.trim("_")                     # Remove leading/trailing underscores
+    # Replace non-word chars with underscore
+    |> String.replace(~r/[^\w\-_\.]/, "_")
+    # Collapse multiple underscores
+    |> String.replace(~r/_+/, "_")
+    # Remove leading/trailing underscores
+    |> String.trim("_")
     |> ensure_extension(filename)
   end
 
@@ -82,12 +85,13 @@ defmodule Browsergrid.Storage do
   Generate a unique filename with timestamp and random suffix
   """
   def generate_filename(base_filename) when is_binary(base_filename) do
-    timestamp = DateTime.utc_now() |> DateTime.to_unix()
-    random = :crypto.strong_rand_bytes(4) |> Base.encode16(case: :lower)
+    timestamp = DateTime.to_unix(DateTime.utc_now())
+    random = 4 |> :crypto.strong_rand_bytes() |> Base.encode16(case: :lower)
 
     case Path.extname(base_filename) do
       "" ->
         "#{Path.basename(base_filename, "")}_#{timestamp}_#{random}"
+
       ext ->
         base = Path.basename(base_filename, ext)
         "#{base}_#{timestamp}_#{random}#{ext}"

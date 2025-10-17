@@ -19,6 +19,13 @@ else
     show_sensitive_data_on_connection_error: true
 end
 
+config :browsergrid, Browsergrid.SessionRuntime,
+  kubernetes: [
+    conn: :auto,
+    namespace: System.get_env("BROWSERGRID_K8S_NAMESPACE", "browsergrid-dev"),
+    service_account: System.get_env("BROWSERGRID_K8S_SERVICE_ACCOUNT", "browsergrid-session")
+  ]
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -61,14 +68,6 @@ config :browsergrid, BrowsergridWeb.Endpoint,
       ~r"assets/js/.*(js|jsx|ts|tsx)$"
     ]
   ]
-
-config :browsergrid, Browsergrid.SessionRuntime,
-  kubernetes: [
-    conn: :auto,
-    namespace: System.get_env("BROWSERGRID_K8S_NAMESPACE", "browsergrid-dev"),
-    service_account: System.get_env("BROWSERGRID_K8S_SERVICE_ACCOUNT", "browsergrid-session")
-  ]
-
 
 # Enable dev routes for dashboard and mailbox
 #       keyfile: "priv/cert/selfsigned_key.pem",

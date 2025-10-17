@@ -50,12 +50,11 @@ defmodule BrowsergridWeb.SessionProxyController do
   end
 
   defp handle_http(conn, session_id, path, base_path) do
-    with {:ok, %{host: host, port: port}} <- SessionRuntime.upstream_endpoint(session_id) do
-      cond do
-        stream_request?(conn, path) ->
+    case SessionRuntime.upstream_endpoint(session_id) do
+      {:ok, %{host: host, port: port}} ->
+        if stream_request?(conn, path) do
           stream_proxied_response(conn, host, port, path, base_path)
-
-        true ->
+        else
           with {:ok, body, conn} <- read_full_body(conn),
                request = build_proxied_request(conn, host, port, path, body, base_path),
                {:ok, response} <- Finch.request(request, Browsergrid.Finch) do
@@ -72,8 +71,8 @@ defmodule BrowsergridWeb.SessionProxyController do
               Logger.error("proxy failed: #{inspect(reason)}")
               send_resp(conn, 500, "proxy failure")
           end
-      end
-    else
+        end
+
       {:error, :not_found} ->
         send_resp(conn, 404, "session not running")
 
@@ -101,9 +100,7 @@ defmodule BrowsergridWeb.SessionProxyController do
       chunked?: false
     }
 
-    case Finch.stream(request, Browsergrid.Finch, initial_state, &stream_chunk/2,
-           receive_timeout: :infinity
-         ) do
+    case Finch.stream(request, Browsergrid.Finch, initial_state, &stream_chunk/2, receive_timeout: :infinity) do
       {:ok, %{conn: streamed_conn}} ->
         Plug.Conn.halt(streamed_conn)
 
@@ -132,10 +129,7 @@ defmodule BrowsergridWeb.SessionProxyController do
     {:cont, %{state | status: status}}
   end
 
-  defp stream_chunk(
-         {:headers, headers},
-         %{conn: conn, status: status, chunked?: chunked?} = state
-       ) do
+  defp stream_chunk({:headers, headers}, %{conn: conn, status: status, chunked?: chunked?} = state) do
     conn =
       conn
       |> put_proxy_resp_headers(headers)

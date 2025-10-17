@@ -7,7 +7,7 @@ defmodule BrowsergridWeb.HealthController do
       node: node(),
       connected_nodes: Node.list(),
       cluster_size: length([node() | Node.list()]),
-      timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
+      timestamp: DateTime.to_iso8601(DateTime.utc_now()),
       version: Application.spec(:browsergrid, :vsn) || "1.0.0"
     }
 

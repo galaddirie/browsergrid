@@ -7,6 +7,10 @@
 # General application configuration
 import Config
 
+config :browsergrid, Browsergrid.ApiKeys.RateLimiter,
+  limit: 120,
+  interval_ms: 60_000
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -32,9 +36,12 @@ config :browsergrid, Browsergrid.SessionRuntime,
   browser: [
     mode: :kubernetes,
     http_port:
-      System.get_env("BROWSERGRID_BROWSER_HTTP_PORT")
+      "BROWSERGRID_BROWSER_HTTP_PORT"
+      |> System.get_env()
       |> case do
-        nil -> 80
+        nil ->
+          80
+
         value ->
           case Integer.parse(value) do
             {int, _} -> int
@@ -43,9 +50,12 @@ config :browsergrid, Browsergrid.SessionRuntime,
       end,
     ready_path: System.get_env("BROWSERGRID_BROWSER_HEALTH_PATH") || "/health",
     ready_timeout_ms:
-      System.get_env("BROWSERGRID_BROWSER_READY_TIMEOUT_MS")
+      "BROWSERGRID_BROWSER_READY_TIMEOUT_MS"
+      |> System.get_env()
       |> case do
-        nil -> 120_000
+        nil ->
+          120_000
+
         value ->
           case Integer.parse(value) do
             {int, _} -> int
@@ -53,9 +63,12 @@ config :browsergrid, Browsergrid.SessionRuntime,
           end
       end,
     ready_poll_interval_ms:
-      System.get_env("BROWSERGRID_BROWSER_READY_POLL_MS")
+      "BROWSERGRID_BROWSER_READY_POLL_MS"
+      |> System.get_env()
       |> case do
-        nil -> 1_000
+        nil ->
+          1_000
+
         value ->
           case Integer.parse(value) do
             {int, _} -> int
@@ -65,7 +78,8 @@ config :browsergrid, Browsergrid.SessionRuntime,
   ],
   kubernetes: [
     enabled:
-      System.get_env("BROWSERGRID_ENABLE_KUBERNETES")
+      "BROWSERGRID_ENABLE_KUBERNETES"
+      |> System.get_env()
       |> case do
         nil -> true
         value -> String.downcase(value) in ["1", "true", "yes"]
@@ -82,8 +96,7 @@ config :browsergrid, Browsergrid.SessionRuntime,
     limit_memory: System.get_env("BROWSERGRID_BROWSER_MEMORY_LIMIT", "2Gi"),
     profile_volume_claim: System.get_env("BROWSERGRID_PROFILE_PVC"),
     profile_volume_sub_path_prefix: System.get_env("BROWSERGRID_PROFILE_SUBPATH_PREFIX", "sessions"),
-    profile_volume_mount_path:
-      System.get_env("BROWSERGRID_PROFILE_MOUNT_PATH") || "/home/user/data-dir",
+    profile_volume_mount_path: System.get_env("BROWSERGRID_PROFILE_MOUNT_PATH") || "/home/user/data-dir",
     extra_env: [
       {"REMOTE_DEBUGGING_PORT", System.get_env("BROWSERGRID_REMOTE_DEBUG_PORT", "61000")},
       {"PORT", System.get_env("BROWSERGRID_BROWSERMUX_PORT", "8080")},
@@ -124,22 +137,19 @@ config :browsergrid, :profiles,
   max_profile_size_mb: 500,
   allowed_browser_types: [:chrome, :chromium, :firefox]
 
-config :browsergrid, :session_profiles_path,
-  System.get_env("BROWSERGRID_SESSION_PROFILES_PATH", "/var/lib/browsergrid/profiles")
-
 # Redis (pub/sub for route fanout)
 config :browsergrid, :redis,
   url: "redis://localhost:6379",
   route_channel: "route-updates"
 
+config :browsergrid,
+       :session_profiles_path,
+       System.get_env("BROWSERGRID_SESSION_PROFILES_PATH", "/var/lib/browsergrid/profiles")
+
 config :browsergrid, :storage,
   backend: Browsergrid.Storage.Local,
   local_path: "/var/lib/browsergrid/media",
   base_url: "http://localhost:4000"
-
-config :browsergrid, Browsergrid.ApiKeys.RateLimiter,
-  limit: 120,
-  interval_ms: 60_000
 
 config :browsergrid,
   ecto_repos: [Browsergrid.Repo],

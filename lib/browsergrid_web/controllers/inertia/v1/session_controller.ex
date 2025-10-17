@@ -1,10 +1,11 @@
 defmodule BrowsergridWeb.Inertia.V1.SessionController do
   use BrowsergridWeb, :controller
 
-  alias Browsergrid.{Sessions, Profiles, Repo}
+  alias Browsergrid.Profiles
+  alias Browsergrid.Repo
+  alias Browsergrid.Sessions
 
   require Logger
-
 
   def index(conn, _params) do
     sessions = Sessions.list_sessions(preload: true)
@@ -18,10 +19,11 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id) do
-      session = Repo.preload(session, :profile)
-      render_inertia(conn, "Sessions/Show", %{session: session})
-    else
+    case Sessions.get_session(id) do
+      {:ok, session} ->
+        session = Repo.preload(session, :profile)
+        render_inertia(conn, "Sessions/Show", %{session: session})
+
       {:error, _} ->
         conn
         |> put_flash(:error, "Session not found")
@@ -47,10 +49,11 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   def edit(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id) do
-      session = Repo.preload(session, :profile)
-      render_inertia(conn, "Sessions/Edit", %{session: session})
-    else
+    case Sessions.get_session(id) do
+      {:ok, session} ->
+        session = Repo.preload(session, :profile)
+        render_inertia(conn, "Sessions/Edit", %{session: session})
+
       {:error, _} ->
         conn
         |> put_flash(:error, "Session not found")
@@ -118,6 +121,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   defp format_changeset_errors(nil), do: %{}
+
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
       Enum.reduce(opts, msg, fn {key, value}, acc ->

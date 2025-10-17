@@ -1,12 +1,13 @@
 defmodule Browsergrid.Sessions.AuditTest do
   use Browsergrid.DataCase, async: true
 
-  alias Browsergrid.Sessions.Audit
   alias Browsergrid.Factory
+  alias Browsergrid.Sessions.Audit
 
   describe "changeset/2" do
     test "valid changeset with required fields" do
       session = Factory.insert(:session)
+
       attrs = %{
         action: "session_created",
         session_id: session.id
@@ -21,6 +22,7 @@ defmodule Browsergrid.Sessions.AuditTest do
 
     test "valid changeset with all fields" do
       session = Factory.insert(:session)
+
       attrs = %{
         action: "session_started",
         metadata: %{"browser_type" => "chrome", "cluster" => "production"},
@@ -61,6 +63,7 @@ defmodule Browsergrid.Sessions.AuditTest do
 
     test "sets default metadata when not provided" do
       session = Factory.insert(:session)
+
       attrs = %{
         action: "session_stopped",
         session_id: session.id
@@ -85,6 +88,7 @@ defmodule Browsergrid.Sessions.AuditTest do
 
     test "accepts complex metadata" do
       session = Factory.insert(:session)
+
       metadata = %{
         "browser_type" => "firefox",
         "cluster" => "staging",
@@ -149,6 +153,7 @@ defmodule Browsergrid.Sessions.AuditTest do
 
     test "timestamps are set automatically" do
       session = Factory.insert(:session)
+
       attrs = %{
         action: "session_created",
         session_id: session.id

@@ -64,7 +64,8 @@ defmodule BrowsergridWeb.API.V1.DeploymentJSON do
   end
 
   defp data_detailed(%Deployment{} = deployment) do
-    data(deployment)
+    deployment
+    |> data()
     |> Map.merge(%{
       root_directory: deployment.root_directory,
       install_command: deployment.install_command,

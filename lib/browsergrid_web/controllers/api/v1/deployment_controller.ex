@@ -24,6 +24,7 @@ defmodule BrowsergridWeb.API.V1.DeploymentController do
     case Deployments.get_deployment(id) do
       nil ->
         send_resp(conn, 404, "Deployment not found")
+
       deployment ->
         render(conn, :show, deployment: deployment)
     end
@@ -81,6 +82,7 @@ defmodule BrowsergridWeb.API.V1.DeploymentController do
         case Deployments.delete_deployment(deployment) do
           {:ok, _} ->
             send_resp(conn, :no_content, "")
+
           {:error, _} ->
             send_resp(conn, 500, "Failed to delete deployment")
         end

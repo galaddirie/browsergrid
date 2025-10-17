@@ -85,7 +85,8 @@ defmodule BrowsergridWeb.API.V1.ProfileJSON do
   end
 
   defp data_detailed(%Profile{} = profile) do
-    data(profile)
+    profile
+    |> data()
     |> Map.merge(%{
       metadata: profile.metadata,
       media_file_id: profile.media_file_id,

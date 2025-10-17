@@ -1,5 +1,6 @@
 defmodule BrowsergridWeb.Inertia.V1.ProfileController do
   use BrowsergridWeb, :controller
+
   alias Browsergrid.Profiles
   alias Browsergrid.Sessions
 
@@ -34,8 +35,7 @@ defmodule BrowsergridWeb.Inertia.V1.ProfileController do
   end
 
   def new(conn, _params) do
-    conn
-    |> render_inertia("Profiles/New")
+    render_inertia(conn, "Profiles/New")
   end
 
   def create(conn, %{"profile" => profile_params}) do
@@ -160,8 +160,10 @@ defmodule BrowsergridWeb.Inertia.V1.ProfileController do
           {:ok, zip_content} ->
             conn
             |> put_resp_content_type("application/zip")
-            |> put_resp_header("content-disposition",
-               "attachment; filename=\"profile_#{profile.name}_v#{profile.version}.zip\"")
+            |> put_resp_header(
+              "content-disposition",
+              "attachment; filename=\"profile_#{profile.name}_v#{profile.version}.zip\""
+            )
             |> send_resp(200, zip_content)
 
           {:error, :no_profile_data} ->
@@ -196,9 +198,8 @@ defmodule BrowsergridWeb.Inertia.V1.ProfileController do
 
   def restore_snapshot(conn, %{"id" => id, "snapshot_id" => snapshot_id}) do
     with profile when not is_nil(profile) <- Profiles.get_profile(id),
-         snapshots <- Profiles.list_profile_snapshots(profile),
+         snapshots = Profiles.list_profile_snapshots(profile),
          snapshot when not is_nil(snapshot) <- Enum.find(snapshots, &(&1.id == snapshot_id)) do
-
       case Profiles.restore_from_snapshot(profile, snapshot) do
         {:ok, _} ->
           conn
@@ -246,6 +247,7 @@ defmodule BrowsergridWeb.Inertia.V1.ProfileController do
     case File.read(upload.path) do
       {:ok, content} ->
         Profiles.upload_profile_data(profile, content)
+
       {:error, reason} ->
         {:error, reason}
     end

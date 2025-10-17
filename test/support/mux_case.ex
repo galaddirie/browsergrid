@@ -11,6 +11,7 @@ defmodule Browsergrid.MuxCase do
   using do
     quote do
       use ExUnit.Case, async: false
+
       import Browsergrid.MuxCase
     end
   end
@@ -35,6 +36,7 @@ defmodule Browsergrid.MuxCase do
       {:ok, pid} ->
         # Don't stop on exit - let it live for other tests
         pid
+
       {:error, {:already_started, pid}} ->
         pid
     end
@@ -54,7 +56,8 @@ defmodule Browsergrid.MuxCase do
     defaults = [
       session_id: unique_session_id(),
       browser_port: 9222,
-      mux_port: 8080  # Use consistent port for tests
+      # Use consistent port for tests
+      mux_port: 8080
     ]
 
     Keyword.merge(defaults, overrides)

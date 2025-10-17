@@ -5,8 +5,9 @@ defmodule Browsergrid.Media do
   """
 
   import Ecto.Query, warn: false
-  alias Browsergrid.Repo
+
   alias Browsergrid.Media.MediaFile
+  alias Browsergrid.Repo
   alias Browsergrid.Storage
 
   require Logger
@@ -16,13 +17,13 @@ defmodule Browsergrid.Media do
   """
   def upload_file(upload, opts \\ []) do
     with {:ok, content} <- read_upload(upload),
-         path <- generate_storage_path(upload.filename, opts),
-         {:ok, storage_file} <- Storage.put(path, content,
-           content_type: upload.content_type,
-           metadata: opts[:metadata]
-         ),
+         path = generate_storage_path(upload.filename, opts),
+         {:ok, storage_file} <-
+           Storage.put(path, content,
+             content_type: upload.content_type,
+             metadata: opts[:metadata]
+           ),
          {:ok, media_file} <- create_media_file(storage_file, upload, opts) do
-
       {:ok, media_file}
     else
       {:error, reason} = error ->
@@ -117,9 +118,7 @@ defmodule Browsergrid.Media do
       |> Repo.all()
       |> MapSet.new()
 
-    orphaned =
-      storage_files
-      |> Enum.reject(&MapSet.member?(db_paths, &1))
+    orphaned = Enum.reject(storage_files, &MapSet.member?(db_paths, &1))
 
     Enum.each(orphaned, fn path ->
       Logger.info("Deleting orphaned file: #{path}")

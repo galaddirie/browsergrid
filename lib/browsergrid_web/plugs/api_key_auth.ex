@@ -3,12 +3,13 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuth do
   Plug that enforces API key authentication for request pipelines.
   """
 
+  @behaviour Plug
+
   import Plug.Conn
 
   alias Browsergrid.ApiKeys
-  require Logger
 
-  @behaviour Plug
+  require Logger
 
   @impl Plug
   def init(opts) do
@@ -60,7 +61,9 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuth do
 
   defp token_from_header(conn) do
     case get_req_header(conn, "authorization") do
-      [] -> :error
+      [] ->
+        :error
+
       [value | _] ->
         case String.split(value, " ", parts: 2) do
           [scheme, token] when String.downcase(scheme) == "bearer" and token != "" ->

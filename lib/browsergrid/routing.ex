@@ -3,8 +3,10 @@ defmodule Browsergrid.Routing do
   Routing context for authoritative routes table and Redis fanout.
   """
   import Ecto.Query, warn: false
+
   alias Browsergrid.Repo
   alias Browsergrid.Routing.Route
+
   require Logger
 
   @spec upsert_route(String.t(), String.t(), non_neg_integer()) :: {:ok, Route.t()} | {:error, Ecto.Changeset.t()}
@@ -20,6 +22,7 @@ defmodule Browsergrid.Routing do
         nil ->
           Logger.debug("Creating new route for session #{session_id}")
           Route.changeset(%Route{id: session_id}, attrs)
+
         %Route{} = route ->
           Logger.debug("Updating existing route for session #{session_id}")
           Route.changeset(route, attrs)
@@ -27,19 +30,23 @@ defmodule Browsergrid.Routing do
 
     Logger.debug("Changeset for session #{session_id}: #{inspect(changeset)}")
 
-    with {:ok, route} <- Repo.insert_or_update(changeset) do
-      Logger.debug("Route inserted/updated successfully: #{inspect(route)}")
-      # Publish to Redis for edge fanout
-      Logger.debug("Publishing route to Redis for session #{session_id}")
-      case Browsergrid.Redis.publish_route_upsert(session_id, ip, port) do
-        {:ok, _subscribers} ->
-          Logger.debug("Route published to Redis successfully for session #{session_id}")
-          {:ok, route}
-        error ->
-          Logger.error("Failed to publish route to Redis for session #{session_id}: #{inspect(error)}")
-          {:ok, route}  # Continue anyway since route is in database
-      end
-    else
+    case Repo.insert_or_update(changeset) do
+      {:ok, route} ->
+        Logger.debug("Route inserted/updated successfully: #{inspect(route)}")
+        # Publish to Redis for edge fanout
+        Logger.debug("Publishing route to Redis for session #{session_id}")
+
+        case Browsergrid.Redis.publish_route_upsert(session_id, ip, port) do
+          {:ok, _subscribers} ->
+            Logger.debug("Route published to Redis successfully for session #{session_id}")
+            {:ok, route}
+
+          error ->
+            Logger.error("Failed to publish route to Redis for session #{session_id}: #{inspect(error)}")
+            # Continue anyway since route is in database
+            {:ok, route}
+        end
+
       error ->
         Logger.error("Failed to upsert route for session #{session_id}: #{inspect(error)}")
         error
@@ -49,15 +56,20 @@ defmodule Browsergrid.Routing do
   @spec delete_route(String.t()) :: :ok
   def delete_route(session_id) do
     case Repo.get(Route, session_id) do
-      nil -> :ok
+      nil ->
+        :ok
+
       %Route{} = route ->
         {:ok, _} = Repo.delete(route)
+
         case Browsergrid.Redis.publish_route_delete(session_id) do
           {:ok, _subscribers} ->
             Logger.debug("Route deletion published to Redis for session #{session_id}")
+
           error ->
             Logger.error("Failed to publish route deletion to Redis for session #{session_id}: #{inspect(error)}")
         end
+
         :ok
     end
   end

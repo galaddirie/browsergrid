@@ -30,8 +30,12 @@ defmodule Browsergrid.Repo.Migrations.CreateProfiles do
       add :created_by_session_id, :binary_id
       add :metadata, :map, default: %{}
       add :storage_size_bytes, :bigint, null: false
-      add :profile_id, references(:profiles, type: :binary_id, on_delete: :delete_all), null: false
-      add :media_file_id, references(:media_files, type: :binary_id, on_delete: :restrict), null: false
+
+      add :profile_id, references(:profiles, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :media_file_id, references(:media_files, type: :binary_id, on_delete: :restrict),
+        null: false
 
       timestamps(updated_at: false, type: :utc_datetime_usec)
     end

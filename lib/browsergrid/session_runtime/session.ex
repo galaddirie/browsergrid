@@ -35,7 +35,6 @@ defmodule Browsergrid.SessionRuntime.Session do
     ]
   end
 
-
   def child_spec(opts) do
     session_id = Keyword.fetch!(opts, :session_id)
 
@@ -62,8 +61,8 @@ defmodule Browsergrid.SessionRuntime.Session do
 
     with {:ok, snapshot} <- fetch_or_default_snapshot(session_id),
          {:ok, state} <- build_initial_state(session_id, opts, snapshot),
-         {:ok, browser} <- start_and_wait_for_browser(state),
-         state <- finalize_state(state, browser) do
+         {:ok, browser} <- start_and_wait_for_browser(state) do
+      state = finalize_state(state, browser)
       StateStore.put(session_id, build_snapshot(state))
       {:ok, schedule_checkpoint(state)}
     else
@@ -127,9 +126,10 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp build_initial_state(session_id, opts, snapshot) do
-    with {:ok, profile_dir} <- ensure_profile_dir(session_id, snapshot),
-         metadata <- merge_metadata(opts, snapshot),
-         browser_type <- determine_browser_type(opts, snapshot, metadata) do
+    with {:ok, profile_dir} <- ensure_profile_dir(session_id, snapshot) do
+      metadata = merge_metadata(opts, snapshot)
+      browser_type = determine_browser_type(opts, snapshot, metadata)
+
       state = %State{
         id: session_id,
         profile_dir: profile_dir,
@@ -161,11 +161,7 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp finalize_state(state, browser) do
-    %{state |
-      browser: browser,
-      endpoint: build_endpoint(browser),
-      ready?: true
-    }
+    %{state | browser: browser, endpoint: build_endpoint(browser), ready?: true}
   end
 
   defp ensure_profile_dir(session_id, snapshot) do
@@ -200,6 +196,7 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp normalize_browser_type(type) when type in [:chrome, :chromium, :firefox], do: type
+
   defp normalize_browser_type(type) when is_binary(type) do
     case String.downcase(type) do
       "chrome" -> :chrome
@@ -208,6 +205,7 @@ defmodule Browsergrid.SessionRuntime.Session do
       _ -> nil
     end
   end
+
   defp normalize_browser_type(_), do: nil
 
   defp build_context(state) do
@@ -226,6 +224,7 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp build_endpoint(nil), do: nil
+
   defp build_endpoint(%{pod_ip: host, http_port: port}) do
     %{host: host, port: port, scheme: "http"}
   end
@@ -266,6 +265,7 @@ defmodule Browsergrid.SessionRuntime.Session do
   end
 
   defp serialize_endpoint(nil), do: nil
+
   defp serialize_endpoint(%{host: host, port: port} = endpoint) do
     %{"host" => host, "port" => port, "scheme" => Map.get(endpoint, :scheme, "http")}
   end

@@ -39,6 +39,7 @@ defmodule Browsergrid.SessionRuntime.SessionTest do
       assert description.node == Node.self()
       assert %DateTime{} = description.started_at
       assert %DateTime{} = description.checkpoint_at
+
       assert %{
                host: ^host,
                port: ^port,

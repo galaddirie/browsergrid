@@ -77,6 +77,7 @@ defmodule Browsergrid.ApiKeysTest do
     test "stops requests after the configured threshold", %{api_key: api_key} do
       assert {:ok, _} = ApiKeys.check_rate_limit(api_key, limit: 2, interval_ms: 50)
       assert {:ok, _} = ApiKeys.check_rate_limit(api_key, limit: 2, interval_ms: 50)
+
       assert {:error, :rate_limited, %{retry_after_ms: retry}} =
                ApiKeys.check_rate_limit(api_key, limit: 2, interval_ms: 50)
 

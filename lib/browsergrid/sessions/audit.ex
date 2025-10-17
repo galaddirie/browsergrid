@@ -17,5 +17,3 @@ defmodule Browsergrid.Sessions.Audit do
     |> validate_required([:action, :session_id])
   end
 end
-
-

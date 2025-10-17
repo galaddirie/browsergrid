@@ -7,7 +7,7 @@ defmodule Browsergrid.ApiKeys.Token do
   @default_entropy_bytes 32
   @default_prefix_length 4
   @token_regex ~r/^bg_(?<prefix>[A-Za-z0-9]{4,12})_(?<secret>[A-Za-z0-9\-_]{32,128})$/
-  @alpha_chars 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  @alpha_chars ~c"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
   @alpha_chars_length length(@alpha_chars)
 
   @doc """

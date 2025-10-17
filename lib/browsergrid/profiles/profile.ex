@@ -5,6 +5,7 @@ defmodule Browsergrid.Profiles.Profile do
   """
 
   use Browsergrid.Schema
+
   alias Browsergrid.Media.MediaFile
 
   @derive {Jason.Encoder, except: [:__meta__, :sessions, :snapshots, :media_file]}
@@ -13,20 +14,20 @@ defmodule Browsergrid.Profiles.Profile do
   @statuses [:active, :archived, :updating, :error]
 
   @type t :: %__MODULE__{
-    id: Ecto.UUID.t() | nil,
-    name: String.t(),
-    description: String.t() | nil,
-    browser_type: atom(),
-    status: atom(),
-    metadata: map(),
-    storage_size_bytes: integer() | nil,
-    last_used_at: DateTime.t() | nil,
-    version: integer(),
-    media_file_id: Ecto.UUID.t() | nil,
-    user_id: Ecto.UUID.t() | nil,
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: Ecto.UUID.t() | nil,
+          name: String.t(),
+          description: String.t() | nil,
+          browser_type: atom(),
+          status: atom(),
+          metadata: map(),
+          storage_size_bytes: integer() | nil,
+          last_used_at: DateTime.t() | nil,
+          version: integer(),
+          media_file_id: Ecto.UUID.t() | nil,
+          user_id: Ecto.UUID.t() | nil,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   schema "profiles" do
     field :name, :string

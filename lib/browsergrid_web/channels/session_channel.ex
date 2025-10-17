@@ -5,6 +5,7 @@ defmodule BrowsergridWeb.SessionChannel do
   """
 
   use Phoenix.Channel
+
   alias Browsergrid.Sessions
 
   @impl true
@@ -52,7 +53,3 @@ defmodule BrowsergridWeb.SessionChannel do
     )
   end
 end
-
-
-
-

@@ -6,6 +6,7 @@ defmodule Browsergrid.Redis do
   """
 
   use Supervisor
+
   require Logger
 
   @conn_name __MODULE__.Conn
@@ -58,5 +59,3 @@ defmodule Browsergrid.Redis do
     publish(channel, message)
   end
 end
-
-

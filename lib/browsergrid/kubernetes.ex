@@ -15,7 +15,9 @@ defmodule Browsergrid.Kubernetes do
     config = SessionRuntime.kubernetes_config()
 
     case build_conn(config) do
-      {:ok, conn} -> {:ok, conn}
+      {:ok, conn} ->
+        {:ok, conn}
+
       {:error, reason} ->
         Logger.error("failed to establish kubernetes connection: #{inspect(reason)}")
         {:error, reason}

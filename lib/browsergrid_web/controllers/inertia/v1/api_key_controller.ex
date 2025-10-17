@@ -36,56 +36,55 @@ defmodule BrowsergridWeb.Inertia.V1.ApiKeyController do
   def regenerate(conn, %{"id" => id} = params) do
     attrs = Map.get(params, "api_key", %{})
 
-    with {:ok, api_key} <- fetch_api_key(id) do
-      case ApiKeys.regenerate_api_key(api_key, attrs) do
-        {:ok, %{api_key: new_key, token: token, revoked_key: revoked}} ->
-          conn
-          |> put_flash(:info, "API key regenerated")
-          |> render_index(%{
-            regenerated: %{
-              token: token,
-              api_key: present_api_key(new_key),
-              previous: present_api_key(revoked)
-            }
-          })
+    case fetch_api_key(id) do
+      {:ok, api_key} ->
+        case ApiKeys.regenerate_api_key(api_key, attrs) do
+          {:ok, %{api_key: new_key, token: token, revoked_key: revoked}} ->
+            conn
+            |> put_flash(:info, "API key regenerated")
+            |> render_index(%{
+              regenerated: %{
+                token: token,
+                api_key: present_api_key(new_key),
+                previous: present_api_key(revoked)
+              }
+            })
 
-        {:error, %Ecto.Changeset{} = changeset} ->
-          conn
-          |> put_status(:unprocessable_entity)
-          |> render_index(%{errors: format_errors(changeset)})
-      end
-    else
-      {:error, reason} -> handle_error(conn, reason)
+          {:error, %Ecto.Changeset{} = changeset} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> render_index(%{errors: format_errors(changeset)})
+        end
+
+      {:error, reason} ->
+        handle_error(conn, reason)
     end
   end
 
   def revoke(conn, %{"id" => id}) do
-    with {:ok, api_key} <- fetch_api_key(id) do
-      case ApiKeys.revoke_api_key(api_key) do
-        {:ok, revoked} ->
-          conn
-          |> put_flash(:info, "API key revoked")
-          |> render_index(%{revoked: present_api_key(revoked)})
+    case fetch_api_key(id) do
+      {:ok, api_key} ->
+        case ApiKeys.revoke_api_key(api_key) do
+          {:ok, revoked} ->
+            conn
+            |> put_flash(:info, "API key revoked")
+            |> render_index(%{revoked: present_api_key(revoked)})
 
-        {:error, %Ecto.Changeset{} = changeset} ->
-          conn
-          |> put_status(:unprocessable_entity)
-          |> render_index(%{errors: format_errors(changeset)})
-      end
-    else
-      {:error, reason} -> handle_error(conn, reason)
+          {:error, %Ecto.Changeset{} = changeset} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> render_index(%{errors: format_errors(changeset)})
+        end
+
+      {:error, reason} ->
+        handle_error(conn, reason)
     end
   end
 
   defp render_index(conn, extra_props) do
     api_keys = ApiKeys.list_api_keys(include_revoked: true)
 
-    props =
-      %{
-        api_keys: Enum.map(api_keys, &present_api_key/1),
-        stats: statistics(api_keys)
-      }
-      |> Map.merge(extra_props)
+    props = Map.merge(%{api_keys: Enum.map(api_keys, &present_api_key/1), stats: statistics(api_keys)}, extra_props)
 
     render_inertia(conn, "APIKeys/Index", props)
   end
@@ -130,7 +129,7 @@ defmodule BrowsergridWeb.Inertia.V1.ApiKeyController do
 
   defp encode_datetime(nil), do: nil
   defp encode_datetime(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
-  defp encode_datetime(%NaiveDateTime{} = ndt), do: DateTime.from_naive!(ndt, "Etc/UTC") |> DateTime.to_iso8601()
+  defp encode_datetime(%NaiveDateTime{} = ndt), do: ndt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_iso8601()
 
   defp derive_status(%APIKey{} = api_key) do
     cond do
@@ -143,7 +142,7 @@ defmodule BrowsergridWeb.Inertia.V1.ApiKeyController do
   defp expired?(%APIKey{expires_at: nil}), do: false
 
   defp expired?(%APIKey{expires_at: expires_at}) do
-    DateTime.compare(expires_at, DateTime.utc_now()) == :lt
+    DateTime.before?(expires_at, DateTime.utc_now())
   end
 
   defp fetch_api_key(id) do

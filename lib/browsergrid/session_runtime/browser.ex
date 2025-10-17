@@ -8,6 +8,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
 
   alias Browsergrid.Kubernetes
   alias Browsergrid.SessionRuntime
+  alias K8s.Client.APIError
 
   require Logger
 
@@ -31,7 +32,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
   @spec start(String.t(), term(), String.t(), keyword(), map(), atom()) ::
           {:ok, t()} | {:error, term()}
   def start(session_id, _unused_port, profile_dir, opts, context, browser_type \\ :chrome) do
-    config = SessionRuntime.browser_config() |> Keyword.merge(opts)
+    config = Keyword.merge(SessionRuntime.browser_config(), opts)
     mode = Keyword.get(config, :mode, :kubernetes)
     browser_type = normalize_browser_type(browser_type || Map.get(context, :browser_type))
 
@@ -72,19 +73,25 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   def stop(%{mode: :kubernetes, pod_name: pod_name, namespace: namespace}) do
-    with {:ok, conn} <- Kubernetes.client() do
-      op = K8s.Client.delete("v1", :pod, [namespace: namespace, name: pod_name])
-           |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
+    case Kubernetes.client() do
+      {:ok, conn} ->
+        op =
+          "v1"
+          |> K8s.Client.delete(:pod, namespace: namespace, name: pod_name)
+          |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
 
-      case Kubernetes.run(conn, op) do
-        {:ok, _} -> :ok
-        {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
-          :ok
-        {:error, reason} ->
-          Logger.error("failed to delete pod #{pod_name} in namespace #{namespace}: #{inspect(reason)}")
-          {:error, reason}
-      end
-    else
+        case Kubernetes.run(conn, op) do
+          {:ok, _} ->
+            :ok
+
+          {:error, %APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
+            :ok
+
+          {:error, reason} ->
+            Logger.error("failed to delete pod #{pod_name} in namespace #{namespace}: #{inspect(reason)}")
+            {:error, reason}
+        end
+
       {:error, reason} ->
         Logger.error("unable to obtain kubernetes client for pod deletion: #{inspect(reason)}")
         {:error, reason}
@@ -113,19 +120,16 @@ defmodule Browsergrid.SessionRuntime.Browser do
   defp start_kubernetes(session_id, profile_dir, config, context, browser_type) do
     kube_config = SessionRuntime.kubernetes_config()
 
-    unless Keyword.get(kube_config, :enabled, true) do
-      Logger.error("kubernetes runtime disabled via configuration")
-      {:error, :kubernetes_disabled}
-    else
+    if Keyword.get(kube_config, :enabled, true) do
       http_port = Keyword.get(config, :http_port)
 
       if is_nil(http_port) do
         {:error, :missing_http_port_configuration}
       else
         with {:ok, conn} <- Kubernetes.client(),
-             namespace <- Keyword.get(kube_config, :namespace, "browsergrid"),
-             pod_name <- pod_name(session_id),
-             spec <-
+             namespace = Keyword.get(kube_config, :namespace, "browsergrid"),
+             pod_name = pod_name(session_id),
+             spec =
                build_pod_spec(
                  session_id,
                  profile_dir,
@@ -152,6 +156,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
            }}
         end
       end
+    else
+      Logger.error("kubernetes runtime disabled via configuration")
+      {:error, :kubernetes_disabled}
     end
   end
 
@@ -159,8 +166,10 @@ defmodule Browsergrid.SessionRuntime.Browser do
     op = K8s.Client.create("v1", :pod, [namespace: namespace], spec)
 
     case Kubernetes.run(conn, op) do
-      {:ok, pod} -> {:ok, pod}
-      {:error, %K8s.Client.APIError{reason: :already_exists}} ->
+      {:ok, pod} ->
+        {:ok, pod}
+
+      {:error, %APIError{reason: :already_exists}} ->
         {:error, :pod_already_exists}
 
       {:error, reason} ->
@@ -170,14 +179,16 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   defp ensure_pod_absent(conn, namespace, pod_name) do
-    op = K8s.Client.delete("v1", :pod, [namespace: namespace, name: pod_name])
-         |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
+    op =
+      "v1"
+      |> K8s.Client.delete(:pod, namespace: namespace, name: pod_name)
+      |> K8s.Operation.put_query_param(:gracePeriodSeconds, 0)
 
     case Kubernetes.run(conn, op) do
       {:ok, _} ->
         wait_for_deletion(conn, namespace, pod_name, 30, 500)
 
-      {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
+      {:error, %APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
         :ok
 
       {:error, reason} ->
@@ -189,14 +200,14 @@ defmodule Browsergrid.SessionRuntime.Browser do
   defp wait_for_deletion(_client, _namespace, _pod_name, 0, _poll), do: :ok
 
   defp wait_for_deletion(conn, namespace, pod_name, attempts, poll) do
-    op = K8s.Client.get("v1", :pod, [namespace: namespace, name: pod_name])
+    op = K8s.Client.get("v1", :pod, namespace: namespace, name: pod_name)
 
     case Kubernetes.run(conn, op) do
       {:ok, _pod} ->
         Process.sleep(poll)
         wait_for_deletion(conn, namespace, pod_name, attempts - 1, poll)
 
-      {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
+      {:error, %APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
         :ok
 
       {:error, _} ->
@@ -213,15 +224,18 @@ defmodule Browsergrid.SessionRuntime.Browser do
       case fetch_pod(conn, state) do
         {:ok, pod} ->
           case {pod_phase(pod), containers_ready?(pod)} do
-            {"Running", true} -> {:ok, pod}
+            {"Running", true} ->
+              {:ok, pod}
+
             {phase, _} when phase in ["Failed", "Unknown"] ->
               {:error, {:pod_failed, phase, pod}}
+
             _ ->
               Process.sleep(poll_ms)
               wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
           end
 
-        {:error, %K8s.Client.APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
+        {:error, %APIError{reason: reason}} when reason in [:not_found, "NotFound"] ->
           Process.sleep(poll_ms)
           wait_for_pod_ready(conn, state, poll_ms, timeout_ms, started_at)
 
@@ -231,8 +245,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
     end
   end
 
-  defp wait_for_http_ready(_host, _port, _path, _poll_ms, timeout_ms, _started_at)
-       when timeout_ms <= 0 do
+  defp wait_for_http_ready(_host, _port, _path, _poll_ms, timeout_ms, _started_at) when timeout_ms <= 0 do
     {:error, :timeout}
   end
 
@@ -264,7 +277,7 @@ defmodule Browsergrid.SessionRuntime.Browser do
   end
 
   defp fetch_pod(conn, %{pod_name: pod_name, namespace: namespace}) do
-    op = K8s.Client.get("v1", :pod, [namespace: namespace, name: pod_name])
+    op = K8s.Client.get("v1", :pod, namespace: namespace, name: pod_name)
     Kubernetes.run(conn, op)
   end
 
@@ -274,7 +287,11 @@ defmodule Browsergrid.SessionRuntime.Browser do
 
   defp containers_ready?(pod) do
     statuses = get_in(pod, ["status", "containerStatuses"]) || []
-    Enum.all?(statuses, fn %{"ready" => ready} -> ready; _ -> false end)
+
+    Enum.all?(statuses, fn
+      %{"ready" => ready} -> ready
+      _ -> false
+    end)
   end
 
   defp extract_pod_ip(pod) do
@@ -292,7 +309,8 @@ defmodule Browsergrid.SessionRuntime.Browser do
     {volumes, mounts} = volume_config(kube_config, session_id, profile_dir, profile_mount_path)
 
     env =
-      base_env(session_id, profile_mount_path, context)
+      session_id
+      |> base_env(profile_mount_path, context)
       |> Enum.concat(extra_env(kube_config))
       |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
       |> Enum.map(fn {k, v} -> %{"name" => k, "value" => to_string(v)} end)
@@ -352,44 +370,42 @@ defmodule Browsergrid.SessionRuntime.Browser do
   defp volume_config(kube_config, session_id, _profile_dir, profile_mount_path) do
     claim = Keyword.get(kube_config, :profile_volume_claim)
 
-    cond do
-      is_binary(claim) and claim != "" ->
-        subprefix = Keyword.get(kube_config, :profile_volume_sub_path_prefix, "sessions")
-        sub_path = Path.join(subprefix, session_id)
+    if is_binary(claim) and claim != "" do
+      subprefix = Keyword.get(kube_config, :profile_volume_sub_path_prefix, "sessions")
+      sub_path = Path.join(subprefix, session_id)
 
-        volumes = [
-          %{
-            "name" => "profile-data",
-            "persistentVolumeClaim" => %{"claimName" => claim}
-          }
-        ]
+      volumes = [
+        %{
+          "name" => "profile-data",
+          "persistentVolumeClaim" => %{"claimName" => claim}
+        }
+      ]
 
-        mounts = [
-          %{
-            "name" => "profile-data",
-            "mountPath" => profile_mount_path,
-            "subPath" => sub_path
-          }
-        ]
+      mounts = [
+        %{
+          "name" => "profile-data",
+          "mountPath" => profile_mount_path,
+          "subPath" => sub_path
+        }
+      ]
 
-        {volumes, mounts}
+      {volumes, mounts}
+    else
+      volumes = [
+        %{
+          "name" => "profile-data",
+          "emptyDir" => %{}
+        }
+      ]
 
-      true ->
-        volumes = [
-          %{
-            "name" => "profile-data",
-            "emptyDir" => %{}
-          }
-        ]
+      mounts = [
+        %{
+          "name" => "profile-data",
+          "mountPath" => profile_mount_path
+        }
+      ]
 
-        mounts = [
-          %{
-            "name" => "profile-data",
-            "mountPath" => profile_mount_path
-          }
-        ]
-
-        {volumes, mounts}
+      {volumes, mounts}
     end
   end
 
@@ -402,9 +418,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
       {"SESSION_ID", session_id},
       {"BROWSERGRID_SESSION_ID", session_id},
       {"PROFILE_DIR", profile_mount_path},
-      {"RESOLUTION_WIDTH", if(screen_width, do: to_string(screen_width), else: nil)},
-      {"RESOLUTION_HEIGHT", if(screen_height, do: to_string(screen_height), else: nil)},
-      {"DEVICE_SCALE_FACTOR", if(scale, do: to_string(scale), else: nil)}
+      {"RESOLUTION_WIDTH", if(screen_width, do: to_string(screen_width))},
+      {"RESOLUTION_HEIGHT", if(screen_height, do: to_string(screen_height))},
+      {"DEVICE_SCALE_FACTOR", if(scale, do: to_string(scale))}
     ]
   end
 
@@ -412,7 +428,9 @@ defmodule Browsergrid.SessionRuntime.Browser do
     kube_config
     |> Keyword.get(:extra_env, [])
     |> Enum.map(fn
-      {key, value} -> {to_string(key), value}
+      {key, value} ->
+        {to_string(key), value}
+
       other when is_binary(other) ->
         case String.split(other, "=", parts: 2) do
           [k, v] -> {k, v}
@@ -480,7 +498,8 @@ defmodule Browsergrid.SessionRuntime.Browser do
       |> String.trim("-")
 
     hash =
-      :crypto.hash(:sha256, session_id)
+      :sha256
+      |> :crypto.hash(session_id)
       |> Base.encode16(case: :lower)
       |> binary_part(0, 6)
 

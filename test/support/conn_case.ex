@@ -20,6 +20,7 @@ defmodule BrowsergridWeb.ConnCase do
   using do
     quote do
       use BrowsergridWeb, :verified_routes
+
       import BrowsergridWeb.ConnCase
       import Phoenix.ConnTest
       import Plug.Conn

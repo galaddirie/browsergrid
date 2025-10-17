@@ -5,19 +5,20 @@ defmodule Browsergrid.Profiles.ProfileSnapshot do
   """
 
   use Browsergrid.Schema
-  alias Browsergrid.Profiles.Profile
+
   alias Browsergrid.Media.MediaFile
+  alias Browsergrid.Profiles.Profile
 
   @type t :: %__MODULE__{
-    id: Ecto.UUID.t() | nil,
-    version: integer(),
-    created_by_session_id: Ecto.UUID.t() | nil,
-    metadata: map(),
-    storage_size_bytes: integer(),
-    profile_id: Ecto.UUID.t(),
-    media_file_id: Ecto.UUID.t(),
-    inserted_at: DateTime.t()
-  }
+          id: Ecto.UUID.t() | nil,
+          version: integer(),
+          created_by_session_id: Ecto.UUID.t() | nil,
+          metadata: map(),
+          storage_size_bytes: integer(),
+          profile_id: Ecto.UUID.t(),
+          media_file_id: Ecto.UUID.t(),
+          inserted_at: DateTime.t()
+        }
 
   schema "profile_snapshots" do
     field :version, :integer

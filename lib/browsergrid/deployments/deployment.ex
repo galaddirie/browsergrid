@@ -10,25 +10,25 @@ defmodule Browsergrid.Deployments.Deployment do
   @statuses [:pending, :deploying, :running, :stopped, :failed, :error]
 
   @type t :: %__MODULE__{
-    id: Ecto.UUID.t() | nil,
-    name: String.t(),
-    description: String.t() | nil,
-    image: String.t() | nil,
-    blurb: String.t() | nil,
-    tags: list(String.t()),
-    is_public: boolean(),
-    archive_path: String.t(),
-    root_directory: String.t(),
-    install_command: String.t() | nil,
-    start_command: String.t(),
-    environment_variables: list(map()),
-    parameters: list(map()),
-    status: atom(),
-    session_id: Ecto.UUID.t() | nil,
-    last_deployed_at: DateTime.t() | nil,
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: Ecto.UUID.t() | nil,
+          name: String.t(),
+          description: String.t() | nil,
+          image: String.t() | nil,
+          blurb: String.t() | nil,
+          tags: list(String.t()),
+          is_public: boolean(),
+          archive_path: String.t(),
+          root_directory: String.t(),
+          install_command: String.t() | nil,
+          start_command: String.t(),
+          environment_variables: list(map()),
+          parameters: list(map()),
+          status: atom(),
+          session_id: Ecto.UUID.t() | nil,
+          last_deployed_at: DateTime.t() | nil,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   schema "deployments" do
     field :name, :string
@@ -37,7 +37,8 @@ defmodule Browsergrid.Deployments.Deployment do
     field :blurb, :string
     field :tags, {:array, :string}, default: []
     field :is_public, :boolean, default: false
-    field :archive_path, :string  # Path to the uploaded archive file
+    # Path to the uploaded archive file
+    field :archive_path, :string
     field :root_directory, :string, default: "./"
     field :install_command, :string
     field :start_command, :string
@@ -126,21 +127,27 @@ defmodule Browsergrid.Deployments.Deployment do
   end
 
   defp validate_env_vars(env_vars) when is_list(env_vars) do
-    valid? = Enum.all?(env_vars, fn
-      %{"key" => key, "value" => value} when is_binary(key) and is_binary(value) ->
-        String.trim(key) != "" and String.trim(value) != ""
-      _ -> false
-    end)
+    valid? =
+      Enum.all?(env_vars, fn
+        %{"key" => key, "value" => value} when is_binary(key) and is_binary(value) ->
+          String.trim(key) != "" and String.trim(value) != ""
+
+        _ ->
+          false
+      end)
 
     if valid?, do: :ok, else: {:error, "Environment variables must have non-empty key and value"}
   end
 
   defp validate_params(params) when is_list(params) do
-    valid? = Enum.all?(params, fn
-      %{"key" => key, "label" => label} when is_binary(key) and is_binary(label) ->
-        String.trim(key) != "" and String.trim(label) != ""
-      _ -> false
-    end)
+    valid? =
+      Enum.all?(params, fn
+        %{"key" => key, "label" => label} when is_binary(key) and is_binary(label) ->
+          String.trim(key) != "" and String.trim(label) != ""
+
+        _ ->
+          false
+      end)
 
     if valid?, do: :ok, else: {:error, "Parameters must have non-empty key and label"}
   end
@@ -156,9 +163,10 @@ defmodule Browsergrid.Deployments.Deployment do
 
   defp validate_tag_format(tags) when is_list(tags) do
     if length(tags) <= 10 do
-      valid? = Enum.all?(tags, fn tag ->
-        is_binary(tag) and String.length(String.trim(tag)) > 0 and String.length(tag) <= 50
-      end)
+      valid? =
+        Enum.all?(tags, fn tag ->
+          is_binary(tag) and String.length(String.trim(tag)) > 0 and String.length(tag) <= 50
+        end)
 
       if valid?, do: :ok, else: {:error, "Tags must be non-empty strings with max 50 characters each"}
     else

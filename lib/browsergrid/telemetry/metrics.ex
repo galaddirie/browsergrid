@@ -5,6 +5,7 @@ defmodule Browsergrid.Telemetry.Metrics do
   Tracks session lifecycle, resource usage, and performance.
   """
   use Supervisor
+
   import Telemetry.Metrics
 
   def start_link(arg) do
@@ -14,15 +15,8 @@ defmodule Browsergrid.Telemetry.Metrics do
   @impl true
   def init(_arg) do
     children = [
-      {:telemetry_poller,
-       measurements: periodic_measurements(),
-       period: :timer.seconds(10)},
-
-      {TelemetryMetricsPrometheus,
-       metrics: metrics(),
-       port: 9568,
-       path: "/metrics",
-       name: :prometheus_metrics}
+      {:telemetry_poller, measurements: periodic_measurements(), period: to_timeout(second: 10)},
+      {TelemetryMetricsPrometheus, metrics: metrics(), port: 9568, path: "/metrics", name: :prometheus_metrics}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -35,44 +29,36 @@ defmodule Browsergrid.Telemetry.Metrics do
         tags: [:browser_type],
         description: "Total number of sessions created"
       ),
-
       counter("browsergrid.session.failed.count",
         tags: [:browser_type, :reason],
         description: "Total number of failed session creations"
       ),
-
       counter("browsergrid.session.stopped.count",
         tags: [:browser_type],
         description: "Total number of sessions stopped"
       ),
-
       distribution("browsergrid.session.startup.duration",
         tags: [:browser_type],
         unit: {:native, :millisecond},
         description: "Time to start a browser session",
         reporter_options: [
-          buckets: [10, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+          buckets: [10, 50, 100, 250, 500, 1000, 2500, 5000, 10_000]
         ]
       ),
-
       last_value("browsergrid.session.active.count",
         tags: [:browser_type],
         description: "Currently active sessions"
       ),
-
-
 
       # System metrics (consolidated)
       last_value("browsergrid.system.memory.bytes",
         unit: :byte,
         description: "System memory usage"
       ),
-
       last_value("browsergrid.system.cpu.percent",
         unit: :percent,
         description: "System CPU usage"
       ),
-
       last_value("browsergrid.system.uptime.ms",
         unit: {:native, :millisecond},
         description: "System uptime"
@@ -83,17 +69,14 @@ defmodule Browsergrid.Telemetry.Metrics do
         tags: [:browser_type],
         description: "Number of browser processes started"
       ),
-
       counter("browsergrid.browser.process.failed.count",
         tags: [:browser_type],
         description: "Number of browser process start failures"
       ),
-
       counter("browsergrid.browser.session.ready.count",
         tags: [:browser_type],
         description: "Number of times browser sessions became ready"
       ),
-
       counter("browsergrid.browser.session.failed.count",
         tags: [:browser_type],
         description: "Number of browser session failures"
@@ -124,11 +107,9 @@ defmodule Browsergrid.Telemetry.Metrics do
     end)
   end
 
-
-
   def measure_system_metrics do
     memory = :erlang.memory(:total)
-    uptime_ms = :erlang.statistics(:wall_clock) |> elem(0)
+    uptime_ms = :wall_clock |> :erlang.statistics() |> elem(0)
     cpu_usage = get_cpu_usage()
 
     :telemetry.execute(
@@ -142,21 +123,17 @@ defmodule Browsergrid.Telemetry.Metrics do
     )
   end
 
-
-
   defp get_cpu_usage do
-    try do
-      {user_time, system_time} = :erlang.statistics(:runtime)
-      total_cpu_time = user_time + system_time
-      wall_time = :erlang.statistics(:wall_clock) |> elem(0)
+    {user_time, system_time} = :erlang.statistics(:runtime)
+    total_cpu_time = user_time + system_time
+    wall_time = :wall_clock |> :erlang.statistics() |> elem(0)
 
-      if wall_time > 0 do
-        (total_cpu_time / wall_time) * 100
-      else
-        0
-      end
-    rescue
-      _ -> 0
+    if wall_time > 0 do
+      total_cpu_time / wall_time * 100
+    else
+      0
     end
+  rescue
+    _ -> 0
   end
 end

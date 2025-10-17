@@ -1,5 +1,6 @@
 defmodule BrowsergridWeb.API.V1.SessionJSON do
   alias Browsergrid.Sessions.Session
+  alias Ecto.Association.NotLoaded
 
   def index(%{sessions: sessions, meta: meta}) do
     %{
@@ -61,7 +62,8 @@ defmodule BrowsergridWeb.API.V1.SessionJSON do
   end
 
   defp serialize_screen(nil), do: nil
-  defp serialize_screen(%Ecto.Association.NotLoaded{}), do: nil
+  defp serialize_screen(%NotLoaded{}), do: nil
+
   defp serialize_screen(screen) do
     %{
       width: screen.width,
@@ -72,7 +74,8 @@ defmodule BrowsergridWeb.API.V1.SessionJSON do
   end
 
   defp serialize_limits(nil), do: nil
-  defp serialize_limits(%Ecto.Association.NotLoaded{}), do: nil
+  defp serialize_limits(%NotLoaded{}), do: nil
+
   defp serialize_limits(limits) do
     %{
       cpu: limits.cpu,
@@ -82,7 +85,8 @@ defmodule BrowsergridWeb.API.V1.SessionJSON do
   end
 
   defp serialize_profile(nil), do: nil
-  defp serialize_profile(%Ecto.Association.NotLoaded{}), do: nil
+  defp serialize_profile(%NotLoaded{}), do: nil
+
   defp serialize_profile(profile) do
     %{
       id: profile.id,

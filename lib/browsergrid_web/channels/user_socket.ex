@@ -36,7 +36,3 @@ defmodule BrowsergridWeb.UserSocket do
   @impl true
   def id(_socket), do: nil
 end
-
-
-
-

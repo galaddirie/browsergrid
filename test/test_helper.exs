@@ -5,13 +5,15 @@ Ecto.Adapters.SQL.Sandbox.mode(Browsergrid.Repo, :manual)
 
 # Ensure Mock is available
 case Code.ensure_loaded(Mock) do
-  {:module, Mock} -> :ok
+  {:module, Mock} ->
+    :ok
+
   {:error, :nofile} ->
-    Mix.raise """
+    Mix.raise("""
     Mock is not available. Add to your test dependencies:
 
     {:mock, "~> 0.3.0", only: :test}
-    """
+    """)
 end
 
 # Configure ExUnit
@@ -22,7 +24,7 @@ ExUnit.configure(
 )
 
 # Disable logging during tests unless specifically enabled
-unless System.get_env("LOG_LEVEL") do
+if !System.get_env("LOG_LEVEL") do
   Logger.configure(level: :warning)
 end
 

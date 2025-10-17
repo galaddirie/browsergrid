@@ -1,6 +1,8 @@
 defmodule BrowsergridWeb.Router do
   use BrowsergridWeb, :router
 
+  alias BrowsergridWeb.Plugs.APIKeyAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -23,14 +25,14 @@ defmodule BrowsergridWeb.Router do
   end
 
   pipeline :api_authenticated do
-    plug BrowsergridWeb.Plugs.APIKeyAuth
+    plug APIKeyAuth
   end
 
   pipeline :session_proxy do
     plug :accepts, ["json", "html"]
     plug :fetch_session
     plug :put_secure_browser_headers
-    plug BrowsergridWeb.Plugs.APIKeyAuth, rate_limit: false, track_usage: false
+    plug APIKeyAuth, rate_limit: false, track_usage: false
   end
 
   scope "/", BrowsergridWeb do

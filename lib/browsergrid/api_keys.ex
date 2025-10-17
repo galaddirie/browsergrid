@@ -5,9 +5,10 @@ defmodule Browsergrid.ApiKeys do
 
   import Ecto.Query, warn: false
 
+  alias Browsergrid.ApiKeys.APIKey
+  alias Browsergrid.ApiKeys.RateLimiter
+  alias Browsergrid.ApiKeys.Token
   alias Browsergrid.Repo
-  alias Browsergrid.ApiKeys.{APIKey, RateLimiter, Token}
-  alias Argon2
 
   @max_generation_attempts 5
 
@@ -24,12 +25,13 @@ defmodule Browsergrid.ApiKeys do
   def get_api_key(id), do: Repo.get(APIKey, id)
 
   def create_api_key(attrs \\ %{}) do
-    Repo.transaction(fn ->
+    fn ->
       case do_insert_api_key(attrs) do
         {:ok, api_key, token} -> {api_key, token}
         {:error, reason} -> Repo.rollback(reason)
       end
-    end)
+    end
+    |> Repo.transaction()
     |> case do
       {:ok, {api_key, token}} -> {:ok, %{api_key: api_key, token: token}}
       {:error, reason} -> {:error, reason}
@@ -45,7 +47,7 @@ defmodule Browsergrid.ApiKeys do
   end
 
   def regenerate_api_key(%APIKey{} = api_key, attrs \\ %{}) do
-    Repo.transaction(fn ->
+    fn ->
       case revoke_api_key(api_key) do
         {:ok, revoked} ->
           attrs
@@ -56,9 +58,11 @@ defmodule Browsergrid.ApiKeys do
             {:error, reason} -> Repo.rollback(reason)
           end
 
-        {:error, reason} -> Repo.rollback(reason)
+        {:error, reason} ->
+          Repo.rollback(reason)
       end
-    end)
+    end
+    |> Repo.transaction()
     |> case do
       {:ok, {revoked, new_key, token}} ->
         {:ok, %{revoked_key: revoked, api_key: new_key, token: token}}
@@ -113,8 +117,8 @@ defmodule Browsergrid.ApiKeys do
 
   defp do_insert_api_key(attrs) do
     with {:ok, token_data} <- generate_unique_token(),
-         params <- prepare_params(attrs, token_data),
-         changeset <- APIKey.create_changeset(%APIKey{}, params),
+         params = prepare_params(attrs, token_data),
+         changeset = APIKey.create_changeset(%APIKey{}, params),
          {:ok, api_key} <- Repo.insert(changeset) do
       {:ok, api_key, token_data.token}
     else
@@ -167,8 +171,7 @@ defmodule Browsergrid.ApiKeys do
     end
   end
 
-  defp ensure_active(%APIKey{revoked_at: revoked_at}) when not is_nil(revoked_at),
-    do: {:error, :revoked}
+  defp ensure_active(%APIKey{revoked_at: revoked_at}) when not is_nil(revoked_at), do: {:error, :revoked}
 
   defp ensure_active(%APIKey{expires_at: nil}), do: :ok
 
@@ -180,8 +183,7 @@ defmodule Browsergrid.ApiKeys do
   end
 
   defp generate_unique_token do
-    1..@max_generation_attempts
-    |> Enum.reduce_while(nil, fn attempt, _acc ->
+    Enum.reduce_while(1..@max_generation_attempts, nil, fn attempt, _acc ->
       candidate = Token.generate()
 
       case Repo.get_by(APIKey, prefix: candidate.prefix) do
@@ -193,9 +195,10 @@ defmodule Browsergrid.ApiKeys do
   end
 
   defp maybe_filter_revoked(query, opts) do
-    case Keyword.get(opts, :include_revoked, true) do
-      true -> query
-      false -> where(query, [k], is_nil(k.revoked_at))
+    if Keyword.get(opts, :include_revoked, true) do
+      query
+    else
+      where(query, [k], is_nil(k.revoked_at))
     end
   end
 end

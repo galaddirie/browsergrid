@@ -47,8 +47,7 @@ defmodule BrowsergridWeb.API.V1.ApiKeyController do
   end
 
   defp permitted_params(params) do
-    params
-    |> Map.take(["name", "metadata", "expires_at", "created_by"])
+    Map.take(params, ["name", "metadata", "expires_at", "created_by"])
   end
 
   defp fetch_api_key(id) do
