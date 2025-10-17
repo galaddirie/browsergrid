@@ -8,7 +8,6 @@ import DeploymentsIndex from "./pages/Deployments/Index";
 import DeploymentsNew from "./pages/Deployments/New";
 import DeploymentsShow from "./pages/Deployments/Show";
 import Overview from "./pages/Overview";
-import APIKeysIndex from "./pages/APIKeys/Index";
 import ProfilesIndex from "./pages/Profiles/Index";
 import ProfilesNew from "./pages/Profiles/New";
 import SessionsEdit from "./pages/Sessions/Edit";
@@ -28,7 +27,6 @@ const pages: Record<string, ComponentType<any>> = { // eslint-disable-line @type
   "Sessions/Index": SessionsIndex,
   "Sessions/Show": SessionsShow,
   "Sessions/Edit": SessionsEdit,
-  "APIKeys/Index": APIKeysIndex,
 };
 
 createInertiaApp({

@@ -11,10 +11,6 @@ import Config
 config :browsergrid,
   auth_provider: Browsergrid.Auth.PhoenixProvider
 
-config :browsergrid, Browsergrid.ApiKeys.RateLimiter,
-  limit: 120,
-  interval_ms: 60_000
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

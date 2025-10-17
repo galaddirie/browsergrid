@@ -10,7 +10,7 @@ ENV LANG="en_US.UTF-8" \
 
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
-    libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools \
+    build-essential libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg git inotify-tools \
     \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 

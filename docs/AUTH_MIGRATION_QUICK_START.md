@@ -3,7 +3,6 @@
 ## What Changed?
 
 ✅ **Dashboard is now secure** - requires login to access
-✅ **API remains protected** - API keys still work as before
 ✅ **User ownership** - all resources belong to users
 ✅ **Provider-agnostic** - easy to switch to Clerk later
 
@@ -37,31 +36,6 @@ Visit: http://localhost:4000/users/log_in
 - Enter your credentials
 - You'll be redirected to `/dashboard`
 
-### 5. Create Your First API Key
-
-Visit: http://localhost:4000/api-keys
-
-- Click "Create API Key"
-- Give it a name: "My First Key"
-- **IMPORTANT:** Copy the token immediately (shown only once!)
-
-Example token: `bg_K8H3_abcd1234...xyz789`
-
-### 6. Test the API
-
-```bash
-# List your sessions
-curl -H "Authorization: Bearer bg_K8H3_..." \
-     http://localhost:4000/api/v1/sessions
-
-# Create a session
-curl -X POST \
-     -H "Authorization: Bearer bg_K8H3_..." \
-     -H "Content-Type: application/json" \
-     -d '{"name": "Test Session", "browser_type": "chrome"}' \
-     http://localhost:4000/api/v1/sessions
-```
-
 ## Key Changes for Developers
 
 ### Before (Insecure)
@@ -69,9 +43,6 @@ curl -X POST \
 ```elixir
 # Anyone could access dashboard
 visit "/dashboard"
-
-# API keys had no owner
-ApiKeys.create_api_key(%{name: "Key"})
 ```
 
 ### After (Secure)
@@ -81,9 +52,6 @@ ApiKeys.create_api_key(%{name: "Key"})
 visit "/users/log_in"
 login("user@example.com", "password")
 visit "/dashboard"  # Now works!
-
-# API keys belong to users
-Auth.create_api_key_for_user(user, %{name: "Key"})
 ```
 
 ### Creating Resources with User Context
@@ -127,9 +95,6 @@ Profiles.list_profiles(user_id: current_user.id)
 
 # Get only the current user's deployments
 Deployments.list_deployments(user_id: current_user.id)
-
-# Get only the current user's API keys
-ApiKeys.list_api_keys(user_id: current_user.id)
 ```
 
 ## Router Changes
@@ -146,11 +111,7 @@ ApiKeys.list_api_keys(user_id: current_user.id)
 - `/sessions` - Session management
 - `/profiles` - Profile management
 - `/deployments` - Deployment management
-- `/api-keys` - API key management
 - `/users/settings` - User settings
-
-### API Routes (API Key Required)
-- `/api/v1/*` - All API endpoints
 
 ## Common Tasks
 
@@ -171,21 +132,6 @@ ApiKeys.list_api_keys(user_id: current_user.id)
 
 Click the "Log out" button in the navbar or visit `/users/log_out`
 
-### Revoke API Key
-
-1. Visit `/api-keys`
-2. Find the key to revoke
-3. Click "Revoke"
-4. Key is immediately invalid
-
-### Regenerate API Key
-
-1. Visit `/api-keys`
-2. Find the key to regenerate
-3. Click "Regenerate"
-4. Old key is revoked, new key is created
-5. Copy the new token immediately!
-
 ## Accessing Current User in Controllers
 
 ### In Regular Controllers
@@ -197,26 +143,11 @@ def index(conn, _params) do
 end
 ```
 
-### In API Controllers (with API Key)
-
-```elixir
-def index(conn, _params) do
-  current_user = conn.assigns.current_user  # From API key
-  api_key = conn.assigns.api_key
-  
-  # API keys now have an associated user
-  sessions = Sessions.list_sessions(user_id: current_user.id)
-  render(conn, :index, sessions: sessions)
-end
-```
 
 ## Troubleshooting
 
 ### Problem: Can't access dashboard
 **Solution:** Make sure you're logged in at `/users/log_in`
-
-### Problem: API returns 401 Unauthorized
-**Solution:** Check your Bearer token is correct and not revoked
 
 ### Problem: Can't see my sessions/profiles
 **Solution:** Resources are scoped per-user. You can only see your own.
@@ -228,10 +159,8 @@ end
 
 1. ✅ Create user account
 2. ✅ Login to dashboard
-3. ✅ Create API key
-4. ✅ Test API with key
-5. 📖 Read full documentation: `docs/AUTHENTICATION.md`
-6. 🚀 Build your application!
+3. 📖 Read full documentation: `docs/AUTHENTICATION.md`
+4. 🚀 Build your application!
 
 ## Future: Migrating to Clerk
 

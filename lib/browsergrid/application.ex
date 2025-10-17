@@ -21,7 +21,6 @@ defmodule Browsergrid.Application do
       # Job processing and Redis pub/sub
       {Oban, Application.fetch_env!(:browsergrid, Oban)},
       Browsergrid.Redis,
-      Browsergrid.ApiKeys.RateLimiter,
       {Finch, name: Browsergrid.Finch},
       Browsergrid.SessionRuntime.Supervisor,
       Browsergrid.Edge.Directory,
