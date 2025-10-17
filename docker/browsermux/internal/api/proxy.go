@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func NewCDPReverseProxy(browserBaseURL, frontendBaseURL string) (*httputil.ReverseProxy, error) {
+func NewCDPReverseProxy(browserBaseURL string) (*httputil.ReverseProxy, error) {
 	target, err := url.Parse(browserBaseURL)
 	if err != nil {
 		return nil, err

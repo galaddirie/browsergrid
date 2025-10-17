@@ -18,9 +18,8 @@ func TestServerHealthCheck(t *testing.T) {
 	proxy := &browser.CDPProxy{}
 
 	cfg := &config.Config{
-		Port:        "8080",
-		BrowserURL:  "ws://localhost:9999/devtools/browser",
-		FrontendURL: "http://localhost:80",
+		Port:       "8080",
+		BrowserURL: "ws://localhost:9999/devtools/browser",
 	}
 
 	server := NewServer(proxy, dispatcher, "8080", cfg)

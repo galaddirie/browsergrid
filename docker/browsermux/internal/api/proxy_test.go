@@ -46,7 +46,7 @@ func TestCDPReverseProxyURLRewriting(t *testing.T) {
 
 	browserURL := "http://localhost:61000"
 
-	proxy, err := NewCDPReverseProxy(browserURL, "http://localhost:80")
+	proxy, err := NewCDPReverseProxy(browserURL)
 	if err != nil {
 		t.Fatalf("Failed to create reverse proxy: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestCDPReverseProxyNonJSONResponse(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	proxy, err := NewCDPReverseProxy(backend.URL, "http://localhost:80")
+	proxy, err := NewCDPReverseProxy(backend.URL)
 	if err != nil {
 		t.Fatalf("Failed to create reverse proxy: %v", err)
 	}

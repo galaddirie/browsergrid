@@ -100,7 +100,6 @@ config :browsergrid, Browsergrid.SessionRuntime,
     extra_env: [
       {"REMOTE_DEBUGGING_PORT", System.get_env("BROWSERGRID_REMOTE_DEBUG_PORT", "61000")},
       {"PORT", System.get_env("BROWSERGRID_BROWSERMUX_PORT", "8080")},
-      {"FRONTEND_URL", System.get_env("BROWSERGRID_BROWSERMUX_FRONTEND_URL", "http://localhost:80")}
     ]
   ]
 

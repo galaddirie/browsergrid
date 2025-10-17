@@ -32,7 +32,6 @@ type Server struct {
 	cdpProxy        *browser.CDPProxy
 	eventDispatcher browser.EventDispatcher
 	browserBaseURL  string
-	frontendBaseURL string
 	config          *config.Config
 }
 
@@ -40,14 +39,12 @@ func NewServer(cdpProxy *browser.CDPProxy, eventDispatcher browser.EventDispatch
 	router := mux.NewRouter()
 
 	browserBaseURL := normalizeBrowserURL(cdpProxy.GetConfig().BrowserURL)
-	frontendBaseURL := strings.TrimSuffix(cfg.FrontendURL, "/")
 
 	server := &Server{
 		router:          router,
 		cdpProxy:        cdpProxy,
 		eventDispatcher: eventDispatcher,
 		browserBaseURL:  browserBaseURL,
-		frontendBaseURL: frontendBaseURL,
 		config:          cfg,
 		server: &http.Server{
 			Addr:    ":" + port,
@@ -61,7 +58,7 @@ func NewServer(cdpProxy *browser.CDPProxy, eventDispatcher browser.EventDispatch
 
 func (s *Server) Start() error {
 	log.Printf("Starting API server on %s", s.server.Addr)
-	log.Printf("Proxying browser at %s through frontend at %s", s.browserBaseURL, s.frontendBaseURL)
+	log.Printf("Proxying browser at %s", s.browserBaseURL)
 	return s.server.ListenAndServe()
 }
 
@@ -73,7 +70,7 @@ func (s *Server) setupRoutes() {
 	s.router.Use(middleware.Logging)
 	s.router.Use(middleware.Recovery)
 
-	cdpProxy, err := NewCDPReverseProxy(s.browserBaseURL, s.frontendBaseURL)
+	cdpProxy, err := NewCDPReverseProxy(s.browserBaseURL)
 	if err != nil {
 		log.Fatalf("Failed to create CDP reverse proxy: %v", err)
 	}

@@ -18,7 +18,6 @@ import (
 func main() {
 	portFlag := flag.String("port", "", "Port to listen on")
 	browserURLFlag := flag.String("browser-url", "", "Browser DevTools URL to proxy")
-	frontendURLFlag := flag.String("frontend-url", "", "Frontend base URL")
 	maxMessageSizeFlag := flag.Int("max-message-size", -1, "Maximum message size in bytes")
 	connectionTimeoutFlag := flag.Int("connection-timeout", -1, "Connection timeout in seconds")
 	configPathFlag := flag.String("config", "", "Optional path to JSON config file")
@@ -41,10 +40,6 @@ func main() {
 
 	if *browserURLFlag != "" {
 		cfg.BrowserURL = *browserURLFlag
-	}
-
-	if *frontendURLFlag != "" {
-		cfg.FrontendURL = *frontendURLFlag
 	}
 
 	if *maxMessageSizeFlag >= 0 {

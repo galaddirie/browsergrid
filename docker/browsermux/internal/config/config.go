@@ -10,7 +10,6 @@ type Config struct {
 	Port string `json:"port"`
 
 	BrowserURL               string `json:"browser_url"`
-	FrontendURL              string `json:"frontend_url"`
 	MaxMessageSize           int    `json:"max_message_size"`
 	ConnectionTimeoutSeconds int    `json:"connection_timeout_seconds"`
 }
@@ -42,12 +41,6 @@ func Load() (*Config, error) {
 		config.BrowserURL = "http://localhost:6100"
 	}
 
-	if frontendURL := os.Getenv("FRONTEND_URL"); frontendURL != "" {
-		config.FrontendURL = frontendURL
-	} else {
-		config.FrontendURL = "http://localhost:80"
-	}
-
 	if maxSize := os.Getenv("MAX_MESSAGE_SIZE"); maxSize != "" {
 		if size, err := strconv.Atoi(maxSize); err == nil {
 			config.MaxMessageSize = size
@@ -75,7 +68,6 @@ func DefaultConfig() *Config {
 	return &Config{
 		Port:                     "8080",
 		BrowserURL:               "http://localhost:9222",
-		FrontendURL:              "http://localhost:80",
 		MaxMessageSize:           1024 * 1024,
 		ConnectionTimeoutSeconds: 10,
 	}
