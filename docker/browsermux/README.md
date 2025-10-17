@@ -1,165 +1,137 @@
-# BrowserMux - Elegant Chrome DevTools Protocol Proxy
+Got it. Here’s a bare-bones, factual version.
 
-BrowserMux is a minimalist, high-performance Chrome DevTools Protocol (CDP) proxy that enables multiple clients to connect to a single browser instance with clean, efficient code.
+---
 
-## Architecture
+# BrowserMux — Chrome DevTools Protocol Proxy
 
-BrowserMux follows a clean, layered architecture:
+Minimal CDP proxy for a single browser instance with multi-client fanout. Used as a small component inside a larger system.
 
-### Core Components
+## Features
 
-1. **CDP Proxy** (`internal/browser/proxy.go`) - The heart of the system
-   - Manages browser connections with automatic reconnection
-   - Handles client lifecycle with graceful cleanup
-   - Broadcasts messages efficiently using a single `fanOut` method
-   - Dispatches events for monitoring and debugging
+* Reverse proxy for all CDP HTTP routes
+* WebSocket upgrade + URL rewrite (Docker/K8s compatible)
+* Multi-client broadcast via single `fanOut`
+* Auto-reconnect to browser
+* Lightweight event dispatcher (wildcards, async)
+* Config via env, JSON, or flags
 
-2. **HTTP API** (`internal/api/server.go`) - Lightweight HTTP interface
-   - Uses `httputil.ReverseProxy` for all CDP endpoints (eliminates ~300 lines of duplicate code)
-   - Automatically rewrites WebSocket URLs for proper routing (fixes port mapping issues in Docker)
-   - Provides browser status and client management endpoints
+## Endpoints
 
-3. **Event System** (`internal/browser/types.go`) - Simple event dispatcher
-   - Streamlined interface without unnecessary handler IDs
-   - Supports wildcard event listeners
-   - Async event processing for performance
+**Proxied CDP (via `httputil.ReverseProxy`):**
 
-## Key Features
+* `GET /json/version`
+* `GET /json` or `/json/list`
+* `POST /json/new`
+* `POST /json/activate/{targetId}`
+* `POST /json/close/{targetId}`
+* `GET /json/protocol`
 
-- **Minimal Code**: Elegant implementation with no unnecessary abstractions
-- **High Performance**: Efficient message broadcasting and connection management
-- **Auto-Reconnection**: Robust browser connection handling with automatic recovery
-- **Standard Compliance**: Full Chrome DevTools Protocol compatibility
-- **Easy Configuration**: Environment variables or JSON config file
+**WebSocket (CDP):**
 
-## API Endpoints
+* `GET /devtools/{path}`
 
-### Chrome DevTools Protocol (Proxied)
-All standard CDP endpoints are automatically proxied through `httputil.ReverseProxy`:
+**Management:**
 
-- `/json/version` - Browser version information
-- `/json` or `/json/list` - List available targets/pages
-- `/json/new` - Create new target/page
-- `/json/activate/{targetId}` - Activate target
-- `/json/close/{targetId}` - Close target
-- `/json/protocol` - Get protocol definition
-
-### WebSocket Connections
-- `/devtools/{path}` - WebSocket endpoint for CDP communication
-
-### Management API
-- `/api/browser` - Browser information and status
-- `/api/clients` - Connected clients information
-- `/health` - Health check endpoint
+* `GET /api/browser`
+* `GET /api/clients`
+* `GET /health`
 
 ## Configuration
 
-Configure via environment variables:
+**Env:**
 
 ```bash
-# Required
+# required
 BROWSER_URL=ws://localhost:9222/devtools/browser
 
-# Optional
+# optional
 PORT=8080
-FRONTEND_URL=http://localhost:80
 MAX_MESSAGE_SIZE=1048576
 CONNECTION_TIMEOUT_SECONDS=10
 ```
 
-Or use a JSON config file:
+**JSON:**
 
 ```json
 {
   "port": "8080",
   "browser_url": "ws://localhost:9222/devtools/browser",
-  "frontend_url": "http://localhost:80",
   "max_message_size": 1048576,
   "connection_timeout_seconds": 10
 }
 ```
 
+**Flags override env + JSON.**
+
 ## Usage
 
-### Basic Usage
-
 ```bash
-# Start with default configuration
+# default
 ./browsermux
 
-# Start with custom browser URL
+# custom browser URL
 BROWSER_URL=ws://chrome:9222/devtools/browser ./browsermux
 
-# Start with config file
-CONFIG_PATH=config.json ./browsermux
+# config file
+CONFIG_PATH=./config.json ./browsermux
 
-# Override settings with CLI flags (takes precedence over env/config file)
+# flags
 ./browsermux \
   --browser-url ws://chrome:9222/devtools/browser \
-  --port 9090 \
-  --frontend-url http://localhost:8080
+  --port 9090
 ```
 
-### Docker Usage
+### Docker
 
 ```bash
-# Build and run
 docker build -t browsermux .
-docker run -p 8080:8080 -e BROWSER_URL=ws://chrome:9222/devtools/browser browsermux
+docker run -p 8080:8080 \
+  -e BROWSER_URL=ws://chrome:9222/devtools/browser \
+  browsermux
 ```
 
-## Development
-
-### Building
+## Build / Test
 
 ```bash
-go build ./cmd/browsermux
-```
-
-### Testing
-
-```bash
+go build -o browsermux ./cmd/browsermux
 go test ./...
 ```
 
-### Code Structure
-
-The codebase is organized for clarity and maintainability:
+## Code Layout
 
 ```
-cmd/browsermux/          # Application entry point
+cmd/browsermux/          # entry point
 internal/
-  ├── api/               # HTTP server and reverse proxy
-  ├── browser/           # CDP proxy and client management
-  ├── config/            # Configuration management
-  └── api/middleware/    # HTTP middleware
+  api/                   # HTTP server + reverse proxy
+  api/middleware/        # middleware
+  browser/               # CDP proxy + clients
+  config/                # config loader
 ```
 
-## Performance
+## Core Files
 
-BrowserMux is designed for efficiency:
+* `internal/browser/proxy.go` — browser connection, auto-reconnect, client lifecycle, `fanOut`, events
+* `internal/api/server.go` — HTTP server, CDP reverse proxy, WS rewrite, management routes
+* `internal/browser/types.go` — event types + dispatcher (wildcards, async)
 
-- **Single Message Broadcast**: Uses one `fanOut` method for all message distribution
-- **Reverse Proxy**: Eliminates duplicate HTTP handling code
-- **Efficient Locking**: Minimal lock contention with read-write mutexes
-- **Async Events**: Non-blocking event processing
-- **Connection Pooling**: Efficient WebSocket connection management
-
-## Monitoring
-
-BrowserMux provides built-in monitoring through its event system:
+## Events ( Monitoring )
 
 ```go
-// Register event handlers
-dispatcher.Register(browser.EventClientConnected, func(event browser.Event) {
-    log.Printf("Client connected: %s", event.SourceID)
-})
-
-dispatcher.Register(browser.EventCDPCommand, func(event browser.Event) {
-    log.Printf("CDP command: %s", event.Method)
-})
+dispatcher.Register(browser.EventClientConnected, func(ev browser.Event) { /* ... */ })
+dispatcher.Register(browser.EventCDPCommand,    func(ev browser.Event) { /* ... */ })
 ```
 
-## License
+## Performance Notes
 
-[Your License Here]
+* Single broadcast path (`fanOut`)
+* Reverse proxy avoids duplicated HTTP handlers
+* RW locks kept minimal on hot paths
+* Async event handlers
+* Connection pooling where applicable
+
+## Operational Notes
+
+* No CDP-level auth added. Use network-layer auth or isolate per tenant or proxy with capabilities url
+* Idle clients are cleaned up on WS close.
+* Verify WS rewrite/Host/Origin under custom ingress.
+
