@@ -12,10 +12,10 @@ defmodule Browsergrid.ApiKeys do
 
   @max_generation_attempts 5
 
-  ## Public API
 
   def list_api_keys(opts \\ []) do
     APIKey
+    |> maybe_filter_by_user(opts)
     |> maybe_filter_revoked(opts)
     |> order_by([k], desc: k.inserted_at)
     |> Repo.all()
@@ -112,7 +112,6 @@ defmodule Browsergrid.ApiKeys do
     RateLimiter.check(api_key.id, opts)
   end
 
-  ## Internal helpers
 
   defp do_insert_api_key(attrs) do
     with {:ok, token_data} <- generate_unique_token(),
@@ -198,6 +197,13 @@ defmodule Browsergrid.ApiKeys do
       query
     else
       where(query, [k], is_nil(k.revoked_at))
+    end
+  end
+
+  defp maybe_filter_by_user(query, opts) do
+    case Keyword.get(opts, :user_id) do
+      nil -> query
+      user_id -> where(query, [k], k.user_id == ^user_id)
     end
   end
 end

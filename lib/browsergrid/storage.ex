@@ -1,4 +1,3 @@
-# lib/browsergrid/storage.ex
 defmodule Browsergrid.Storage do
   @moduledoc """
   Storage behavior and utilities for file storage.
@@ -72,11 +71,8 @@ defmodule Browsergrid.Storage do
   """
   def sanitize_filename(filename) when is_binary(filename) do
     filename
-    # Replace non-word chars with underscore
     |> String.replace(~r/[^\w\-_\.]/, "_")
-    # Collapse multiple underscores
     |> String.replace(~r/_+/, "_")
-    # Remove leading/trailing underscores
     |> String.trim("_")
     |> ensure_extension(filename)
   end
@@ -98,7 +94,6 @@ defmodule Browsergrid.Storage do
     end
   end
 
-  # Private helpers
 
   defp ensure_extension(sanitized, original) do
     sanitized_ext = Path.extname(sanitized)

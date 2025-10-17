@@ -1,4 +1,3 @@
-# lib/browsergrid/storage/local.ex
 defmodule Browsergrid.Storage.Local do
   @moduledoc """
   Local filesystem storage backend.
@@ -49,7 +48,6 @@ defmodule Browsergrid.Storage.Local do
 
     case File.rm(full_path) do
       :ok -> :ok
-      # File doesn't exist, consider it deleted
       {:error, :enoent} -> :ok
       error -> error
     end
@@ -63,7 +61,6 @@ defmodule Browsergrid.Storage.Local do
 
   @impl true
   def url(path) do
-    # Generate URL based on configuration
     base_url = get_base_url()
     "#{base_url}/media/#{path}"
   end

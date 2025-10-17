@@ -10,8 +10,7 @@ defmodule BrowsergridWeb.SessionChannel do
 
   @impl true
   def join("sessions", _payload, socket) do
-    # Join the sessions channel - allow all users for now
-    # In production, you might want to add authorization
+    # TODO: ensure auth
     {:ok, socket}
   end
 

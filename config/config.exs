@@ -7,6 +7,10 @@
 # General application configuration
 import Config
 
+# Authentication provider configuration
+config :browsergrid,
+  auth_provider: Browsergrid.Auth.PhoenixProvider
+
 config :browsergrid, Browsergrid.ApiKeys.RateLimiter,
   limit: 120,
   interval_ms: 60_000

@@ -7,7 +7,6 @@ defmodule Browsergrid.ApiKeys.RateLimiter do
 
   @table :browsergrid_api_key_limits
 
-  ## Client API
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
@@ -23,7 +22,6 @@ defmodule Browsergrid.ApiKeys.RateLimiter do
 
   defp name(opts), do: Keyword.get(opts, :name, __MODULE__)
 
-  ## Server callbacks
 
   @impl true
   def init(opts) do

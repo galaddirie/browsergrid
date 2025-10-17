@@ -33,7 +33,6 @@ defmodule Browsergrid.Routing do
     case Repo.insert_or_update(changeset) do
       {:ok, route} ->
         Logger.debug("Route inserted/updated successfully: #{inspect(route)}")
-        # Publish to Redis for edge fanout
         Logger.debug("Publishing route to Redis for session #{session_id}")
 
         case Browsergrid.Redis.publish_route_upsert(session_id, ip, port) do
@@ -43,7 +42,6 @@ defmodule Browsergrid.Routing do
 
           error ->
             Logger.error("Failed to publish route to Redis for session #{session_id}: #{inspect(error)}")
-            # Continue anyway since route is in database
             {:ok, route}
         end
 

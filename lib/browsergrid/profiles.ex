@@ -70,10 +70,7 @@ defmodule Browsergrid.Profiles do
   """
   def delete_profile(%Profile{} = profile) do
     Repo.transaction(fn ->
-      # Delete all snapshots and their media files
       delete_profile_snapshots(profile)
-
-      # Delete current media file if exists
       if profile.media_file_id do
         case Media.get_media_file(profile.media_file_id) do
           nil -> :ok
@@ -81,7 +78,6 @@ defmodule Browsergrid.Profiles do
         end
       end
 
-      # Delete the profile
       Repo.delete!(profile)
     end)
   end
@@ -114,7 +110,6 @@ defmodule Browsergrid.Profiles do
   """
   def upload_profile_data(%Profile{} = profile, zip_content, session_id \\ nil) when is_binary(zip_content) do
     Repo.transaction(fn ->
-      # Create media file for the new profile data
       filename = "profile_#{profile.id}_v#{profile.version + 1}.zip"
 
       media_file =
@@ -134,12 +129,10 @@ defmodule Browsergrid.Profiles do
             Repo.rollback(reason)
         end
 
-      # Create snapshot of current version if exists
       if profile.media_file_id do
         create_snapshot(profile, session_id)
       end
 
-      # Update profile with new media file and increment version
       updated_profile =
         profile
         |> Profile.update_version()
@@ -158,7 +151,6 @@ defmodule Browsergrid.Profiles do
   Creates an empty profile with initial browser data structure.
   """
   def initialize_profile(%Profile{} = profile) do
-    # Create an empty profile structure based on browser type
     empty_data = create_empty_profile_data(profile.browser_type)
 
     upload_profile_data(profile, empty_data)
@@ -195,10 +187,7 @@ defmodule Browsergrid.Profiles do
     snapshot = Repo.preload(snapshot, :media_file)
 
     Repo.transaction(fn ->
-      # Create snapshot of current state before restoring
       create_snapshot(profile, nil)
-
-      # Update profile to use snapshot's media file
       profile
       |> Profile.update_version()
       |> change(%{
@@ -249,7 +238,6 @@ defmodule Browsergrid.Profiles do
     end
   end
 
-  # Private functions
 
   defp create_snapshot(%Profile{} = profile, session_id) do
     if profile.media_file_id do
@@ -270,7 +258,6 @@ defmodule Browsergrid.Profiles do
   end
 
   defp delete_snapshot(%ProfileSnapshot{} = snapshot) do
-    # Delete associated media file
     if snapshot.media_file_id do
       case Media.get_media_file(snapshot.media_file_id) do
         nil -> :ok
@@ -287,7 +274,6 @@ defmodule Browsergrid.Profiles do
   end
 
   defp create_empty_profile_data(_browser_type) do
-    # Create a minimal zip file with empty browser profile structure
     empty_zip = <<80, 75, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
     empty_zip
   end

@@ -1,4 +1,3 @@
-# lib/browsergrid/media.ex
 defmodule Browsergrid.Media do
   @moduledoc """
   The Media context for handling file uploads and storage.
@@ -88,14 +87,12 @@ defmodule Browsergrid.Media do
   Delete a media file (both from storage and database)
   """
   def delete_media_file(%MediaFile{} = media_file) do
-    # Delete from storage first
     case Storage.delete(media_file.storage_path) do
       :ok ->
         Repo.delete(media_file)
 
       {:error, reason} ->
         Logger.warning("Failed to delete from storage: #{inspect(reason)}")
-        # Still delete from database
         Repo.delete(media_file)
     end
   end
@@ -128,7 +125,6 @@ defmodule Browsergrid.Media do
     {:ok, length(orphaned)}
   end
 
-  # Private functions
 
   defp read_upload(%{content: content}) when is_binary(content) do
     {:ok, content}

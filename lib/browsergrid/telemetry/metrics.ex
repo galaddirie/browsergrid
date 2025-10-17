@@ -1,4 +1,3 @@
-# lib/browsergrid/telemetry/metrics.ex
 defmodule Browsergrid.Telemetry.Metrics do
   @moduledoc """
   Telemetry metrics for monitoring browser grid at scale.

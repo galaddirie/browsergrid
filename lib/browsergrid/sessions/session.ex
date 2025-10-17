@@ -22,15 +22,15 @@ defmodule Browsergrid.Sessions.Session do
     field :timeout, :integer, default: 30
 
     belongs_to :profile, Browsergrid.Profiles.Profile, type: :binary_id
+    belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
 
     timestamps()
   end
 
-  # Public API
 
   def changeset(session, attrs) do
     session
-    |> cast(attrs, [:name, :browser_type, :status, :cluster, :profile_id, :headless, :timeout, :screen, :limits])
+    |> cast(attrs, [:name, :browser_type, :status, :cluster, :profile_id, :user_id, :headless, :timeout, :screen, :limits])
     |> validate_required([:browser_type, :status])
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_inclusion(:status, @statuses)
@@ -38,17 +38,19 @@ defmodule Browsergrid.Sessions.Session do
     |> validate_screen()
     |> validate_limits()
     |> validate_profile_compatibility()
+    |> foreign_key_constraint(:user_id)
     |> put_default_name()
   end
 
   def create_changeset(attrs) do
     %__MODULE__{}
-    |> cast(attrs, [:name, :browser_type, :cluster, :profile_id, :headless, :timeout, :screen, :limits])
+    |> cast(attrs, [:name, :browser_type, :cluster, :profile_id, :user_id, :headless, :timeout, :screen, :limits])
     |> put_change(:status, :pending)
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_screen()
     |> validate_limits()
     |> validate_profile_compatibility()
+    |> foreign_key_constraint(:user_id)
     |> put_default_name()
   end
 
@@ -82,24 +84,25 @@ defmodule Browsergrid.Sessions.Session do
     |> Map.new()
   end
 
-  # Private Functions
 
   defp validate_screen(changeset) do
     screen = get_field(changeset, :screen) || %{}
 
-    if is_map(screen) do
-      width = Map.get(screen, "width", 1920)
-      height = Map.get(screen, "height", 1080)
-      dpi = Map.get(screen, "dpi", 96)
-      scale = Map.get(screen, "scale", 1.0)
+    cond do
+      is_map(screen) ->
+        width = Map.get(screen, "width", 1920)
+        height = Map.get(screen, "height", 1080)
+        dpi = Map.get(screen, "dpi", 96)
+        scale = Map.get(screen, "scale", 1.0)
 
-      if width > 0 and height > 0 and dpi > 0 and scale > 0 do
-        changeset
-      else
-        add_error(changeset, :screen, "invalid screen dimensions")
-      end
-    else
-      add_error(changeset, :screen, "must be a map")
+        if width > 0 and height > 0 and dpi > 0 and scale > 0 do
+          changeset
+        else
+          add_error(changeset, :screen, "invalid screen dimensions")
+        end
+
+      true ->
+        add_error(changeset, :screen, "must be a map")
     end
   end
 
@@ -120,11 +123,8 @@ defmodule Browsergrid.Sessions.Session do
       if profile.browser_type == browser_type do
         changeset
       else
-        add_error(
-          changeset,
-          :profile_id,
-          "browser type mismatch: profile is #{profile.browser_type}, session is #{browser_type}"
-        )
+        add_error(changeset, :profile_id,
+          "browser type mismatch: profile is #{profile.browser_type}, session is #{browser_type}")
       end
     else
       _ -> changeset
@@ -135,7 +135,6 @@ defmodule Browsergrid.Sessions.Session do
     case get_field(changeset, :name) do
       name when name in [nil, ""] ->
         put_change(changeset, :name, "Session #{:rand.uniform(9999)}")
-
       _ ->
         changeset
     end
@@ -143,7 +142,6 @@ defmodule Browsergrid.Sessions.Session do
 
   defp serialize_screen(nil), do: nil
   defp serialize_screen(%Ecto.Association.NotLoaded{}), do: nil
-
   defp serialize_screen(screen) when is_map(screen) do
     screen
   end

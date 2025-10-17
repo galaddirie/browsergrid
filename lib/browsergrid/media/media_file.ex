@@ -1,4 +1,3 @@
-# lib/browsergrid/media/media_file.ex
 defmodule Browsergrid.Media.MediaFile do
   @moduledoc """
   Database record for uploaded media files.
@@ -35,10 +34,8 @@ defmodule Browsergrid.Media.MediaFile do
     field :size, :integer
     field :backend, Ecto.Enum, values: [:local, :s3, :gcs], default: :local
     field :metadata, :map, default: %{}
-    # screenshots, profiles, exports, etc.
     field :category, :string
 
-    # Optional associations
     field :user_id, :binary_id
     belongs_to :session, Browsergrid.Sessions.Session, type: :binary_id
 

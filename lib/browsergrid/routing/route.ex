@@ -30,7 +30,7 @@ defmodule Browsergrid.Routing.Route do
   end
 
   defp put_version(changeset) do
-    # monotonic version based on DB sequence? should this change?
+    # TODO: monotonic version based on DB sequence? should this change?
     current = get_field(changeset, :version)
 
     if current do

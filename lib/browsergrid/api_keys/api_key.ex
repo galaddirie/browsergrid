@@ -20,18 +20,21 @@ defmodule Browsergrid.ApiKeys.APIKey do
     field :usage_count, :integer, default: 0
     field :metadata, :map, default: %{}
 
+    belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
+
     timestamps()
   end
 
   def create_changeset(api_key, attrs) do
     api_key
-    |> cast(attrs, [:name, :key_hash, :prefix, :last_four, :created_by, :expires_at, :metadata])
+    |> cast(attrs, [:name, :key_hash, :prefix, :last_four, :created_by, :expires_at, :metadata, :user_id])
     |> ensure_metadata()
     |> validate_required([:name, :key_hash, :prefix, :last_four])
     |> validate_length(:prefix, min: @prefix_length, max: 12)
     |> validate_length(:last_four, is: @last_four_length)
     |> validate_format(:prefix, ~r/^[A-Z0-9]+$/)
     |> validate_format(:last_four, ~r/^[A-Za-z0-9\-_]{4}$/)
+    |> foreign_key_constraint(:user_id)
     |> unique_constraint(:prefix)
   end
 
@@ -47,7 +50,8 @@ defmodule Browsergrid.ApiKeys.APIKey do
       :expires_at,
       :last_used_at,
       :usage_count,
-      :metadata
+      :metadata,
+      :user_id
     ])
     |> ensure_metadata()
     |> validate_required([:name, :prefix, :last_four])
@@ -55,6 +59,7 @@ defmodule Browsergrid.ApiKeys.APIKey do
     |> validate_length(:last_four, is: @last_four_length)
     |> validate_format(:prefix, ~r/^[A-Z0-9]+$/)
     |> validate_format(:last_four, ~r/^[A-Za-z0-9\-_]{4}$/)
+    |> foreign_key_constraint(:user_id)
     |> unique_constraint(:prefix)
   end
 

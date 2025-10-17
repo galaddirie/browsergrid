@@ -14,8 +14,9 @@ defmodule Browsergrid.Deployments do
   @doc """
   Returns the list of deployments.
   """
-  def list_deployments do
+  def list_deployments(opts \\ []) do
     Deployment
+    |> maybe_filter_by_user(opts)
     |> order_by([d], desc: d.inserted_at)
     |> Repo.all()
   end
@@ -105,5 +106,12 @@ defmodule Browsergrid.Deployments do
   """
   def change_deployment(%Deployment{} = deployment, attrs \\ %{}) do
     Deployment.changeset(deployment, attrs)
+  end
+
+  defp maybe_filter_by_user(query, opts) do
+    case Keyword.get(opts, :user_id) do
+      nil -> query
+      user_id -> where(query, [d], d.user_id == ^user_id)
+    end
   end
 end

@@ -1,4 +1,3 @@
-# lib/browsergrid/storage/file.ex
 defmodule Browsergrid.Storage.File do
   @moduledoc """
   Represents a file in storage with metadata

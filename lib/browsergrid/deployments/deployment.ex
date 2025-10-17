@@ -47,8 +47,8 @@ defmodule Browsergrid.Deployments.Deployment do
     field :status, Ecto.Enum, values: @statuses, default: :pending
     field :last_deployed_at, :utc_datetime_usec
 
-    # References
     belongs_to :session, Browsergrid.Sessions.Session, type: :binary_id
+    belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
 
     timestamps()
   end
@@ -70,6 +70,7 @@ defmodule Browsergrid.Deployments.Deployment do
       :parameters,
       :status,
       :session_id,
+      :user_id,
       :last_deployed_at
     ])
     |> validate_required([:name, :archive_path, :start_command])
@@ -77,6 +78,7 @@ defmodule Browsergrid.Deployments.Deployment do
     |> validate_length(:name, min: 1, max: 100)
     |> validate_length(:blurb, max: 500)
     |> unique_constraint(:name)
+    |> foreign_key_constraint(:user_id)
     |> validate_environment_variables()
     |> validate_parameters()
     |> validate_tags()
@@ -92,6 +94,7 @@ defmodule Browsergrid.Deployments.Deployment do
       :tags,
       :is_public,
       :archive_path,
+      :user_id,
       :root_directory,
       :install_command,
       :start_command,

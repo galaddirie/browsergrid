@@ -45,7 +45,6 @@ defmodule Browsergrid.Edge.Directory do
   @impl true
   def init(_opts) do
     ensure_table()
-    # Subscribe to Redis
     redis_cfg = Application.get_env(:browsergrid, :redis, [])
     url = Keyword.get(redis_cfg, :url, "redis://localhost:6379")
     {:ok, pubsub} = Redix.PubSub.start_link(url)

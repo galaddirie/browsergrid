@@ -24,12 +24,14 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuth do
   def call(conn, %{track_usage?: track_usage?, rate_limit?: rate_limit?, rate_options: rate_options}) do
     with {:ok, raw_token} <- extract_token(conn),
          {:ok, api_key} <- ApiKeys.verify_token(raw_token),
+         api_key <- preload_user(api_key),
          {:ok, rate_meta} <- apply_rate_limit(api_key, rate_limit?, rate_options),
          {:ok, tracked_key} <- maybe_track_usage(api_key, track_usage?) do
       conn
       |> maybe_put_rate_headers(rate_meta)
       |> assign(:api_key, tracked_key)
       |> assign(:token, build_token_assign(tracked_key))
+      |> assign(:current_user, tracked_key.user)
     else
       {:error, :missing_token} ->
         deny(conn, 401, "invalid_token")
@@ -132,5 +134,9 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuth do
   defp maybe_put_retry_after(conn, retry_after_ms) do
     seconds = Integer.to_string(div(retry_after_ms + 999, 1000))
     put_resp_header(conn, "retry-after", seconds)
+  end
+
+  defp preload_user(api_key) do
+    Browsergrid.Repo.preload(api_key, :user)
   end
 end
