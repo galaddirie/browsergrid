@@ -66,8 +66,12 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuth do
 
       [value | _] ->
         case String.split(value, " ", parts: 2) do
-          [scheme, token] when String.downcase(scheme) == "bearer" and token != "" ->
-            {:ok, String.trim(token)}
+          [scheme, token] when token != "" ->
+            if String.downcase(scheme) == "bearer" do
+              {:ok, String.trim(token)}
+            else
+              :error
+            end
 
           _ ->
             :error

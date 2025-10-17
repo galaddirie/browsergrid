@@ -101,10 +101,9 @@ defmodule Browsergrid.ApiKeys do
   def register_usage(%APIKey{} = api_key) do
     now = DateTime.utc_now()
 
-    from(k in APIKey, where: k.id == ^api_key.id)
-    |> Repo.update_all(set: [last_used_at: now, updated_at: now], inc: [usage_count: 1], returning: true)
-    |> case do
-      {1, [updated]} -> {:ok, updated}
+    case from(k in APIKey, where: k.id == ^api_key.id)
+         |> Repo.update_all([set: [last_used_at: now, updated_at: now], inc: [usage_count: 1]]) do
+      {1, _} -> {:ok, Repo.get!(APIKey, api_key.id)}
       _ -> {:error, :not_found}
     end
   end

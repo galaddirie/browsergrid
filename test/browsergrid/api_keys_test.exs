@@ -14,7 +14,8 @@ defmodule Browsergrid.ApiKeysTest do
       assert api_key.last_four == String.slice(token, -4, 4)
       refute api_key.key_hash == token
       assert api_key.usage_count == 0
-      assert {:ok, %APIKey{id: ^api_key.id}} = ApiKeys.verify_token(token)
+      api_key_id = api_key.id
+      assert {:ok, %APIKey{id: ^api_key_id}} = ApiKeys.verify_token(token)
     end
 
     test "validates presence of name" do
@@ -63,7 +64,8 @@ defmodule Browsergrid.ApiKeysTest do
       assert revoked.id == api_key.id
       refute new_key.id == api_key.id
       assert {:error, :revoked} = ApiKeys.verify_token(original_token)
-      assert {:ok, %APIKey{id: ^new_key.id}} = ApiKeys.verify_token(new_token)
+      new_key_id = new_key.id
+      assert {:ok, %APIKey{id: ^new_key_id}} = ApiKeys.verify_token(new_token)
     end
   end
 

@@ -3,13 +3,12 @@ defmodule Browsergrid.SessionsTest do
 
   import Mock
 
-  alias Browsergrid.Factory
   alias Browsergrid.Sessions
-  alias Browsergrid.Sessions.Session
+  alias Browsergrid.Factory
 
   describe "list_sessions/1" do
     test "returns all sessions ordered by inserted_at desc" do
-      session1 = Factory.insert(:session, inserted_at: ~N[2024-01-01 10:00:00])
+      _session1 = Factory.insert(:session, inserted_at: ~N[2024-01-01 10:00:00])
       session2 = Factory.insert(:session, inserted_at: ~N[2024-01-01 11:00:00])
       session3 = Factory.insert(:session, inserted_at: ~N[2024-01-01 09:00:00])
 
@@ -95,12 +94,12 @@ defmodule Browsergrid.SessionsTest do
         timeout: 45
       }
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end do
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end
+      ] do
         assert {:ok, session} = Sessions.create_session(attrs)
         assert session.browser_type == :chrome
-        # Status changes to running after runtime start
-        assert session.status == :running
+        assert session.status == :running  # Status changes to running after runtime start
         assert session.cluster == "test-cluster"
         assert session.headless == true
         assert session.timeout == 45
@@ -119,8 +118,9 @@ defmodule Browsergrid.SessionsTest do
     test "sets default name when not provided" do
       attrs = %{browser_type: :chrome}
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end do
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end
+      ] do
         {:ok, session} = Sessions.create_session(attrs)
         assert session.name =~ ~r/Session \d+/
       end
@@ -132,29 +132,29 @@ defmodule Browsergrid.SessionsTest do
       profile = Factory.insert(:profile, browser_type: :firefox)
       attrs = %{cluster: "test-cluster"}
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end do
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end
+      ] do
         assert {:ok, session} = Sessions.create_session_with_profile(attrs, profile.id)
         assert session.profile_id == profile.id
-        # Should match profile
-        assert session.browser_type == :firefox
+        assert session.browser_type == :firefox  # Should match profile
       end
     end
   end
 
   describe "clone_session/1" do
     test "creates clone with modified name" do
-      original =
-        Factory.insert(:session,
-          name: "Original Session",
-          browser_type: :firefox,
-          screen: %{"width" => 1280, "height" => 720},
-          headless: true,
-          timeout: 60
-        )
+      original = Factory.insert(:session,
+        name: "Original Session",
+        browser_type: :firefox,
+        screen: %{"width" => 1280, "height" => 720},
+        headless: true,
+        timeout: 60
+      )
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end do
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end
+      ] do
         assert {:ok, clone} = Sessions.clone_session(original)
         assert clone.name == "Original Session (Clone)"
         assert clone.browser_type == :firefox
@@ -227,8 +227,9 @@ defmodule Browsergrid.SessionsTest do
     test "starts session and updates status" do
       session = Factory.insert(:session, status: :pending)
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end do
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        ensure_session_started: fn _session_id, _opts -> {:ok, self()} end
+      ] do
         assert {:ok, started_session} = Sessions.start_session(session)
         assert started_session.status == :running
       end
@@ -263,9 +264,10 @@ defmodule Browsergrid.SessionsTest do
     test "returns connection info" do
       session = Factory.insert(:session)
 
-      with_mock Browsergrid.SessionRuntime, [:passthrough],
-        upstream_endpoint: fn _session_id -> {:ok, %{host: "localhost", port: 9222}} end do
-        assert {:ok, %{url: url, connection: connection}} = Sessions.get_connection_info(session.id)
+      with_mock Browsergrid.SessionRuntime, [:passthrough], [
+        upstream_endpoint: fn _session_id -> {:ok, %{host: "localhost", port: 9222}} end
+      ] do
+        assert {:ok, %{url: _url, connection: connection}} = Sessions.get_connection_info(session.id)
         assert connection.session == session.id
         assert connection.http_proxy =~ "/sessions/#{session.id}/http"
         assert connection.ws_proxy =~ "/sessions/#{session.id}/ws"
@@ -282,8 +284,7 @@ defmodule Browsergrid.SessionsTest do
       profile = Factory.insert(:profile)
       session1 = Factory.insert(:session, profile_id: profile.id)
       session2 = Factory.insert(:session, profile_id: profile.id)
-      # Different profile
-      Factory.insert(:session)
+      Factory.insert(:session) # Different profile
 
       sessions = Sessions.get_sessions_by_profile(profile.id)
 
@@ -339,12 +340,9 @@ defmodule Browsergrid.SessionsTest do
       assert stats.by_status.pending == 1
       assert stats.by_status.stopped == 1
       assert stats.by_status.error == 1
-      # running + pending
-      assert stats.active == 3
-      # pending
-      assert stats.available == 1
-      # stopped + error
-      assert stats.failed == 2
+      assert stats.active == 3  # running + pending
+      assert stats.available == 1  # pending
+      assert stats.failed == 2  # stopped + error
     end
   end
 

@@ -46,7 +46,7 @@ defmodule BrowsergridWeb.Plugs.APIKeyAuthTest do
     assert %{"error" => "invalid_token"} = Jason.decode!(conn.resp_body)
   end
 
-  test "enforces rate limit", %{conn: conn, token: token, api_key: api_key} do
+  test "enforces rate limit", %{conn: conn, token: token, api_key: _api_key} do
     opts = APIKeyAuth.init(rate_options: [limit: 1, interval_ms: 60_000])
 
     success_conn =
