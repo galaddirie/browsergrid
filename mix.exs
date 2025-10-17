@@ -56,6 +56,7 @@ defmodule Browsergrid.MixProject do
       {:horde, "~> 0.9"},
       {:delta_crdt, "~> 0.6"},
       {:httpoison, "~> 2.0"},
+      {:argon2_elixir, "~> 4.0"},
       {:k8s, "~> 2.7"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},

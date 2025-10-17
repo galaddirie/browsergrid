@@ -137,6 +137,10 @@ config :browsergrid, :storage,
   local_path: "/var/lib/browsergrid/media",
   base_url: "http://localhost:4000"
 
+config :browsergrid, Browsergrid.ApiKeys.RateLimiter,
+  limit: 120,
+  interval_ms: 60_000
+
 config :browsergrid,
   ecto_repos: [Browsergrid.Repo],
   generators: [timestamp_type: :utc_datetime_usec, binary_id: true]

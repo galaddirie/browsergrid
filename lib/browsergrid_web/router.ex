@@ -22,10 +22,15 @@ defmodule BrowsergridWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :api_authenticated do
+    plug BrowsergridWeb.Plugs.APIKeyAuth
+  end
+
   pipeline :session_proxy do
     plug :accepts, ["json", "html"]
     plug :fetch_session
     plug :put_secure_browser_headers
+    plug BrowsergridWeb.Plugs.APIKeyAuth, rate_limit: false, track_usage: false
   end
 
   scope "/", BrowsergridWeb do
@@ -67,6 +72,12 @@ defmodule BrowsergridWeb.Router do
     get "/deployments/:id", Inertia.V1.DeploymentController, :show
     post "/deployments/:id/deploy", Inertia.V1.DeploymentController, :deploy
     delete "/deployments/:id", Inertia.V1.DeploymentController, :delete
+
+    # API Keys management UI
+    get "/api-keys", Inertia.V1.ApiKeyController, :index
+    post "/api-keys", Inertia.V1.ApiKeyController, :create
+    post "/api-keys/:id/regenerate", Inertia.V1.ApiKeyController, :regenerate
+    post "/api-keys/:id/revoke", Inertia.V1.ApiKeyController, :revoke
   end
 
   # API V1 Routes - Public
@@ -87,7 +98,7 @@ defmodule BrowsergridWeb.Router do
 
   # API V1 Routes - Main API
   scope "/api/v1", BrowsergridWeb.API.V1 do
-    pipe_through :api
+    pipe_through [:api, :api_authenticated]
 
     # Sessions
     resources "/sessions", SessionController, only: [:index, :show, :create, :delete]
@@ -109,6 +120,11 @@ defmodule BrowsergridWeb.Router do
     post "/deployments/:id/deploy", DeploymentController, :deploy
     get "/deployments/statistics", DeploymentController, :statistics
 
+    # API Keys
+    resources "/api_keys", ApiKeyController, only: [:index, :show, :create]
+    post "/api_keys/:id/regenerate", ApiKeyController, :regenerate
+    post "/api_keys/:id/revoke", ApiKeyController, :revoke
+
     # Edge Debug
     get "/edge", EdgeDebugController, :index
     get "/edge/lookup/:session_id", EdgeDebugController, :lookup
@@ -121,7 +137,7 @@ defmodule BrowsergridWeb.Router do
 
   # Debug/Admin API Routes (if needed)
   scope "/api/debug", BrowsergridWeb do
-    pipe_through :api
+    pipe_through [:api, :api_authenticated]
   end
 
   scope "/media", BrowsergridWeb do
