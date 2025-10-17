@@ -117,16 +117,13 @@ tasks:
 
   dev:restart:
     desc: Restart Browsergrid in the local cluster
-    deps: [dev:up]
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" rollout restart deploy/browsergrid -n browsergrid-dev
   
-
-  dev:logs:
-    desc: Tail Browsergrid logs from the cluster
+  dev:delete:
+    desc: Delete the Browsergrid deployment from the local cluster
     cmds:
-      - kubectl --kubeconfig "{{.KUBECONFIG}}" -n browsergrid-dev logs -f deploy/browsergrid
-
+      - kubectl --kubeconfig "{{.KUBECONFIG}}" delete deploy/browsergrid -n browsergrid-dev
 
   resources:start:
     desc: Start shared resources (PostgreSQL, Redis, Adminer) using docker-compose
