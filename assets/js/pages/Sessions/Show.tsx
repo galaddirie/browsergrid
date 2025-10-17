@@ -44,6 +44,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 export default function SessionShow({ session }: { session: Session }) {
   const [currentSession, setCurrentSession] = useState<Session>(session);
   const [isChannelConnected, setIsChannelConnected] = useState(false);
+  const [cdpData, setCdpData] = useState<any>(null);
+  const [cdpLoading, setCdpLoading] = useState(false);
+  const [cdpError, setCdpError] = useState<string | null>(null);
 
   const isTerminalStatus = (status: string) => {
     const terminal = ['completed', 'failed', 'expired', 'crashed', 'timed_out', 'terminated'];
@@ -52,6 +55,27 @@ export default function SessionShow({ session }: { session: Session }) {
 
   const streamUrl = currentSession.stream_url || (currentSession.id ? `/sessions/${currentSession.id}/edge/stream` : undefined);
   const isStreamActive = !isTerminalStatus(currentSession.status ?? '');
+
+  const fetchCdpData = async () => {
+    if (!currentSession.id) return;
+
+    setCdpLoading(true);
+    setCdpError(null);
+
+    try {
+      const response = await fetch(`/browsers/${currentSession.id}/json`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setCdpData(data);
+    } catch (error) {
+      setCdpError(error instanceof Error ? error.message : 'Unknown error');
+      console.error('Failed to fetch CDP data:', error);
+    } finally {
+      setCdpLoading(false);
+    }
+  };
 
   useEffect(() => {
     setCurrentSession(session);
@@ -196,6 +220,57 @@ export default function SessionShow({ session }: { session: Session }) {
               isActive={isStreamActive}
               className="max-h-[640px]"
             />
+          </CardContent>
+        </Card>
+
+        <Card className="border-neutral-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-900">Browser Debug Info</CardTitle>
+            <p className="text-xs text-neutral-500">Chrome DevTools Protocol JSON data.</p>
+          </CardHeader>
+          <CardContent>
+            {cdpLoading && (
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-600"></div>
+                Loading CDP data...
+              </div>
+            )}
+
+            {cdpError && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+                <strong>Error:</strong> {cdpError}
+              </div>
+            )}
+
+            {cdpData && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-neutral-900">JSON Response</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={fetchCdpData}
+                    className="text-xs h-7"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+                <pre className="text-xs bg-neutral-900 text-primary-foreground p-3 rounded overflow-x-auto max-h-96 overflow-y-auto">
+                  {JSON.stringify(cdpData, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {!cdpLoading && !cdpError && !cdpData && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchCdpData}
+                className="text-xs h-7"
+              >
+                Load CDP Data
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
