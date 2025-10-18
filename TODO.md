@@ -13,7 +13,7 @@
 - [x] add session pool (system wide default pool and user defined pools)
 
 - [ ] add ?token= auth support for all api endpoints
-
+- [ ] add authorized user check plug to all api endpoints see below
 - [x] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
     - [x] add api/sessions/:id/connect endpoint aswell 
 
