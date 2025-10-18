@@ -3,7 +3,7 @@
 - [x] connect to phoneix channels for streaming
 - [x] use sonnar instead of phoneix flash messages
 - [ ] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
-- [x] Edge routing ( session/:id/edge/* should proxy to session host )
+- [x] Edge routing ( session/:id/connect/* should proxy to session host )
 - [x] Add Auth System 
 - [x] Add api tokens
 
@@ -14,8 +14,8 @@
 
 - [ ] add ?token= auth support for all api endpoints
 
-- [ ] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
-    - [ ] add api/sessions/:id/connect endpoint aswell 
+- [x] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
+    - [x] add api/sessions/:id/connect endpoint aswell 
 
 - [] add /connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
 
@@ -53,8 +53,13 @@ returns:
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
 
 
-
+- [ ] bug when we make a change the kind server sometimes just restarts and is slow to apply changes
 UX
 - [ ] Add copy icon to new API token modal
 - [ ] Fix account sign out everywhere button - it only signs out on the current device
 
+- [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
+- [ ] non admins should not be able to view or modify default browser pool or sessions
+- [ ] non admins can claim sessions from the default pool
+- [ ] non admins should only see sessions they have claimed or are associated with in their session list
+- [ ] non admins should only be able to view their own related resources

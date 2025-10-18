@@ -46,7 +46,7 @@ export function StreamViewer({
     if (!sessionId) {
       return undefined;
     }
-    return `/sessions/${sessionId}/edge/stream`;
+    return `/sessions/${sessionId}/connect/stream`;
   }, [sessionId, streamUrl]);
 
   useEffect(() => {

@@ -46,6 +46,9 @@ defmodule BrowsergridWeb.Router do
     patch "/sessions/:id", Inertia.V1.SessionController, :update
     delete "/sessions/:id", Inertia.V1.SessionController, :delete
 
+    # Session proxy routes - handles CDP connections and WebSocket proxying
+    match :*, "/sessions/:id/connect/*path", SessionProxyController, :proxy
+
     # Session pool routes
     get "/pools", Inertia.V1.SessionPoolController, :index
     get "/pools/new", Inertia.V1.SessionPoolController, :new
@@ -111,6 +114,9 @@ defmodule BrowsergridWeb.Router do
     get "/sessions/:id", SessionController, :show
     put "/sessions/:id", SessionController, :update
     delete "/sessions/:id", SessionController, :delete
+
+    # Session proxy routes - handles CDP connections and WebSocket proxying
+    match :*, "/sessions/:id/connect/*path", BrowsergridWeb.SessionProxyController, :proxy
 
     # Profile routes
     get "/profiles", ProfileController, :index

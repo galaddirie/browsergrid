@@ -69,7 +69,7 @@ export default function SessionShow({ session }: { session: Session }) {
   const streamUrl =
     currentSession.stream_url ||
     (currentSession.id
-      ? `/sessions/${currentSession.id}/edge/stream`
+      ? `/sessions/${currentSession.id}/connect/stream`
       : undefined);
   const isStreamActive = !isTerminalStatus(currentSession.status ?? '');
 
@@ -80,7 +80,7 @@ export default function SessionShow({ session }: { session: Session }) {
     setCdpError(null);
 
     try {
-      const response = await fetch(`/browsers/${currentSession.id}/json`);
+      const response = await fetch(`${currentSession.id}/connect/json`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
