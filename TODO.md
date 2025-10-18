@@ -63,3 +63,8 @@
 - [ ] Strict Origin allowlist for browser-based WS clients
 - [ ] Health checks/metrics per-session and for the idle pool
 
+
+
+UX
+- [ ] Add copy icon to new API token modal
+- [ ] Fix account sign out everywhere button - it only signs out on the current device
