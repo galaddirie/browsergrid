@@ -6,10 +6,18 @@
 - [x] Edge routing ( session/:id/edge/* should proxy to session host )
 - [x] Add Auth System 
 - [x] Add api tokens
+
 - [ ] Webhook integration
 
 
+- [ ] add session pool (system wide default pool and user defined pools)
 
+
+- [] add /connect/ convience endpoint - uses default browser configurations
+    - [ ] add ?token=  auth for this endpoint, (capability url so automation frameworks like puppeteer can use it)
+    - [ ] add ?pool=  to select a pool of sessions to use
+    - [ ] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
+    - [ ]  
 
 
 - [ ] adding CUA endpoint for browser
@@ -29,39 +37,6 @@
 - [ ] Deployment integration
 - [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
-
-## Idle session pool and Connect endpoint
-
-- [ ] Stand up **wss://connect.browsergrid.com** and **https://connect.browsergrid.com**
-  - [ ] Maintain a **pool of idle browser nodes** for fast acquisition (never previously used)
-  - [ ] Use this origin to **claim an idle session** for a user
-  - [ ] **Separate connect.* in prod** so the WebSocket surface can scale independently (Elixir, libcluster, K8s, dedicated LBs)
-
-## Local Dev / Routing
-
-- [ ] For local dev (no subdomain routing), provide a **path-based fallback** (e.g., `http://localhost:4000/connect/...`)
-  - [ ] Make subdomain vs path routing **configurable** (env flag)
-
-## Legacy Endpoint Changes
-
-- [ ] **Remove WebSocket support** from `/sessions/:id/edge/*` proxy
-  - [ ] Keep it **read-only** for browser JSON and WebM stream
-
-## Session Claiming & Lifecycle
-
-- [ ] Add `?token=` param to **claim** a session (this token for now will be a environment variable)
-  - [ ] `GET https://connect.browsergrid.com/json?token=...` → mark session **claimed/running**
-  - [ ] Once claimed, session is **not available** to others
-  - [ ] **Wait up to 10s** for the client to open the WebSocket; if no WS connects, **delete** the session
-- [ ] WebSocket handling:
-  - [ ] Client connects: `wss://connect.browsergrid.com/json?token=...`
-  - [ ] On WS **disconnect**, **delete** the session immediately
-
-## Ops / Hardening (nice-to-have)
-
-- [ ] Rate limit & IP stickiness on `connect.*`
-- [ ] Strict Origin allowlist for browser-based WS clients
-- [ ] Health checks/metrics per-session and for the idle pool
 
 
 
