@@ -12,13 +12,11 @@
 
 - [ ] add session pool (system wide default pool and user defined pools)
 
-
+- [ ] add ?token= auth support for all api endpoints
 - [] add /connect/ convience endpoint - uses default browser configurations
-    - [ ] add ?token=  auth for this endpoint, (capability url so automation frameworks like puppeteer can use it)
     - [ ] add ?pool=  to select a pool of sessions to use
     - [ ] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
-    - [ ]  
-
+            - [ ] add api/sessions/:id/connect endpoint aswell 
 
 - [ ] adding CUA endpoint for browser
     - [ ] add visual ( similar to chatgpt where we should a  rendering  similar to this https://screen.studio/?aff=Yy75o )
@@ -43,3 +41,4 @@
 UX
 - [ ] Add copy icon to new API token modal
 - [ ] Fix account sign out everywhere button - it only signs out on the current device
+
