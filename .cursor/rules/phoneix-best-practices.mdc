@@ -449,7 +449,7 @@ scope "/", MyAppWeb do
   live_session :require_authenticated_user,
     on_mount: [{MyAppWeb.LiveInit, :default}] do
     # Routes that require logged in user
-    live "/dashboard", DashboardLive, :index
+    live "/", DashboardLive, :index
     live "/profile", ProfileLive, :edit
   end
 end
@@ -1067,7 +1067,7 @@ scope "/", MyAppWeb do
   live_session :require_authenticated_user,
     on_mount: [{MyAppWeb.LiveInit, :default}] do
     # Routes that require logged in user
-    live "/dashboard", DashboardLive, :index
+    live "/", DashboardLive, :index
     live "/profile", ProfileLive, :edit
   end
 end

@@ -26,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }, [flash]);
 
     return (
-        <div className="bg-background flex flex-grow flex-col min-h-screen pt-[50px]">
+        <div className="bg-background flex flex-grow flex-col">
             {/* Toast notification container */}
             <Toaster
                 position="top-right"
@@ -42,7 +42,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             
             <div className="flex w-full flex-grow flex-col">
                 <div className="relative flex h-full w-full flex-col items-center justify-center">
-                    <div className="flex min-h-screen h-full w-full  flex-col items-stretch justify-start">
+                    <div className="flex grow h-full w-full  flex-col items-stretch justify-start">
 
                         {/* Header */}
                         <div className="border-muted border-b">
@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </div>
 
                         {/* Main content */}
-                        <div className="bg-muted/50 py-6">
+                        <div className="bg-muted/50 py-6 h-full flex-1">
                             <div className="flex-1 mx-auto max-w-7xl w-full px-8">
                                 {children}
                             </div>

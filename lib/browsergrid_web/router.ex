@@ -30,18 +30,10 @@ defmodule BrowsergridWeb.Router do
   end
 
   scope "/", BrowsergridWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
-  scope "/", BrowsergridWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    # Dashboard
-    get "/dashboard", Inertia.V1.DashboardController, :overview
+    get "/", Inertia.V1.DashboardController, :overview
 
-    # Sessions routes
     get "/sessions", SessionController, :index
     post "/sessions", SessionController, :create
     get "/sessions/:id", SessionController, :show

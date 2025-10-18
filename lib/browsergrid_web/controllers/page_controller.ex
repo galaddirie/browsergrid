@@ -16,8 +16,5 @@ defmodule BrowsergridWeb.PageController do
     |> render(:home, layout: layout)
   end
 
-  def dashboard(conn, _params) do
-    # Redirect to the new dashboard route
-    redirect(conn, to: ~p"/dashboard")
-  end
+
 end
