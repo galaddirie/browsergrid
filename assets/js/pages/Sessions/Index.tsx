@@ -501,6 +501,9 @@ export default function SessionsIndex({
                       Pool
                     </TableHead>
                     <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      User
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
                       Status
                     </TableHead>
                     <TableHead className="h-10 text-xs font-medium text-neutral-700">
@@ -572,6 +575,25 @@ export default function SessionsIndex({
                             >
                               {session.session_pool.system ? 'System' : 'Custom'}
                             </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-neutral-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {session.user ? (
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-medium text-neutral-900">
+                              {session.user.email}
+                            </div>
+                            {session.user.is_admin && (
+                              <Badge
+                                variant="outline"
+                                className="border-neutral-200 px-1.5 py-0 text-[10px] uppercase tracking-wide text-neutral-500"
+                              >
+                                Admin
+                              </Badge>
+                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-neutral-400">—</span>

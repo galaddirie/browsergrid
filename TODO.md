@@ -59,7 +59,7 @@ UX
 - [ ] Fix account sign out everywhere button - it only signs out on the current device
 
 - [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
-- [ ] non admins should not be able to view or modify default browser pool or sessions
+- [ ] non admins should not be able to view or modify default browser pool or sessions - this should be a system level setting and not something defined per controller or context
 - [ ] non admins can claim sessions from the default pool
 - [ ] non admins should only see sessions they have claimed or are associated with in their session list
 - [ ] non admins should only be able to view their own related resources

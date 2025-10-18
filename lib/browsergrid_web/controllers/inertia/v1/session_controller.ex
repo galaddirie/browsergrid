@@ -8,7 +8,8 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   require Logger
 
   def index(conn, _params) do
-    sessions = Sessions.list_sessions(preload: true)
+    user = conn.assigns.current_user
+    sessions = Sessions.list_sessions(user_id: user.id, preload: true)
     profiles = Profiles.list_profiles(status: :active)
 
     render_inertia(conn, "Sessions/Index", %{
@@ -32,9 +33,12 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   def create(conn, %{"session" => session_params}) do
-    Logger.debug("Creating session: #{inspect(session_params)}")
+    user = conn.assigns.current_user
+    params = Map.put(session_params, "user_id", user.id)
 
-    case Sessions.create_session(session_params) do
+    Logger.debug("Creating session: #{inspect(params)}")
+
+    case Sessions.create_session(params) do
       {:ok, session} ->
         conn
         |> put_flash(:info, "Session created successfully")

@@ -3,6 +3,13 @@ export type Browser = 'chrome' | 'chromium' | 'firefox';
 export type BrowserVersion = 'latest' | 'stable' | 'canary' | 'dev';
 export type OperatingSystem = 'linux' | 'windows' | 'macos';
 
+// User Interface
+export interface User {
+  id: string;
+  email: string;
+  is_admin: boolean;
+}
+
 // Configuration Interfaces
 export interface ScreenConfig {
   width: number;
@@ -48,6 +55,8 @@ export interface Session {
   session_pool?: SessionPoolSummary;
   // Optional profile relation (when preloaded)
   profile?: Profile;
+  // Optional user relation (when preloaded)
+  user?: User;
 }
 
 export interface PoolOwner {

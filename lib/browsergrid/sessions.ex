@@ -276,7 +276,7 @@ defmodule Browsergrid.Sessions do
     case Keyword.get(opts, :preload, false) do
       false -> query
       nil -> query
-      true -> preload(query, [:profile, session_pool: :owner])
+      true -> preload(query, [:profile, :user, session_pool: :owner])
       preloads when is_list(preloads) -> preload(query, ^preloads)
     end
   end
