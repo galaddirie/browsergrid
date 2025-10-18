@@ -4,7 +4,8 @@
 - [x] use sonnar instead of phoneix flash messages
 - [ ] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
 - [x] Edge routing ( session/:id/edge/* should proxy to session host )
-
+- [x] Add Auth System 
+- [x] Add api tokens
 - [ ] Webhook integration
 
 
