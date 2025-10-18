@@ -42,6 +42,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'available':
+      case 'ready':
       case 'running':
       case 'active':
       case 'claimed':
@@ -176,14 +177,17 @@ export default function SessionsIndex({
     total: sessionsTotal,
     running:
       sessionsList?.filter((s: Session) =>
-        ['running', 'claimed', 'active'].includes(s.status ?? ''),
+        ['running', 'claimed'].includes((s.status || '').toLowerCase()),
       ).length || 0,
-    available:
-      sessionsList?.filter((s: Session) => (s.status ?? '') === 'available')
-        .length || 0,
+    ready:
+      sessionsList?.filter((s: Session) =>
+        ['ready', 'available'].includes((s.status || '').toLowerCase()),
+      ).length || 0,
     failed:
       sessionsList?.filter((s: Session) =>
-        ['failed', 'crashed'].includes(s.status ?? ''),
+        ['failed', 'crashed', 'error'].includes(
+          (s.status || '').toLowerCase(),
+        ),
       ).length || 0,
   };
 
@@ -417,9 +421,9 @@ export default function SessionsIndex({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-neutral-600">Available:</span>
+            <span className="text-neutral-600">Ready:</span>
             <span className="font-semibold text-neutral-900">
-              {stats.available}
+              {stats.ready}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -494,6 +498,9 @@ export default function SessionsIndex({
                       Browser
                     </TableHead>
                     <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      Pool
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
                       Status
                     </TableHead>
                     <TableHead className="h-10 text-xs font-medium text-neutral-700">
@@ -552,6 +559,23 @@ export default function SessionsIndex({
                             {session.options?.version || 'latest'}
                           </Badge>
                         </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {session.session_pool ? (
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-medium text-neutral-900">
+                              {session.session_pool.name}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="border-neutral-200 px-1.5 py-0 text-[10px] uppercase tracking-wide text-neutral-500"
+                            >
+                              {session.session_pool.system ? 'System' : 'Custom'}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-neutral-400">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="py-3">
                         <StatusBadge status={session.status || 'unknown'} />

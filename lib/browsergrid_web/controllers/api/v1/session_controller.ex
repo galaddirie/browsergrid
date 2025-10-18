@@ -45,7 +45,7 @@ defmodule BrowsergridWeb.API.V1.SessionController do
   def update(conn, %{"id" => id, "session" => session_params}) do
     with {:ok, session} <- Sessions.get_session(id),
          {:ok, session} <- Authorization.authorize_resource(conn, session),
-         sanitized <- ensure_owner(session_params, conn),
+         sanitized = ensure_owner(session_params, conn),
          {:ok, updated} <- Sessions.update_session(session, sanitized) do
       json(conn, %{data: updated})
     else

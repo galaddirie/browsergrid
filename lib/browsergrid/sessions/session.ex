@@ -4,10 +4,10 @@ defmodule Browsergrid.Sessions.Session do
   """
   use Browsergrid.Schema
 
-  @derive {Jason.Encoder, except: [:__meta__, :profile, :user]}
+  @derive {Jason.Encoder, except: [:__meta__, :profile, :user, :session_pool]}
 
   @browser_types [:chrome, :chromium, :firefox]
-  @statuses [:pending, :running, :stopped, :error, :starting, :stopping]
+  @statuses [:pending, :starting, :ready, :claimed, :running, :stopping, :stopped, :error]
 
   schema "sessions" do
     field :name, :string
@@ -21,6 +21,10 @@ defmodule Browsergrid.Sessions.Session do
     field :headless, :boolean, default: false
     field :timeout, :integer, default: 30
 
+    field :claimed_at, :utc_datetime_usec
+    field :attachment_deadline_at, :utc_datetime_usec
+
+    belongs_to :session_pool, Browsergrid.SessionPools.SessionPool, type: :binary_id
     belongs_to :profile, Browsergrid.Profiles.Profile, type: :binary_id
     belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
 
@@ -29,7 +33,19 @@ defmodule Browsergrid.Sessions.Session do
 
   def changeset(session, attrs) do
     session
-    |> cast(attrs, [:name, :browser_type, :status, :cluster, :profile_id, :user_id, :headless, :timeout, :screen, :limits])
+    |> cast(attrs, [
+      :name,
+      :browser_type,
+      :status,
+      :cluster,
+      :profile_id,
+      :user_id,
+      :headless,
+      :timeout,
+      :screen,
+      :limits,
+      :session_pool_id
+    ])
     |> validate_required([:browser_type, :status])
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_inclusion(:status, @statuses)
@@ -43,7 +59,18 @@ defmodule Browsergrid.Sessions.Session do
 
   def create_changeset(attrs) do
     %__MODULE__{}
-    |> cast(attrs, [:name, :browser_type, :cluster, :profile_id, :user_id, :headless, :timeout, :screen, :limits])
+    |> cast(attrs, [
+      :name,
+      :browser_type,
+      :cluster,
+      :profile_id,
+      :user_id,
+      :headless,
+      :timeout,
+      :screen,
+      :limits,
+      :session_pool_id
+    ])
     |> put_change(:status, :pending)
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_screen()

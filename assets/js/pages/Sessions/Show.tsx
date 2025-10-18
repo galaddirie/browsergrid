@@ -22,6 +22,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'available':
+      case 'ready':
       case 'running':
       case 'active':
       case 'claimed':
@@ -202,12 +203,48 @@ export default function SessionShow({ session }: { session: Session }) {
                 <span className="text-xs text-neutral-600">Status</span>
                 <StatusBadge status={currentSession.status ?? 'unknown'} />
               </div>
+              {currentSession.session_pool && (
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-xs text-neutral-600">Pool</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-neutral-900">
+                      {currentSession.session_pool.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="border-neutral-200 text-[10px] uppercase tracking-wide text-neutral-500"
+                    >
+                      {currentSession.session_pool.system ? 'System' : 'Custom'}
+                    </Badge>
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Created</span>
                 <span className="text-xs text-neutral-900">
                   {currentSession.inserted_at
                     ? new Date(currentSession.inserted_at).toLocaleString()
                     : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-xs text-neutral-600">Claimed</span>
+                <span className="text-xs text-neutral-900">
+                  {currentSession.claimed_at
+                    ? new Date(currentSession.claimed_at).toLocaleString()
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-xs text-neutral-600">
+                  Attachment Deadline
+                </span>
+                <span className="text-xs text-neutral-900">
+                  {currentSession.attachment_deadline_at
+                    ? new Date(
+                        currentSession.attachment_deadline_at,
+                      ).toLocaleString()
+                    : '—'}
                 </span>
               </div>
 

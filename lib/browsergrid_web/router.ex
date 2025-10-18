@@ -46,6 +46,17 @@ defmodule BrowsergridWeb.Router do
     patch "/sessions/:id", Inertia.V1.SessionController, :update
     delete "/sessions/:id", Inertia.V1.SessionController, :delete
 
+    # Session pool routes
+    get "/pools", Inertia.V1.SessionPoolController, :index
+    get "/pools/new", Inertia.V1.SessionPoolController, :new
+    post "/pools", Inertia.V1.SessionPoolController, :create
+    get "/pools/:id", Inertia.V1.SessionPoolController, :show
+    get "/pools/:id/edit", Inertia.V1.SessionPoolController, :show
+    put "/pools/:id", Inertia.V1.SessionPoolController, :update
+    patch "/pools/:id", Inertia.V1.SessionPoolController, :update
+    delete "/pools/:id", Inertia.V1.SessionPoolController, :delete
+    post "/pools/:id/claim", Inertia.V1.SessionPoolController, :claim
+
     # Profile routes
     get "/profiles", Inertia.V1.ProfileController, :index
     get "/profiles/new", Inertia.V1.ProfileController, :new
@@ -114,6 +125,14 @@ defmodule BrowsergridWeb.Router do
     get "/deployments/:id", DeploymentController, :show
     post "/deployments/:id/deploy", DeploymentController, :deploy
     delete "/deployments/:id", DeploymentController, :delete
+
+    # Session pools
+    get "/pools", SessionPoolController, :index
+    get "/pools/:id/stats", SessionPoolController, :stats
+    post "/pools", SessionPoolController, :create
+    put "/pools/:id", SessionPoolController, :update
+    delete "/pools/:id", SessionPoolController, :delete
+    post "/pools/:id/claim", SessionPoolController, :claim
   end
 
   # Health check endpoint

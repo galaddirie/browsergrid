@@ -198,6 +198,21 @@ defmodule Browsergrid.SessionsTest do
     end
   end
 
+  describe "mark_session_attached/1" do
+    test "clears attachment deadline and transitions claimed session" do
+      session =
+        Factory.insert(:session,
+          status: :claimed,
+          attachment_deadline_at: DateTime.add(DateTime.utc_now(), 5, :second),
+          claimed_at: DateTime.utc_now()
+        )
+
+      assert {:ok, updated} = Sessions.mark_session_attached(session.id)
+      assert updated.status == :running
+      assert is_nil(updated.attachment_deadline_at)
+    end
+  end
+
   describe "update_status_by_id/2" do
     test "updates status by id" do
       session = Factory.insert(:session, status: :pending)

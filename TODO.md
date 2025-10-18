@@ -10,13 +10,29 @@
 - [ ] Webhook integration
 
 
-- [ ] add session pool (system wide default pool and user defined pools)
+- [x] add session pool (system wide default pool and user defined pools)
 
 - [ ] add ?token= auth support for all api endpoints
-- [] add /connect/ convience endpoint - uses default browser configurations
-    - [ ] add ?pool=  to select a pool of sessions to use
-    - [ ] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
-            - [ ] add api/sessions/:id/connect endpoint aswell 
+
+- [ ] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
+    - [ ] add api/sessions/:id/connect endpoint aswell 
+
+- [] add /connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
+
+example: https://browsergrid.com/connect/json?token=... 
+returns: 
+{
+  "Browser": "Chrome/141.0.7390.107",
+  "Protocol-Version": "1.3",
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+  "V8-Version": "14.1.146.11",
+  "WebKit-Version": "537.36 (@1c008349f76ff3a317bf28316fc5008c0120deb4)",
+  "devtoolsFrontendUrl": "ws://browsergrid.com/session/:id/connect/devtools/browser/fd033ce1-f5ce-4fba-b9c0-99539fedec53",
+  "webSocketDebuggerUrl": "ws://browsergrid.com/session/:id/connect/devtools/browser/fd033ce1-f5ce-4fba-b9c0-99539fedec53"
+}
+
+    - [ ] add optional ?pool=  to select a pool of sessions to use
+
 
 - [ ] adding CUA endpoint for browser
     - [ ] add visual ( similar to chatgpt where we should a  rendering  similar to this https://screen.studio/?aff=Yy75o )

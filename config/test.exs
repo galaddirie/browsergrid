@@ -12,7 +12,11 @@ config :browsergrid, Browsergrid.Mailer, adapter: Swoosh.Adapters.Test
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :browsergrid, Browsergrid.Repo,
-  url: System.get_env("BROWSERGRID_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/browsergrid_test#{System.get_env("MIX_TEST_PARTITION")}"),
+  url:
+    System.get_env(
+      "BROWSERGRID_DATABASE_URL",
+      "postgres://postgres:postgres@localhost:5432/browsergrid_test#{System.get_env("MIX_TEST_PARTITION")}"
+    ),
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :browsergrid, Browsergrid.SessionRuntime,

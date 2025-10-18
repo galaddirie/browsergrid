@@ -12,7 +12,10 @@ defmodule Browsergrid.Factory do
       screen: %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0},
       limits: %{"cpu" => nil, "memory" => nil, "timeout_minutes" => 30},
       headless: false,
-      timeout: 30
+      timeout: 30,
+      claimed_at: nil,
+      attachment_deadline_at: nil,
+      session_pool_id: nil
     }
   end
 
@@ -115,6 +118,18 @@ defmodule Browsergrid.Factory do
       action: "session_started",
       metadata: %{"browser_type" => "chrome", "cluster" => "default"},
       session_id: session.id
+    }
+  end
+
+  def session_pool_factory do
+    %Browsergrid.SessionPools.SessionPool{
+      id: Ecto.UUID.generate(),
+      name: sequence(:pool_name, &"Pool #{&1}"),
+      description: "Test pool",
+      session_template: %{},
+      target_ready: 0,
+      ttl_seconds: nil,
+      system: false
     }
   end
 end

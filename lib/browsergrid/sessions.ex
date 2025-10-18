@@ -7,12 +7,21 @@ defmodule Browsergrid.Sessions do
   alias Browsergrid.Repo
   alias Browsergrid.SessionRuntime
   alias Browsergrid.Sessions.Session
+  alias Ecto.Changeset
 
   require Logger
 
   def list_sessions(opts \\ []) do
     Session
     |> maybe_filter_by_user(opts)
+    |> maybe_preload(opts)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  def list_sessions_for_pool(pool_id, opts \\ []) when is_binary(pool_id) do
+    Session
+    |> where(session_pool_id: ^pool_id)
     |> maybe_preload(opts)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
@@ -150,17 +159,26 @@ defmodule Browsergrid.Sessions do
     |> Repo.all()
   end
 
+  def mark_session_attached(session_id) when is_binary(session_id) do
+    with {:ok, session} <- get_session(session_id) do
+      session
+      |> attachment_ack_changeset()
+      |> Repo.update()
+      |> tap(&broadcast_if_ok(&1, :updated))
+    end
+  end
+
   def get_active_sessions_by_profile(profile_id) do
     Session
     |> where(profile_id: ^profile_id)
-    |> where([s], s.status in [:pending, :running, :starting])
+    |> where([s], s.status in [:pending, :running, :starting, :ready, :claimed])
     |> Repo.all()
   end
 
   def profile_in_use?(profile_id) do
     Session
     |> where(profile_id: ^profile_id)
-    |> where([s], s.status in [:pending, :running, :starting])
+    |> where([s], s.status in [:pending, :running, :starting, :ready, :claimed])
     |> Repo.exists?()
   end
 
@@ -171,8 +189,11 @@ defmodule Browsergrid.Sessions do
     %{
       total: length(sessions),
       by_status: by_status,
-      active: Map.get(by_status, :running, 0) + Map.get(by_status, :pending, 0),
-      available: Map.get(by_status, :pending, 0),
+      active:
+        [:running, :pending, :starting, :ready, :claimed]
+        |> Enum.map(&Map.get(by_status, &1, 0))
+        |> Enum.sum(),
+      available: Map.get(by_status, :pending, 0) + Map.get(by_status, :ready, 0),
       failed: Map.get(by_status, :error, 0) + Map.get(by_status, :stopped, 0)
     }
   end
@@ -182,7 +203,8 @@ defmodule Browsergrid.Sessions do
   defp start_runtime_for(session) do
     with {:ok, session} <- update_status(session, :starting),
          {:ok, _pid} <- ensure_runtime_started(session) do
-      update_status(session, :running)
+      target_status = if session.session_pool_id, do: :ready, else: :running
+      update_status(session, target_status)
     else
       {:error, reason} = error ->
         Logger.error("Runtime start failed for session #{session.id}: #{inspect(reason)}")
@@ -251,10 +273,11 @@ defmodule Browsergrid.Sessions do
   end
 
   defp maybe_preload(query, opts) do
-    if Keyword.get(opts, :preload, false) do
-      preload(query, :profile)
-    else
-      query
+    case Keyword.get(opts, :preload, false) do
+      false -> query
+      nil -> query
+      true -> preload(query, [:profile, session_pool: :owner])
+      preloads when is_list(preloads) -> preload(query, ^preloads)
     end
   end
 
@@ -281,5 +304,15 @@ defmodule Browsergrid.Sessions do
 
   defp broadcast({:deleted, session_id}) do
     BrowsergridWeb.SessionChannel.broadcast_session_deleted(session_id)
+  end
+
+  defp attachment_ack_changeset(%Session{} = session) do
+    base_changeset =
+      case session.status do
+        status when status in [:claimed, :ready] -> Session.status_changeset(session, :running)
+        _ -> Changeset.change(session)
+      end
+
+    Changeset.change(base_changeset, attachment_deadline_at: nil)
   end
 end

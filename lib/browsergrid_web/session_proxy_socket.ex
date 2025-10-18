@@ -4,11 +4,12 @@ defmodule BrowsergridWeb.SessionProxySocket do
   """
   @behaviour WebSock
 
+  alias Browsergrid.Sessions
   alias BrowsergridWeb.SessionProxySocket.Client
 
   require Logger
 
-  def init(%{host: host, port: port, target: target} = state) do
+  def init(%{host: host, port: port, target: target, session_id: session_id} = state) do
     Process.flag(:trap_exit, true)
 
     url = build_ws_url(host, port, target)
@@ -16,6 +17,8 @@ defmodule BrowsergridWeb.SessionProxySocket do
 
     case Client.start_link(url, self(), headers) do
       {:ok, pid} ->
+        _ = Sessions.mark_session_attached(session_id)
+
         {:ok,
          %{
            client: pid,
@@ -23,7 +26,8 @@ defmodule BrowsergridWeb.SessionProxySocket do
            pending: [],
            target: target,
            port: port,
-           host: host
+           host: host,
+           session_id: session_id
          }}
 
       {:error, reason} ->

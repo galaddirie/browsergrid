@@ -42,8 +42,60 @@ export interface Session {
   profile_id?: string;
   inserted_at?: string;
   updated_at?: string;
+  claimed_at?: string;
+  attachment_deadline_at?: string;
+  session_pool_id?: string;
+  session_pool?: SessionPoolSummary;
   // Optional profile relation (when preloaded)
   profile?: Profile;
+}
+
+export interface PoolOwner {
+  id?: string;
+  email?: string;
+}
+
+export interface SessionPoolStatistics {
+  ready: number;
+  warming: number;
+  claimed: number;
+  running: number;
+  errored: number;
+}
+
+export interface PoolTemplate {
+  browser_type?: Browser;
+  headless?: boolean;
+  timeout?: number;
+  profile_id?: string;
+  cluster?: string;
+  name?: string;
+  screen?: ScreenConfig;
+  limits?: ResourceLimits;
+}
+
+export interface SessionPoolSummary {
+  id: string;
+  name: string;
+  description?: string;
+  system: boolean;
+  visibility: 'system' | 'private';
+  owner?: PoolOwner | null;
+  target_ready: number;
+  ttl_seconds?: number | null;
+  health: string;
+  statistics: SessionPoolStatistics;
+  session_template?: PoolTemplate | Record<string, any>;
+  inserted_at?: string;
+  updated_at?: string;
+}
+
+export interface SessionPoolFormValues {
+  name: string;
+  description?: string;
+  target_ready: number;
+  ttl_seconds?: number | null;
+  session_template: PoolTemplate & Record<string, any>;
 }
 
 // Profile Types

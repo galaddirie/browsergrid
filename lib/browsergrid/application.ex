@@ -25,6 +25,7 @@ defmodule Browsergrid.Application do
       Browsergrid.Redis,
       {Finch, name: Browsergrid.Finch},
       Browsergrid.SessionRuntime.Supervisor,
+      Browsergrid.SessionPools.Manager,
       Browsergrid.Edge.Directory,
       # Web endpoint (should start last)
       BrowsergridWeb.Endpoint
