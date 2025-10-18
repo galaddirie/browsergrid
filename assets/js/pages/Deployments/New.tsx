@@ -112,7 +112,7 @@ export default function DeploymentUpload() {
           return false;
         }
         return true;
-      case 1:
+      case 1: {
         let isValid = true;
         if (!data.name) {
           setError('name', 'Deployment name is required');
@@ -123,7 +123,8 @@ export default function DeploymentUpload() {
           isValid = false;
         }
         return isValid;
-      case 2:
+      }
+      case 2: {
         const packageFields = data.package_parameters.fields || [];
         const invalidFields = packageFields.some(
           (field: any, index: number) => {
@@ -165,6 +166,7 @@ export default function DeploymentUpload() {
         });
 
         return !invalidFields && !invalidParams;
+      }
       default:
         return true;
     }

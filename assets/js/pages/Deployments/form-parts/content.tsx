@@ -23,7 +23,6 @@ interface ConfigureDeploymentFormProps {
     environment_variables: { key: string; value: string }[];
     parameters: { key: string; label: string; description: string }[];
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setData: (field: string, value: any) => void;
   errors: any;
   onNext: () => void;

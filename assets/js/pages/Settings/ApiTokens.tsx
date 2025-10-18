@@ -60,7 +60,7 @@ const formatDate = (value: string | null) => {
 
   try {
     return localeFormatter.format(new Date(value));
-  } catch (_err) {
+  } catch {
     return value;
   }
 };
@@ -191,7 +191,7 @@ export default function ApiTokensPage() {
     try {
       await navigator.clipboard.writeText(generatedToken);
       toast.success('Token copied to clipboard');
-    } catch (_error) {
+    } catch {
       toast.error('Unable to copy token. Please copy manually.');
     }
   };

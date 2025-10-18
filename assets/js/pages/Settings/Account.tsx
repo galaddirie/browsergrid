@@ -68,21 +68,17 @@ export default function AccountSettingsPage() {
     current_password: '',
   });
 
-  // Reset email form when backend provides a different draft value
   useEffect(() => {
     emailForm.setData({
       email: email_form.email ?? account.email ?? '',
       current_password: '',
     });
     emailForm.clearErrors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email_form.email, account.email]);
 
-  // Clear password form on navigation (e.g., successful update)
   useEffect(() => {
     passwordForm.reset();
     passwordForm.clearErrors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
   const emailErrors = flattenErrors(

@@ -25,7 +25,6 @@ let restarting = false;
 
 function log(message, metadata = {}) {
   const payload = Object.keys(metadata).length ? ` ${JSON.stringify(metadata)}` : '';
-  // eslint-disable-next-line no-console
   console.log(`${LOG_PREFIX} ${message}${payload}`);
 }
 
