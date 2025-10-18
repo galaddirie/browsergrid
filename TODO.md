@@ -30,7 +30,7 @@
 - [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
 
-## Connect Endpoint
+## Idle session pool and Connect endpoint
 
 - [ ] Stand up **wss://connect.browsergrid.com** and **https://connect.browsergrid.com**
   - [ ] Maintain a **pool of idle browser nodes** for fast acquisition (never previously used)
