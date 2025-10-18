@@ -4,7 +4,7 @@ defmodule Browsergrid.Sessions.Session do
   """
   use Browsergrid.Schema
 
-  @derive {Jason.Encoder, except: [:__meta__, :profile]}
+  @derive {Jason.Encoder, except: [:__meta__, :profile, :user]}
 
   @browser_types [:chrome, :chromium, :firefox]
   @statuses [:pending, :running, :stopped, :error, :starting, :stopping]

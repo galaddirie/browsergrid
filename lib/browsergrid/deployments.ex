@@ -59,6 +59,7 @@ defmodule Browsergrid.Deployments do
     session_params = %{
       name: "Deploy: #{deployment.name}",
       browser_type: :chrome,
+      user_id: deployment.user_id,
       options: %{
         "deployment_id" => deployment.id,
         "deployment_type" => "user_code",

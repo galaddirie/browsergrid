@@ -1,53 +1,85 @@
 defmodule BrowsergridWeb.API.V1.SessionController do
   use BrowsergridWeb, :controller
 
-  alias Browsergrid.Repo
   alias Browsergrid.Sessions
+  alias BrowsergridWeb.Controllers.API.Concerns.Authorization
 
   action_fallback BrowsergridWeb.API.V1.FallbackController
 
-  def index(conn, params) do
-    sessions = Sessions.list_sessions(preload: true)
-    page_size = String.to_integer(Map.get(params, "page_size", "20"))
-    page = String.to_integer(Map.get(params, "page", "1"))
-
-    meta = %{
-      total_count: length(sessions),
-      page_size: page_size,
-      current_page: page,
-      total_pages: ceil(length(sessions) / page_size)
-    }
-
-    render(conn, :index, sessions: sessions, meta: meta)
+  def index(conn, _params) do
+    user = conn.assigns.current_user
+    sessions = Sessions.list_sessions(user_id: user.id)
+    json(conn, %{data: sessions})
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id) do
-      session = Repo.preload(session, :profile)
-      render(conn, :show, session: session)
+    with {:ok, session} <- Sessions.get_session(id),
+         {:ok, session} <- Authorization.authorize_resource(conn, session) do
+      json(conn, %{data: session})
+    else
+      {:error, %Plug.Conn{} = conn} ->
+        conn
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def create(conn, params) do
-    with {:ok, session} <- Sessions.create_session(params),
-         {:ok, %{url: url}} <- Sessions.get_connection_info(session.id) do
-      conn
-      |> put_status(:created)
-      |> render(:create, session: session, connection_url: url)
+  def create(conn, %{"session" => session_params}) do
+    params = put_owner(session_params, conn)
+
+    case Sessions.create_session(params) do
+      {:ok, session} ->
+        conn
+        |> put_status(:created)
+        |> json(%{data: session})
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def update(conn, %{"id" => id, "session" => session_params}) do
+    with {:ok, session} <- Sessions.get_session(id),
+         {:ok, session} <- Authorization.authorize_resource(conn, session),
+         sanitized <- ensure_owner(session_params, conn),
+         {:ok, updated} <- Sessions.update_session(session, sanitized) do
+      json(conn, %{data: updated})
+    else
+      {:error, %Plug.Conn{} = conn} ->
+        conn
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   def delete(conn, %{"id" => id}) do
     with {:ok, session} <- Sessions.get_session(id),
-         {:ok, _stopped} <- Sessions.stop_session(session) do
-      render(conn, :delete, session: session)
+         {:ok, session} <- Authorization.authorize_resource(conn, session),
+         {:ok, _deleted} <- Sessions.delete_session(session) do
+      send_resp(conn, :no_content, "")
+    else
+      {:error, %Plug.Conn{} = conn} ->
+        conn
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def connection(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, %{url: url}} <- Sessions.get_connection_info(id) do
-      render(conn, :connection, session: session, url: url)
-    end
+  defp put_owner(params, conn) do
+    user_id = conn.assigns.current_user.id
+    Map.put(params, "user_id", user_id)
+  end
+
+  defp ensure_owner(params, conn) do
+    params
+    |> Map.delete("user_id")
+    |> Map.delete(:user_id)
+    |> put_owner(conn)
   end
 end

@@ -1,76 +1,108 @@
 import React, { useEffect } from 'react';
-import { usePage } from '@inertiajs/react';
+
+import { Link, usePage } from '@inertiajs/react';
+import {
+  Box,
+  Globe,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  User,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Toaster } from './ui/sonner';
+import { cn } from '@/lib/utils';
+
 import { HeaderPortal } from './HeaderPortal';
+import { Toaster } from './ui/sonner';
 
-/**
- * Layout component providing consistent structure across all pages
- * 
- * Structure:
- * - Fixed white header area with HeaderPortal (top ~1/3 of viewport)
- * - Scrollable grey content area (remaining ~2/3 of viewport)
- * - Toast notifications in top-right corner
- * 
- * The header uses bg-background (white) with a bottom border
- * The content area uses bg-muted/50 (light grey) and handles scrolling
- */
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const primaryNav: NavItem[] = [
+  { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/sessions', label: 'Browser Sessions', icon: Globe },
+  { href: '/profiles', label: 'Profiles', icon: User },
+  { href: '/deployments', label: 'Deployments', icon: Box },
+  { href: '/settings/api-tokens', label: 'API Tokens', icon: KeyRound },
+];
+
+const isActive = (currentPath: string, href: string) => {
+  if (href === '/') {
+    return currentPath === '/';
+  }
+
+  return currentPath === href || currentPath.startsWith(`${href}/`);
+};
+
+const navClassName = (active: boolean) =>
+  cn(
+    'flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all',
+    active
+      ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300',
+  );
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-    const { props } = usePage();
-    const flash = (props.flash as Record<string, string>) || {};
+  const { props, url } = usePage();
+  const flash = (props.flash as Record<string, string>) || {};
+  const currentUser = props.current_user as Record<string, unknown> | null;
+  const currentPath = url.split('?')[0];
 
-    // Handle flash messages with Sonner toasts
-    useEffect(() => {
-        if (flash.info) {
-            toast.success(flash.info);
-        }
-        if (flash.error) {
-            toast.error(flash.error);
-        }
-        if (flash.warning) {
-            toast.warning(flash.warning);
-        }
-        if (flash.notice) {
-            toast.info(flash.notice);
-        }
-    }, [flash]);
+  useEffect(() => {
+    if (flash.info) {
+      toast.success(flash.info);
+    }
+    if (flash.error) {
+      toast.error(flash.error);
+    }
+    if (flash.warning) {
+      toast.warning(flash.warning);
+    }
+    if (flash.notice) {
+      toast.info(flash.notice);
+    }
+  }, [flash]);
 
-    return (
-        <div className="bg-muted/50 flex flex-grow flex-col min-h-[calc(100vh-59px)]">
-            <div className="flex w-full flex-grow flex-col">
-                <div className="relative flex h-full w-full flex-col items-center justify-center">
-                    <div className="flex h-full w-full flex-col items-stretch justify-start">
+  return (
+    <div className="flex min-h-screen flex-col bg-muted/50">
 
-                        {/* Header - White background with portal content */}
-                        <div className="bg-background border-muted border-b pt-[100px]">
-                            <header className="mx-auto max-w-7xl w-full min-h-[150px] flex flex-col items-start justify-between px-8">
-                                <HeaderPortal />
-                            </header>
-                        </div>
 
-                        {/* Toast Notifications - Top right corner */}
-                        <Toaster
-                            position="top-right"
-                            toastOptions={{
-                                duration: 4000,
-                                style: {
-                                    background: 'hsl(var(--background))',
-                                    border: '1px solid hsl(var(--border))',
-                                    color: 'hsl(var(--foreground))',
-                                },
-                            }}
-                        />
+      <main className="flex flex-1 flex-col">
+        <div className="flex w-full flex-grow flex-col">
+          <div className="relative flex h-full w-full flex-col items-center justify-center">
+            <div className="flex h-full w-full flex-col items-stretch justify-start">
+              <div className="bg-background border-b border-muted pt-20">
+                <header className="mx-auto flex min-h-[150px] w-full max-w-7xl flex-col items-start justify-between px-8">
+                  <HeaderPortal />
+                </header>
+              </div>
 
-                        {/* Main content - Grey background, scrollable */}
-                        <div className="py-6">
-                            <div className="flex-1 mx-auto max-w-7xl w-full px-8">
-                                {children}
-                            </div>
-                        </div>
-                    </div>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                  },
+                }}
+              />
+
+              <div className="py-6">
+                <div className="mx-auto w-full max-w-7xl px-8">
+                  {children}
                 </div>
+              </div>
             </div>
+          </div>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

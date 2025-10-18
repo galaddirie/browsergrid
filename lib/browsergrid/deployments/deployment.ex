@@ -5,7 +5,7 @@ defmodule Browsergrid.Deployments.Deployment do
 
   use Browsergrid.Schema
 
-  @derive {Jason.Encoder, except: [:__meta__]}
+  @derive {Jason.Encoder, except: [:__meta__, :session, :user]}
 
   @statuses [:pending, :deploying, :running, :stopped, :failed, :error]
 

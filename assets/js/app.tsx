@@ -13,6 +13,7 @@ import ProfilesNew from "./pages/Profiles/New";
 import SessionsEdit from "./pages/Sessions/Edit";
 import SessionsIndex from "./pages/Sessions/Index";
 import SessionsShow from "./pages/Sessions/Show";
+import ApiTokens from "./pages/Settings/ApiTokens";
 import { ComponentType } from "react";
 
 axios.defaults.xsrfHeaderName = "x-csrf-token";
@@ -27,6 +28,7 @@ const pages: Record<string, ComponentType<any>> = { // eslint-disable-line @type
   "Sessions/Index": SessionsIndex,
   "Sessions/Show": SessionsShow,
   "Sessions/Edit": SessionsEdit,
+  "Settings/ApiTokens": ApiTokens,
 };
 
 createInertiaApp({

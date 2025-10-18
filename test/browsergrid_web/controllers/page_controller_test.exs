@@ -1,8 +1,17 @@
 defmodule BrowsergridWeb.PageControllerTest do
   use BrowsergridWeb.ConnCase
 
-  test "GET /", %{conn: conn} do
+  import Browsergrid.AccountsFixtures
+
+  test "GET / redirects to login when not authenticated", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+    assert redirected_to(conn) == ~p"/users/log_in"
+  end
+
+  test "GET / renders dashboard when authenticated", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_user(conn, user)
+    conn = get(conn, ~p"/")
+    assert html_response(conn, 200)
   end
 end
