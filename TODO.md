@@ -17,7 +17,7 @@
 - [x] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
     - [x] add api/sessions/:id/connect endpoint aswell 
 
-- [] add /connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
+- [] add api/v1/connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
 
 example: https://browsergrid.com/connect/json?token=... 
 returns: 
@@ -63,3 +63,10 @@ UX
 - [ ] non admins can claim sessions from the default pool
 - [ ] non admins should only see sessions they have claimed or are associated with in their session list
 - [ ] non admins should only be able to view their own related resources
+
+
+- [ ] update pool params to be like this:
+  "min": 0,
+  "max": 10,
+  "max_concurrency": 5,
+  "timeout_minutes": 30
