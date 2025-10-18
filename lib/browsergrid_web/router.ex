@@ -3,6 +3,9 @@ defmodule BrowsergridWeb.Router do
 
   import BrowsergridWeb.UserAuth
 
+  alias Inertia.V1.AccountSettingsController
+  alias Inertia.V1.ApiTokenController
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -66,10 +69,18 @@ defmodule BrowsergridWeb.Router do
     post "/deployments/:id/deploy", Inertia.V1.DeploymentController, :deploy
     delete "/deployments/:id", Inertia.V1.DeploymentController, :delete
 
-    # API Token routes
-    get "/settings/api-tokens", Inertia.V1.ApiTokenController, :index
-    post "/settings/api-tokens", Inertia.V1.ApiTokenController, :create
-    delete "/settings/api-tokens/:id", Inertia.V1.ApiTokenController, :delete
+    scope "/settings" do
+      get "/account", AccountSettingsController, :edit
+      put "/account/email", AccountSettingsController, :update_email
+      patch "/account/email", AccountSettingsController, :update_email
+      put "/account/password", AccountSettingsController, :update_password
+      patch "/account/password", AccountSettingsController, :update_password
+      get "/account/confirm-email/:token", AccountSettingsController, :confirm_email
+
+      get "/api", ApiTokenController, :index
+      post "/api", ApiTokenController, :create
+      delete "/api/:id", ApiTokenController, :delete
+    end
   end
 
   # API V1 Routes - Public
@@ -136,14 +147,6 @@ defmodule BrowsergridWeb.Router do
     post "/users/reset_password", UserResetPasswordController, :create
     get "/users/reset_password/:token", UserResetPasswordController, :edit
     put "/users/reset_password/:token", UserResetPasswordController, :update
-  end
-
-  scope "/", BrowsergridWeb do
-    pipe_through [:browser, :require_authenticated_user]
-
-    get "/users/settings", UserSettingsController, :edit
-    put "/users/settings", UserSettingsController, :update
-    get "/users/settings/confirm_email/:token", UserSettingsController, :confirm_email
   end
 
   scope "/", BrowsergridWeb do

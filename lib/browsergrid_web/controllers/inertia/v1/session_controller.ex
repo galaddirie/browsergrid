@@ -21,7 +21,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   def show(conn, %{"id" => id}) do
     case Sessions.get_session(id) do
       {:ok, session} ->
-        session = Repo.preload(session, :profile)
+        session = Repo.preload(session, profile: :user)
         render_inertia(conn, "Sessions/Show", %{session: session})
 
       {:error, _} ->
@@ -51,7 +51,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   def edit(conn, %{"id" => id}) do
     case Sessions.get_session(id) do
       {:ok, session} ->
-        session = Repo.preload(session, :profile)
+        session = Repo.preload(session, profile: :user)
         render_inertia(conn, "Sessions/Edit", %{session: session})
 
       {:error, _} ->

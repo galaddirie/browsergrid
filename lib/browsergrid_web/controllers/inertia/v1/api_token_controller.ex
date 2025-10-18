@@ -23,17 +23,17 @@ defmodule BrowsergridWeb.Inertia.V1.ApiTokenController do
       {:ok, _token} ->
         conn
         |> put_flash(:info, "API token revoked")
-        |> redirect(to: ~p"/settings/api-tokens")
+        |> redirect(to: ~p"/settings/api")
 
       {:error, :already_revoked} ->
         conn
         |> put_flash(:info, "API token already revoked")
-        |> redirect(to: ~p"/settings/api-tokens")
+        |> redirect(to: ~p"/settings/api")
 
       {:error, :not_found} ->
         conn
         |> put_flash(:error, "API token not found")
-        |> redirect(to: ~p"/settings/api-tokens")
+        |> redirect(to: ~p"/settings/api")
     end
   end
 
@@ -45,7 +45,7 @@ defmodule BrowsergridWeb.Inertia.V1.ApiTokenController do
         conn
         |> put_flash(:info, "API token created successfully")
         |> put_session(:generated_api_token, plaintext)
-        |> redirect(to: ~p"/settings/api-tokens")
+        |> redirect(to: ~p"/settings/api")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         conn

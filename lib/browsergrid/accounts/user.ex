@@ -6,6 +6,7 @@ defmodule Browsergrid.Accounts.User do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @derive {Jason.Encoder, only: [:id, :email, :is_admin]}
   schema "users" do
     field :email, :string
     field :password, :string, virtual: true, redact: true
@@ -13,8 +14,6 @@ defmodule Browsergrid.Accounts.User do
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime_usec
     field :is_admin, :boolean, default: false
-
-    has_many :api_tokens, Browsergrid.ApiTokens.ApiToken
 
     timestamps(type: :utc_datetime_usec)
   end

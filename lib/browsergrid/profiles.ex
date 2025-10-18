@@ -39,11 +39,11 @@ defmodule Browsergrid.Profiles do
   def get_profile(id), do: Repo.get(Profile, id)
 
   @doc """
-  Gets a profile with its media file preloaded.
+  Gets a profile with its media file and user preloaded.
   """
   def get_profile_with_media!(id) do
     Profile
-    |> preload(:media_file)
+    |> preload([:media_file, :user])
     |> Repo.get!(id)
   end
 

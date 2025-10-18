@@ -63,13 +63,90 @@ const formatDate = (value: string | null) => {
   }
 };
 
+const APIDialog = ({ isCreateOpen, setIsCreateOpen, form, onSubmit }: { isCreateOpen: boolean, setIsCreateOpen: (open: boolean) => void, form: any, onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) => {
+  return (
+    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+    <DialogTrigger asChild>
+      <Button onClick={() => setIsCreateOpen(true)}>
+        Create Token
+      </Button>
+    </DialogTrigger>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>New API Token</DialogTitle>
+        <DialogDescription>
+          API tokens authenticate requests to the Browsergrid API.
+          Provide a descriptive name and optional expiration date.
+        </DialogDescription>
+      </DialogHeader>
+
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <div className="space-y-2">
+          <Label htmlFor="token-name">Token Name</Label>
+          <Input
+            id="token-name"
+            placeholder="Production automation"
+            value={form.data.name}
+            onChange={(event) => form.setData('name', event.target.value)}
+            autoFocus
+          />
+          {form.errors.name && (
+            <p className="text-sm text-red-500">{form.errors.name}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="token-expires">Expiration (optional)</Label>
+          <Input
+            id="token-expires"
+            type="datetime-local"
+            value={form.data.expires_at ?? ''}
+            onChange={(event) =>
+              form.setData('expires_at', event.target.value)
+            }
+          />
+          {form.errors.expires_at && (
+            <p className="text-sm text-red-500">
+              {form.errors.expires_at}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Leave empty for a non-expiring token. Expired tokens cannot be
+            used to access the API.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setIsCreateOpen(false);
+              form.reset();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={form.processing}>
+            {form.processing ? 'Creating…' : 'Create Token'}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
+  );
+};
+
 export default function ApiTokensPage() {
   const { props } = usePage<{ props: PageProps }>();
   const tokens = props.tokens ?? [];
-  const formDefaults = props.form ?? {};
+  const formDefaults:any = props.form ?? {};
   const generatedToken = props.generated_token ?? null;
 
-  const form = useForm({
+  const form = useForm<{
+    name: string;
+    expires_at: string;
+  }>({
     name: formDefaults.name ?? '',
     expires_at: formDefaults.expires_at ?? '',
   });
@@ -93,7 +170,7 @@ export default function ApiTokensPage() {
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    form.post('/settings/api-tokens', {
+    form.post('/settings/api', {
       preserveScroll: true,
       onSuccess: () => {
         setIsCreateOpen(false);
@@ -116,7 +193,7 @@ export default function ApiTokensPage() {
   const confirmRevoke = () => {
     if (!revokeTarget) return;
 
-    router.delete(`/settings/api-tokens/${revokeTarget.id}`, {
+    router.delete(`/settings/api/${revokeTarget.id}`, {
       preserveScroll: true,
       onFinish: () => setRevokeTarget(null),
     });
@@ -133,75 +210,7 @@ export default function ApiTokensPage() {
               Browsergrid API.
             </p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                Create Token
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>New API Token</DialogTitle>
-                <DialogDescription>
-                  API tokens authenticate requests to the Browsergrid API.
-                  Provide a descriptive name and optional expiration date.
-                </DialogDescription>
-              </DialogHeader>
-
-              <form className="space-y-4" onSubmit={onSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="token-name">Token Name</Label>
-                  <Input
-                    id="token-name"
-                    placeholder="Production automation"
-                    value={form.data.name}
-                    onChange={(event) => form.setData('name', event.target.value)}
-                    autoFocus
-                  />
-                  {form.errors.name && (
-                    <p className="text-sm text-red-500">{form.errors.name}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="token-expires">Expiration (optional)</Label>
-                  <Input
-                    id="token-expires"
-                    type="datetime-local"
-                    value={form.data.expires_at ?? ''}
-                    onChange={(event) =>
-                      form.setData('expires_at', event.target.value)
-                    }
-                  />
-                  {form.errors.expires_at && (
-                    <p className="text-sm text-red-500">
-                      {form.errors.expires_at}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty for a non-expiring token. Expired tokens cannot be
-                    used to access the API.
-                  </p>
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreateOpen(false);
-                      form.reset();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={form.processing}>
-                    {form.processing ? 'Creating…' : 'Create Token'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <APIDialog isCreateOpen={isCreateOpen} setIsCreateOpen={setIsCreateOpen} form={form} onSubmit={onSubmit} />
         </div>
       </Header>
 

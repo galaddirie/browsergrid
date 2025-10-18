@@ -28,7 +28,8 @@ const primaryNav: NavItem[] = [
   { href: '/sessions', label: 'Browser Sessions', icon: Globe },
   { href: '/profiles', label: 'Profiles', icon: User },
   { href: '/deployments', label: 'Deployments', icon: Box },
-  { href: '/settings/api-tokens', label: 'API Tokens', icon: KeyRound },
+  { href: '/settings/account', label: 'Account', icon: Settings },
+  { href: '/settings/api', label: 'API Tokens', icon: KeyRound },
 ];
 
 const isActive = (currentPath: string, href: string) => {
