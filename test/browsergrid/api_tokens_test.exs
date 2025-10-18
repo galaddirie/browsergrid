@@ -109,7 +109,6 @@ defmodule Browsergrid.ApiTokensTest do
 
     test "rejects expired tokens" do
       user = AccountsFixtures.user_fixture()
-
       {:ok, token, plaintext} =
         ApiTokens.create_token(user, %{
           "name" => "Expiring Soon",

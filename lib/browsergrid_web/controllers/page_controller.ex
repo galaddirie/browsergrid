@@ -15,4 +15,6 @@ defmodule BrowsergridWeb.PageController do
     |> assign(:page_title, "Welcome to Browsergrid")
     |> render(:home, layout: layout)
   end
+
+
 end

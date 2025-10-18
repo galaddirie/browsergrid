@@ -24,7 +24,12 @@ defmodule BrowsergridWeb.Controllers.API.Concerns.Authorization do
   def authorize_resource(conn, _resource), do: {:error, forbid(conn)}
 
   defp forbid(conn) do
-    body = Jason.encode!(%{error: "forbidden", reason: "not_owner"})
+    body =
+      %{
+        error: "forbidden",
+        reason: "not_owner"
+      }
+      |> Jason.encode!()
 
     conn
     |> put_resp_content_type("application/json")

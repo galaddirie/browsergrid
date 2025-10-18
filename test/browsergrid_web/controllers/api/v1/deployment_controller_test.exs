@@ -25,7 +25,7 @@ defmodule BrowsergridWeb.API.V1.DeploymentControllerTest do
       insert_deployment!(user, %{name: "Mine"})
       insert_deployment!(other_user, %{name: "Yours"})
 
-      res = conn |> get(~p"/api/v1/deployments") |> json_response(200)
+      res = get(conn, ~p"/api/v1/deployments") |> json_response(200)
 
       assert [%{"name" => "Mine"}] = res["data"]
     end
@@ -41,7 +41,7 @@ defmodule BrowsergridWeb.API.V1.DeploymentControllerTest do
         }
       }
 
-      res = conn |> post(~p"/api/v1/deployments", payload) |> json_response(201)
+      res = post(conn, ~p"/api/v1/deployments", payload) |> json_response(201)
 
       assert res["data"]["user_id"] == user.id
     end
@@ -52,7 +52,7 @@ defmodule BrowsergridWeb.API.V1.DeploymentControllerTest do
       deployment = insert_deployment!(user, %{name: "Runnable"})
       deployment_id = deployment.id
 
-      res = conn |> post(~p"/api/v1/deployments/#{deployment.id}/deploy") |> json_response(200)
+      res = post(conn, ~p"/api/v1/deployments/#{deployment.id}/deploy") |> json_response(200)
 
       assert %{"deployment" => %{"id" => ^deployment_id}, "session" => session} = res["data"]
       assert session["user_id"] == user.id
@@ -72,20 +72,18 @@ defmodule BrowsergridWeb.API.V1.DeploymentControllerTest do
 
   defp insert_deployment!(user, attrs) do
     params =
-      Map.merge(
-        %{
-          name: "Deployment #{System.unique_integer()}",
-          archive_path: "/tmp/archive.zip",
-          start_command: "./start.sh",
-          user_id: user.id,
-          status: :pending,
-          description: "Example deployment",
-          environment_variables: [],
-          parameters: [],
-          tags: []
-        },
-        attrs
-      )
+      %{
+        name: "Deployment #{System.unique_integer()}",
+        archive_path: "/tmp/archive.zip",
+        start_command: "./start.sh",
+        user_id: user.id,
+        status: :pending,
+        description: "Example deployment",
+        environment_variables: [],
+        parameters: [],
+        tags: []
+      }
+      |> Map.merge(attrs)
 
     %Deployment{}
     |> Deployment.changeset(params)

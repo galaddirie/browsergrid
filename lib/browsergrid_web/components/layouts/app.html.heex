@@ -24,12 +24,6 @@
           <.icon name="lucide-globe" class="h-4 w-4" /> Browser Sessions
         </a>
         <a
-          href="/connect/pool"
-          class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if String.starts_with?(@current_path, "/connect/pool"), do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
-        >
-          <.icon name="lucide-plug" class="h-4 w-4" /> Connect Pool
-        </a>
-        <a
           href="/profiles"
           class={"flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-all #{if @current_path == "/profiles", do: "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400", else: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"}"}
         >

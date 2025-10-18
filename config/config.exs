@@ -7,28 +7,6 @@
 # General application configuration
 import Config
 
-config :browsergrid, Browsergrid.Connect,
-  enabled: true,
-  pool_size: 1,
-  claim_timeout_ms: 10_000,
-  session_prefix: "connect",
-  session_metadata: %{"source" => "connect_pool"},
-  browser_type: :chrome,
-  routing: [
-    mode: :path,
-    path_prefix: "/connect",
-    host: nil
-  ],
-  token: nil
-
-config :browsergrid, Browsergrid.Connect.Endpoint,
-  url: [host: "connect.localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  server: false,
-  render_errors: [formats: [json: BrowsergridWeb.ErrorJSON], layout: false],
-  check_origin: false,
-  http: [ip: {0, 0, 0, 0}, port: 4001]
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

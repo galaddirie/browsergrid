@@ -6,7 +6,7 @@ defmodule BrowsergridWeb.Inertia.V1.ProfileController do
   alias Browsergrid.Sessions
 
   def index(conn, _params) do
-    profiles = Repo.preload(Profiles.list_profiles(), :user)
+    profiles = Profiles.list_profiles() |> Repo.preload(:user)
     stats = Profiles.get_statistics()
 
     render_inertia(conn, "Profiles/Index", %{

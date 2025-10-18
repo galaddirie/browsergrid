@@ -61,14 +61,16 @@ defmodule Browsergrid.ApiTokens do
   def revoke_token(token_id, %User{} = user) when is_binary(token_id) do
     with {:ok, _uuid} <- cast_uuid(token_id),
          %ApiToken{} = token <- Repo.get_by(ApiToken, id: token_id, user_id: user.id) do
-      if token.revoked_at do
-        {:error, :already_revoked}
-      else
-        timestamp = current_timestamp()
+      cond do
+        token.revoked_at ->
+          {:error, :already_revoked}
 
-        token
-        |> ApiToken.revoke_changeset(timestamp)
-        |> Repo.update()
+        true ->
+          timestamp = current_timestamp()
+
+          token
+          |> ApiToken.revoke_changeset(timestamp)
+          |> Repo.update()
       end
     else
       :error -> {:error, :not_found}
@@ -169,11 +171,11 @@ defmodule Browsergrid.ApiTokens do
   defp token_expired?(%ApiToken{expires_at: nil}), do: false
 
   defp token_expired?(%ApiToken{expires_at: expires_at}) do
-    DateTime.before?(expires_at, DateTime.utc_now())
+    DateTime.compare(expires_at, DateTime.utc_now()) == :lt
   end
 
   defp current_timestamp do
-    DateTime.truncate(DateTime.utc_now(), :microsecond)
+    DateTime.utc_now() |> DateTime.truncate(:microsecond)
   end
 
   defp loaded_user?(%ApiToken{user: %Ecto.Association.NotLoaded{}}), do: false

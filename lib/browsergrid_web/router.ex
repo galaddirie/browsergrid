@@ -5,7 +5,6 @@ defmodule BrowsergridWeb.Router do
 
   alias Inertia.V1.AccountSettingsController
   alias Inertia.V1.ApiTokenController
-  alias Inertia.V1.ConnectController, as: InertiaConnectController
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -32,24 +31,6 @@ defmodule BrowsergridWeb.Router do
   pipeline :api_authenticated do
     plug :accepts, ["json"]
     plug BrowsergridWeb.Plugs.ApiAuth
-  end
-
-  pipeline :connect do
-    plug :accepts, ["json"]
-  end
-
-  scope "/", BrowsergridWeb do
-    pipe_through :connect
-
-    get "/json", ConnectController, :index
-    get "/json/version", ConnectController, :version
-  end
-
-  scope "/connect", BrowsergridWeb do
-    pipe_through :connect
-
-    get "/json", ConnectController, :index
-    get "/json/version", ConnectController, :version
   end
 
   scope "/", BrowsergridWeb do
@@ -87,8 +68,6 @@ defmodule BrowsergridWeb.Router do
     get "/deployments/:id", Inertia.V1.DeploymentController, :show
     post "/deployments/:id/deploy", Inertia.V1.DeploymentController, :deploy
     delete "/deployments/:id", Inertia.V1.DeploymentController, :delete
-
-    get "/connect/pool", InertiaConnectController, :pool
 
     scope "/settings" do
       get "/account", AccountSettingsController, :edit

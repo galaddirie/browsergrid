@@ -4,7 +4,6 @@ defmodule Browsergrid.Application do
   use Application
 
   alias Browsergrid.Accounts.AdminBootstrap
-  alias Browsergrid.Connect.Endpoint
 
   require Logger
 
@@ -26,9 +25,7 @@ defmodule Browsergrid.Application do
       Browsergrid.Redis,
       {Finch, name: Browsergrid.Finch},
       Browsergrid.SessionRuntime.Supervisor,
-      Browsergrid.Connect.Supervisor,
       Browsergrid.Edge.Directory,
-      Endpoint,
       # Web endpoint (should start last)
       BrowsergridWeb.Endpoint
     ]
@@ -62,7 +59,6 @@ defmodule Browsergrid.Application do
 
   @impl true
   def config_change(changed, _new, removed) do
-    Endpoint.config_change(changed, removed)
     BrowsergridWeb.Endpoint.config_change(changed, removed)
     :ok
   end
