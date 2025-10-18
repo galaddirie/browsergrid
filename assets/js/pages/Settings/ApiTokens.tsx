@@ -27,24 +27,26 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-type Token = {
+interface Token {
   id: string;
   name: string;
   prefix: string;
   created_at: string;
   last_used_at: string | null;
   expires_at: string | null;
-};
+}
 
-type PageProps = {
-  tokens: Token[];
+interface TokenForm {
+  name?: string;
+  expires_at?: string | null;
+}
+
+interface PageProps {
+  tokens?: Token[];
   generated_token?: string | null;
   errors?: Record<string, string[]>;
-  form?: {
-    name?: string;
-    expires_at?: string | null;
-  };
-};
+  form?: TokenForm;
+}
 
 const localeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -63,85 +65,89 @@ const formatDate = (value: string | null) => {
   }
 };
 
-const APIDialog = ({ isCreateOpen, setIsCreateOpen, form, onSubmit }: { isCreateOpen: boolean, setIsCreateOpen: (open: boolean) => void, form: any, onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) => {
+const APIDialog = ({
+  isCreateOpen,
+  setIsCreateOpen,
+  form,
+  onSubmit,
+}: {
+  isCreateOpen: boolean;
+  setIsCreateOpen: (open: boolean) => void;
+  form: any;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}) => {
   return (
     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-    <DialogTrigger asChild>
-      <Button onClick={() => setIsCreateOpen(true)}>
-        Create Token
-      </Button>
-    </DialogTrigger>
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>New API Token</DialogTitle>
-        <DialogDescription>
-          API tokens authenticate requests to the Browsergrid API.
-          Provide a descriptive name and optional expiration date.
-        </DialogDescription>
-      </DialogHeader>
+      <DialogTrigger asChild>
+        <Button onClick={() => setIsCreateOpen(true)}>Create Token</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New API Token</DialogTitle>
+          <DialogDescription>
+            API tokens authenticate requests to the Browsergrid API. Provide a
+            descriptive name and optional expiration date.
+          </DialogDescription>
+        </DialogHeader>
 
-      <form className="space-y-4" onSubmit={onSubmit}>
-        <div className="space-y-2">
-          <Label htmlFor="token-name">Token Name</Label>
-          <Input
-            id="token-name"
-            placeholder="Production automation"
-            value={form.data.name}
-            onChange={(event) => form.setData('name', event.target.value)}
-            autoFocus
-          />
-          {form.errors.name && (
-            <p className="text-sm text-red-500">{form.errors.name}</p>
-          )}
-        </div>
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="token-name">Token Name</Label>
+            <Input
+              id="token-name"
+              placeholder="Production automation"
+              value={form.data.name}
+              onChange={event => form.setData('name', event.target.value)}
+              autoFocus
+            />
+            {form.errors.name && (
+              <p className="text-sm text-red-500">{form.errors.name}</p>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="token-expires">Expiration (optional)</Label>
-          <Input
-            id="token-expires"
-            type="datetime-local"
-            value={form.data.expires_at ?? ''}
-            onChange={(event) =>
-              form.setData('expires_at', event.target.value)
-            }
-          />
-          {form.errors.expires_at && (
-            <p className="text-sm text-red-500">
-              {form.errors.expires_at}
+          <div className="space-y-2">
+            <Label htmlFor="token-expires">Expiration (optional)</Label>
+            <Input
+              id="token-expires"
+              type="datetime-local"
+              value={form.data.expires_at ?? ''}
+              onChange={event => form.setData('expires_at', event.target.value)}
+            />
+            {form.errors.expires_at && (
+              <p className="text-sm text-red-500">{form.errors.expires_at}</p>
+            )}
+            <p className="text-muted-foreground text-xs">
+              Leave empty for a non-expiring token. Expired tokens cannot be
+              used to access the API.
             </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Leave empty for a non-expiring token. Expired tokens cannot be
-            used to access the API.
-          </p>
-        </div>
+          </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setIsCreateOpen(false);
-              form.reset();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={form.processing}>
-            {form.processing ? 'Creating…' : 'Create Token'}
-          </Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  </Dialog>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCreateOpen(false);
+                form.reset();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={form.processing}>
+              {form.processing ? 'Creating…' : 'Create Token'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default function ApiTokensPage() {
   const { props } = usePage<{ props: PageProps }>();
-  const tokens = props.tokens ?? [];
-  const formDefaults:any = props.form ?? {};
-  const generatedToken = props.generated_token ?? null;
+  const tokens = (props.tokens ?? []) as Token[];
+  const formDefaults = (props.form ?? {}) as TokenForm;
+  const generatedToken = (props.generated_token ?? null) as string | null;
 
   const form = useForm<{
     name: string;
@@ -180,7 +186,7 @@ export default function ApiTokensPage() {
   };
 
   const handleCopy = async () => {
-    if (!generatedToken) return;
+    if (!generatedToken || typeof generatedToken !== 'string') return;
 
     try {
       await navigator.clipboard.writeText(generatedToken);
@@ -210,7 +216,12 @@ export default function ApiTokensPage() {
               Browsergrid API.
             </p>
           </div>
-          <APIDialog isCreateOpen={isCreateOpen} setIsCreateOpen={setIsCreateOpen} form={form} onSubmit={onSubmit} />
+          <APIDialog
+            isCreateOpen={isCreateOpen}
+            setIsCreateOpen={setIsCreateOpen}
+            form={form}
+            onSubmit={onSubmit}
+          />
         </div>
       </Header>
 
@@ -221,8 +232,9 @@ export default function ApiTokensPage() {
               <CardTitle className="text-lg font-semibold">
                 Active tokens
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Tokens are hashed at rest. You can only view the full token once.
+              <p className="text-muted-foreground text-sm">
+                Tokens are hashed at rest. You can only view the full token
+                once.
               </p>
             </div>
           </CardHeader>
@@ -230,8 +242,9 @@ export default function ApiTokensPage() {
             {tokens.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
                 <h3 className="text-lg font-semibold">No tokens yet</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create your first API token to start making authenticated API requests.
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Create your first API token to start making authenticated API
+                  requests.
                 </p>
                 <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
                   Create Token
@@ -250,11 +263,13 @@ export default function ApiTokensPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tokens.map((token) => (
+                  {tokens.map(token => (
                     <TableRow key={token.id}>
-                      <TableCell className="font-medium">{token.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {token.name}
+                      </TableCell>
                       <TableCell>
-                        <span className="rounded bg-muted px-2 py-1 font-mono text-xs">
+                        <span className="bg-muted rounded px-2 py-1 font-mono text-xs">
                           {token.prefix}
                         </span>
                       </TableCell>
@@ -265,7 +280,9 @@ export default function ApiTokensPage() {
                           : 'Never'}
                       </TableCell>
                       <TableCell>
-                        {token.expires_at ? formatDate(token.expires_at) : 'No expiration'}
+                        {token.expires_at
+                          ? formatDate(token.expires_at)
+                          : 'No expiration'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -285,7 +302,10 @@ export default function ApiTokensPage() {
         </Card>
       </div>
 
-      <Dialog open={isRevealOpen && Boolean(generatedToken)} onOpenChange={setIsRevealOpen}>
+      <Dialog
+        open={isRevealOpen && Boolean(generatedToken)}
+        onOpenChange={setIsRevealOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Your new API token</DialogTitle>
@@ -294,14 +314,15 @@ export default function ApiTokensPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-md border bg-muted/60 p-4">
-            <code className="block whitespace-pre-wrap break-all font-mono text-sm">
+          <div className="bg-muted/60 rounded-md border p-4">
+            <code className="block font-mono text-sm break-all whitespace-pre-wrap">
               {generatedToken}
             </code>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Treat this token like a password. Anyone with this token can access your Browsergrid data.
+          <p className="text-muted-foreground text-xs">
+            Treat this token like a password. Anyone with this token can access
+            your Browsergrid data.
           </p>
 
           <DialogFooter className="mt-4">
@@ -313,13 +334,17 @@ export default function ApiTokensPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(revokeTarget)} onOpenChange={(open) => !open && setRevokeTarget(null)}>
+      <Dialog
+        open={Boolean(revokeTarget)}
+        onOpenChange={open => !open && setRevokeTarget(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Revoke token</DialogTitle>
             <DialogDescription>
-              Revoking <span className="font-medium">{revokeTarget?.name}</span> will immediately prevent it from accessing the API.
-              This action cannot be undone.
+              Revoking <span className="font-medium">{revokeTarget?.name}</span>{' '}
+              will immediately prevent it from accessing the API. This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

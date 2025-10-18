@@ -1,4 +1,3 @@
-
 import {
   AlertCircle,
   ChevronRight,
@@ -23,8 +22,8 @@ interface DeploymentDetailsFormProps {
     root_directory: string;
     install_command: string;
     start_command: string;
-    environment_variables: { key: string; value: string; }[];
-    parameters: { key: string; label: string; description: string; }[];
+    environment_variables: { key: string; value: string }[];
+    parameters: { key: string; label: string; description: string }[];
   };
   errors: any;
   processing: boolean;
@@ -39,41 +38,42 @@ export function DeploymentDetailsForm({
   onPrev,
   onSubmit,
 }: DeploymentDetailsFormProps) {
-
   return (
-    <div className="flex flex-col gap-4 justify-between h-full">
+    <div className="flex h-full flex-col justify-between gap-4">
       <div className="space-y-6">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">
             Review & Deploy
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Review your deployment configuration before submitting
           </p>
         </div>
 
         {/* Deployment Overview */}
-        <Card className="group relative overflow-hidden border border-border/50 bg-gradient-to-b from-background/10 via-background/50 to-background/80 transition-all duration-300 hover:border-border/80">
-          <CardContent >
+        <Card className="group border-border/50 from-background/10 via-background/50 to-background/80 hover:border-border/80 relative overflow-hidden border bg-gradient-to-b transition-all duration-300">
+          <CardContent>
             {/* Archive info */}
             <div className="flex items-center gap-3">
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 p-1">
-                <Package className="h-8 w-8 text-primary/50" />
+              <div className="border-primary/10 bg-primary/5 flex h-16 w-16 items-center justify-center rounded-lg border p-1">
+                <Package className="text-primary/50 h-8 w-8" />
               </div>
               <div>
                 <h3 className="font-semibold tracking-tight">
                   {data.name || 'Untitled Deployment'}
                 </h3>
                 {data.description && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 text-sm">
                     {data.description}
                   </p>
                 )}
                 {data.archive && (
-                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
                     <FolderOpen className="h-3 w-3" />
                     <span>{data.archive.name}</span>
-                    <span>({(data.archive.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <span>
+                      ({(data.archive.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
                   </div>
                 )}
               </div>
@@ -87,31 +87,29 @@ export function DeploymentDetailsForm({
             <Terminal className="h-4 w-4" />
             <h3 className="text-sm font-medium">Runtime Configuration</h3>
           </div>
-          <div className="rounded-lg border bg-muted/5 p-4 space-y-3">
+          <div className="bg-muted/5 space-y-3 rounded-lg border p-4">
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-muted-foreground">
+                <Label className="text-muted-foreground text-xs font-semibold">
                   Root Directory:
                 </Label>
-                <span className="font-mono">
-                  {data.root_directory || './'}
-                </span>
+                <span className="font-mono">{data.root_directory || './'}</span>
               </div>
               {data.install_command && (
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">
+                  <Label className="text-muted-foreground text-xs font-semibold">
                     Install Command:
                   </Label>
-                  <span className="font-mono truncate max-w-xs">
+                  <span className="max-w-xs truncate font-mono">
                     {data.install_command}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-muted-foreground">
+                <Label className="text-muted-foreground text-xs font-semibold">
                   Start Command:
                 </Label>
-                <span className="font-mono truncate max-w-xs flex items-center gap-1">
+                <span className="flex max-w-xs items-center gap-1 truncate font-mono">
                   <Play className="h-3 w-3" />
                   {data.start_command}
                 </span>
@@ -121,33 +119,41 @@ export function DeploymentDetailsForm({
         </div>
 
         {/* Environment Variables */}
-        {data.environment_variables && data.environment_variables.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Environment Variables</h3>
-              <Badge variant="outline" className="font-mono text-xs">
-                {data.environment_variables.filter((env: any) => env.key).length} variables
-              </Badge>
-            </div>
-            <div className="rounded-lg border bg-muted/5 p-4">
-              <div className="space-y-2">
-                {data.environment_variables
-                  .filter((env: any) => env.key)
-                  .map((env: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <code className="font-mono text-xs bg-background px-2 py-1 rounded">
-                        {env.key}
-                      </code>
-                      <span className="text-muted-foreground">=</span>
-                      <code className="font-mono text-xs bg-background px-2 py-1 rounded flex-1 truncate">
-                        {env.value || '<empty>'}
-                      </code>
-                    </div>
-                  ))}
+        {data.environment_variables &&
+          data.environment_variables.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Environment Variables</h3>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {
+                    data.environment_variables.filter((env: any) => env.key)
+                      .length
+                  }{' '}
+                  variables
+                </Badge>
+              </div>
+              <div className="bg-muted/5 rounded-lg border p-4">
+                <div className="space-y-2">
+                  {data.environment_variables
+                    .filter((env: any) => env.key)
+                    .map((env: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <code className="bg-background rounded px-2 py-1 font-mono text-xs">
+                          {env.key}
+                        </code>
+                        <span className="text-muted-foreground">=</span>
+                        <code className="bg-background flex-1 truncate rounded px-2 py-1 font-mono text-xs">
+                          {env.value || '<empty>'}
+                        </code>
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Runtime Parameters */}
         {data.parameters && data.parameters.length > 0 && (
@@ -155,12 +161,16 @@ export function DeploymentDetailsForm({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium">Runtime Parameters</h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-0.5 text-xs">
                   Parameters that can be configured when running this deployment
                 </p>
               </div>
               <Badge variant="outline" className="font-mono text-xs">
-                {data.parameters.filter((parameter: any) => parameter.key).length} parameters
+                {
+                  data.parameters.filter((parameter: any) => parameter.key)
+                    .length
+                }{' '}
+                parameters
               </Badge>
             </div>
 
@@ -168,10 +178,7 @@ export function DeploymentDetailsForm({
               {data.parameters
                 .filter((parameter: any) => parameter.key)
                 .map((parameter: any, index: number) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border bg-muted/5 p-3"
-                  >
+                  <div key={index} className="bg-muted/5 rounded-lg border p-3">
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -180,11 +187,11 @@ export function DeploymentDetailsForm({
                           </span>
                         </div>
                         <div className="mt-1 flex items-center gap-2">
-                          <code className="font-mono text-xs text-muted-foreground">
+                          <code className="text-muted-foreground font-mono text-xs">
                             {parameter.key}
                           </code>
                           {parameter.description && (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-muted-foreground text-xs">
                               · {parameter.description}
                             </span>
                           )}
@@ -198,9 +205,10 @@ export function DeploymentDetailsForm({
         )}
 
         {/* No parameters message */}
-        {(!data.parameters || data.parameters.filter((p: any) => p.key).length === 0) && (
-          <div className="rounded-lg border border-dashed bg-muted/5 py-8 text-center text-sm text-muted-foreground">
-            <Settings className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        {(!data.parameters ||
+          data.parameters.filter((p: any) => p.key).length === 0) && (
+          <div className="bg-muted/5 text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
+            <Settings className="mx-auto mb-2 h-8 w-8 opacity-50" />
             No runtime parameters defined
           </div>
         )}
@@ -215,7 +223,7 @@ export function DeploymentDetailsForm({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t">
+      <div className="flex items-center justify-between border-t pt-6">
         <Button
           type="button"
           variant="ghost"
@@ -232,7 +240,7 @@ export function DeploymentDetailsForm({
         >
           {processing ? (
             <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background/50 border-t-transparent" />
+              <div className="border-background/50 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
               Deploying...
             </>
           ) : (

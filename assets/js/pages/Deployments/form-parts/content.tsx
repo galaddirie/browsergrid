@@ -1,6 +1,6 @@
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { Play,Plus, Upload, X } from 'lucide-react';
+import { Play, Plus, Upload, X } from 'lucide-react';
 
 import { TagInput } from '@/components/tag-input';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,8 @@ interface ConfigureDeploymentFormProps {
     root_directory: string;
     install_command: string;
     start_command: string;
-    environment_variables: { key: string; value: string; }[];
-    parameters: { key: string; label: string; description: string; }[];
+    environment_variables: { key: string; value: string }[];
+    parameters: { key: string; label: string; description: string }[];
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setData: (field: string, value: any) => void;
@@ -79,43 +79,61 @@ export const ConfigureDeploymentForm = ({
   };
 
   const addEnvironmentVariable = () => {
-    setData('environment_variables', [...data.environment_variables, { key: '', value: '' }]);
+    setData('environment_variables', [
+      ...data.environment_variables,
+      { key: '', value: '' },
+    ]);
   };
 
   const removeEnvironmentVariable = (index: number) => {
-    const updated = data.environment_variables.filter((_: any, index_: number) => index_ !== index);
+    const updated = data.environment_variables.filter(
+      (_: any, index_: number) => index_ !== index,
+    );
     setData('environment_variables', updated);
   };
 
-  const updateEnvironmentVariable = (index: number, field: keyof typeof data.environment_variables[0], value: string) => {
+  const updateEnvironmentVariable = (
+    index: number,
+    field: keyof (typeof data.environment_variables)[0],
+    value: string,
+  ) => {
     const updated = [...data.environment_variables];
     updated[index][field] = value;
     setData('environment_variables', updated);
   };
 
   const addParameter = () => {
-    setData('parameters', [...data.parameters, { key: '', label: '', description: '' }]);
+    setData('parameters', [
+      ...data.parameters,
+      { key: '', label: '', description: '' },
+    ]);
   };
 
   const removeParameter = (index: number) => {
-    const updated = data.parameters.filter((_: any, index_: number) => index_ !== index);
+    const updated = data.parameters.filter(
+      (_: any, index_: number) => index_ !== index,
+    );
     setData('parameters', updated);
   };
 
-  const updateParameter = (index: number, field: keyof typeof data.parameters[0], value: string) => {
+  const updateParameter = (
+    index: number,
+    field: keyof (typeof data.parameters)[0],
+    value: string,
+  ) => {
     const updated = [...data.parameters];
     updated[index][field] = value;
     setData('parameters', updated);
   };
 
   return (
-    <div className="flex flex-col gap-4 justify-between h-full">
+    <div className="flex h-full flex-col justify-between gap-4">
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-xl font-semibold">
             Configure Deployment
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Set up your deployment profile and runtime configuration
           </p>
         </div>
@@ -126,7 +144,7 @@ export const ConfigureDeploymentForm = ({
               Deployment Icon
             </Label>
             <div className="flex items-center space-x-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 p-1">
+              <div className="border-primary/10 bg-primary/5 flex h-16 w-16 items-center justify-center rounded-lg border p-1">
                 {previewImage ? (
                   <img
                     src={previewImage}
@@ -134,12 +152,12 @@ export const ConfigureDeploymentForm = ({
                     className="h-full w-full rounded-lg object-cover"
                   />
                 ) : (
-                  <div 
-                    className="h-full w-full rounded-lg flex items-center justify-center text-white font-semibold"
-                    style={{ background: generateGradient(data.name || 'Deployment') }}
-                  >
-                   
-                  </div>
+                  <div
+                    className="flex h-full w-full items-center justify-center rounded-lg font-semibold text-white"
+                    style={{
+                      background: generateGradient(data.name || 'Deployment'),
+                    }}
+                  ></div>
                 )}
               </div>
               <div className="flex gap-2">
@@ -152,7 +170,7 @@ export const ConfigureDeploymentForm = ({
                 />
                 <Label
                   htmlFor="image"
-                  className="inline-flex h-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                  className="border-input bg-background ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Image
@@ -182,7 +200,7 @@ export const ConfigureDeploymentForm = ({
             <Input
               id="name"
               value={data.name}
-              onChange={(e) => setData('name', e.target.value)}
+              onChange={e => setData('name', e.target.value)}
               placeholder="Enter deployment name"
               className="w-full"
             />
@@ -198,7 +216,7 @@ export const ConfigureDeploymentForm = ({
             <Textarea
               id="blurb"
               value={data.blurb}
-              onChange={(e) => setData('blurb', e.target.value)}
+              onChange={e => setData('blurb', e.target.value)}
               className="min-h-[80px] w-full"
               placeholder="A short description of your deployment"
             />
@@ -210,12 +228,12 @@ export const ConfigureDeploymentForm = ({
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-medium">
               Description{' '}
-              <span className="text-xs text-muted-foreground">(Markdown)</span>
+              <span className="text-muted-foreground text-xs">(Markdown)</span>
             </Label>
             <Textarea
               id="description"
               value={data.description}
-              onChange={(e) => setData('description', e.target.value)}
+              onChange={e => setData('description', e.target.value)}
               className="min-h-[120px] w-full"
               placeholder="A detailed description of your deployment, how to use it, and its capabilities"
             />
@@ -230,13 +248,12 @@ export const ConfigureDeploymentForm = ({
             </Label>
             <TagInput
               tags={data.tags || []}
-              setTags={(newTags) => setData('tags', newTags)}
+              setTags={newTags => setData('tags', newTags)}
             />
             {errors.tags && (
               <p className="text-sm text-red-500">{errors.tags}</p>
             )}
           </div>
-
         </div>
 
         {/* Runtime Configuration */}
@@ -251,7 +268,7 @@ export const ConfigureDeploymentForm = ({
               <Input
                 id="root_directory"
                 value={data.root_directory}
-                onChange={(e) => setData('root_directory', e.target.value)}
+                onChange={e => setData('root_directory', e.target.value)}
                 placeholder="./"
                 className="w-full font-mono text-sm"
               />
@@ -265,7 +282,7 @@ export const ConfigureDeploymentForm = ({
               <Input
                 id="install_command"
                 value={data.install_command}
-                onChange={(e) => setData('install_command', e.target.value)}
+                onChange={e => setData('install_command', e.target.value)}
                 placeholder="npm install"
                 className="w-full font-mono text-sm"
               />
@@ -279,13 +296,13 @@ export const ConfigureDeploymentForm = ({
                 Start Command <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <Play className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Play className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                 <Input
                   id="start_command"
                   value={data.start_command}
-                  onChange={(e) => setData('start_command', e.target.value)}
+                  onChange={e => setData('start_command', e.target.value)}
                   placeholder="npm start"
-                  className="w-full font-mono text-sm pl-10"
+                  className="w-full pl-10 font-mono text-sm"
                 />
               </div>
               {errors.start_command && (
@@ -308,40 +325,46 @@ export const ConfigureDeploymentForm = ({
               size="sm"
               onClick={addEnvironmentVariable}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add Variable
             </Button>
           </div>
 
           <div className="space-y-2">
-            {data.environment_variables.map((envVariable: any, index: number) => (
-              <div key={index} className="flex gap-2 items-center">
-                <Input
-                  placeholder="KEY"
-                  value={envVariable.key}
-                  onChange={(e) => updateEnvironmentVariable(index, 'key', e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <span className="text-gray-400">=</span>
-                <Input
-                  placeholder="value"
-                  value={envVariable.value}
-                  onChange={(e) => updateEnvironmentVariable(index, 'value', e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeEnvironmentVariable(index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+            {data.environment_variables.map(
+              (envVariable: any, index: number) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    placeholder="KEY"
+                    value={envVariable.key}
+                    onChange={e =>
+                      updateEnvironmentVariable(index, 'key', e.target.value)
+                    }
+                    className="font-mono text-sm"
+                  />
+                  <span className="text-gray-400">=</span>
+                  <Input
+                    placeholder="value"
+                    value={envVariable.value}
+                    onChange={e =>
+                      updateEnvironmentVariable(index, 'value', e.target.value)
+                    }
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEnvironmentVariable(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ),
+            )}
             {data.environment_variables.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className="py-4 text-center text-sm text-gray-500">
                 No environment variables set
               </p>
             )}
@@ -363,22 +386,22 @@ export const ConfigureDeploymentForm = ({
               size="sm"
               onClick={addParameter}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add Parameter
             </Button>
           </div>
 
           <div className="space-y-3">
             {data.parameters.map((parameter: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-medium text-sm">Parameter {index + 1}</h4>
+              <div key={index} className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-start justify-between">
+                  <h4 className="text-sm font-medium">Parameter {index + 1}</h4>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => removeParameter(index)}
-                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -387,25 +410,31 @@ export const ConfigureDeploymentForm = ({
                   <Input
                     placeholder="Parameter key (e.g. max_pages)"
                     value={parameter.key}
-                    onChange={(e) => updateParameter(index, 'key', e.target.value)}
+                    onChange={e =>
+                      updateParameter(index, 'key', e.target.value)
+                    }
                     className="font-mono text-sm"
                   />
                   <Input
                     placeholder="Display label (e.g. Maximum Pages)"
                     value={parameter.label}
-                    onChange={(e) => updateParameter(index, 'label', e.target.value)}
+                    onChange={e =>
+                      updateParameter(index, 'label', e.target.value)
+                    }
                   />
                   <Textarea
                     placeholder="Description of what this parameter controls"
                     value={parameter.description}
-                    onChange={(e) => updateParameter(index, 'description', e.target.value)}
+                    onChange={e =>
+                      updateParameter(index, 'description', e.target.value)
+                    }
                     className="min-h-[60px]"
                   />
                 </div>
               </div>
             ))}
             {data.parameters.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className="py-4 text-center text-sm text-gray-500">
                 No parameters defined
               </p>
             )}
@@ -414,26 +443,26 @@ export const ConfigureDeploymentForm = ({
 
         {/* Public Deployment */}
 
-        <div className="flex items-center justify-between rounded-lg bg-secondary/20 p-4">
-            <div className="space-y-1">
-              <Label htmlFor="is_public" className="text-sm font-medium">
-                Public Deployment
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Make this deployment available in the marketplace
-              </p>
-            </div>
-            <Switch
-              id="is_public"
-              checked={data.is_public}
-              onCheckedChange={(checked: boolean) => setData('is_public', checked)}
-            />
+        <div className="bg-secondary/20 flex items-center justify-between rounded-lg p-4">
+          <div className="space-y-1">
+            <Label htmlFor="is_public" className="text-sm font-medium">
+              Public Deployment
+            </Label>
+            <p className="text-muted-foreground text-xs">
+              Make this deployment available in the marketplace
+            </p>
           </div>
+          <Switch
+            id="is_public"
+            checked={data.is_public}
+            onCheckedChange={(checked: boolean) =>
+              setData('is_public', checked)
+            }
+          />
+        </div>
       </div>
 
-      
-
-      <div className="flex justify-between pt-6 border-t">
+      <div className="flex justify-between border-t pt-6">
         <Button type="button" variant="outline" onClick={onPrev}>
           Previous
         </Button>

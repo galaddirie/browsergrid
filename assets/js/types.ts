@@ -58,8 +58,6 @@ export interface Profile {
   version: number;
 }
 
-
-
 // Form Data Interface (flattened structure for forms)
 export interface SessionFormData {
   id?: string;
@@ -105,8 +103,6 @@ export interface SessionFormProps {
   isLoading?: boolean;
 }
 
-
-
 export interface SessionEditProps {
   session: Session;
   errors?: Record<string, string>;
@@ -121,14 +117,13 @@ export function formDataToSession(formData: SessionFormData): Partial<Session> {
     name: formData.name,
     browser_type: formData.browser_type,
     profile_id: formData.profile_id,
-    options: {}
+    options: {},
   };
 
   // Simple fields that go into options
   const simpleOptions = {
     version: formData.version,
     headless: formData.headless,
-
   };
 
   // Add simple options (filter out undefined)
@@ -183,14 +178,14 @@ export function sessionToFormData(session: Session): SessionFormData {
       width: options.screen_width || 1920,
       height: options.screen_height || 1080,
       dpi: options.screen_dpi || 96,
-      scale: options.screen_scale || 1.0
+      scale: options.screen_scale || 1.0,
     },
 
     // Reconstruct resource limits
     resource_limits: {
       cpu: options.cpu_cores,
       memory: options.memory_limit,
-      timeout_minutes: options.timeout || 30
-    }
+      timeout_minutes: options.timeout || 30,
+    },
   };
 }

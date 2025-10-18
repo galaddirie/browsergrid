@@ -9,30 +9,30 @@ const statusLabels = {
   idle: 'Idle',
   connecting: 'Connecting…',
   playing: 'Live',
-  error: 'Reconnecting…'
+  error: 'Reconnecting…',
 } as const;
 
 const statusColors = {
   idle: 'bg-neutral-400',
   connecting: 'bg-amber-400',
   playing: 'bg-emerald-400',
-  error: 'bg-rose-400'
+  error: 'bg-rose-400',
 } as const;
 
 type StreamStatus = keyof typeof statusLabels;
 
-type StreamViewerProps = {
+interface StreamViewerProps {
   sessionId?: string;
   streamUrl?: string;
   isActive?: boolean;
   className?: string;
-};
+}
 
 export function StreamViewer({
   sessionId,
   streamUrl,
   isActive = true,
-  className
+  className,
 }: StreamViewerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reconnectTimer = useRef<number | undefined>(undefined);
@@ -164,12 +164,15 @@ export function StreamViewer({
       className={cn(
         'relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-950 text-white shadow-inner',
         'transition-colors duration-300',
-        className
+        className,
       )}
     >
-      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-full bg-neutral-900/80 px-3 py-1 text-xs font-medium backdrop-blur">
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 rounded-full bg-neutral-900/80 px-3 py-1 text-xs font-medium backdrop-blur">
         <span
-          className={cn('h-2 w-2 rounded-full transition-colors duration-300', statusColors[status])}
+          className={cn(
+            'h-2 w-2 rounded-full transition-colors duration-300',
+            statusColors[status],
+          )}
           aria-hidden="true"
         />
         <span>{statusLabels[status]}</span>
@@ -231,7 +234,7 @@ export function StreamViewer({
       </div>
 
       {error && (
-        <div className="absolute bottom-4 right-4 z-20 max-w-xs rounded-md bg-rose-500/20 px-3 py-2 text-xs text-rose-100">
+        <div className="absolute right-4 bottom-4 z-20 max-w-xs rounded-md bg-rose-500/20 px-3 py-2 text-xs text-rose-100">
           {error}
         </div>
       )}

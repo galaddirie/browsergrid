@@ -1,4 +1,4 @@
-import{ ChangeEvent,KeyboardEvent, useRef } from 'react';
+import { ChangeEvent, KeyboardEvent, useRef } from 'react';
 
 import { X } from 'lucide-react';
 
@@ -35,7 +35,11 @@ export function TagInput({ tags, setTags }: TagInputProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !inputReference.current?.value && tags.length > 0) {
+    if (
+      e.key === 'Backspace' &&
+      !inputReference.current?.value &&
+      tags.length > 0
+    ) {
       e.preventDefault();
       const lastTag = tags[tags.length - 1];
       if (!lastTag) return;
@@ -46,14 +50,14 @@ export function TagInput({ tags, setTags }: TagInputProps) {
 
   return (
     <div className="w-full space-y-2">
-      <div className="flex min-h-[2.5rem] flex-wrap items-center gap-2 rounded-md border bg-background p-2 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div className="bg-background focus-within:ring-ring flex min-h-[2.5rem] flex-wrap items-center gap-2 rounded-md border p-2 focus-within:ring-2 focus-within:ring-offset-2">
         {tags?.map((tag, index) => (
           <Badge key={index} variant="secondary">
             {tag}
             <button
               type="button"
               onClick={() => removeTag(tag)}
-              className="ml-1 rounded-full p-0.5 transition-colors hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="hover:bg-primary/20 focus-visible:ring-ring ml-1 rounded-full p-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2"
               aria-label={`Remove tag ${tag}`}
             >
               <X className="h-3 w-3" />

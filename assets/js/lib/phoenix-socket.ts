@@ -7,12 +7,15 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const csrfToken =
+      document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content') || '';
 
     socket = new Socket('/socket', {
       params: {
-        _csrf_token: csrfToken
-      }
+        _csrf_token: csrfToken,
+      },
     });
 
     socket.connect();
@@ -31,7 +34,3 @@ export function disconnectSocket(): void {
 export function isSocketConnected(): boolean {
   return socket?.isConnected() || false;
 }
-
-
-
-

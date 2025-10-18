@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect,useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Check, ChevronDown } from 'lucide-react';
 
@@ -61,7 +61,7 @@ export const StatusMultiSelect: React.FC<StatusMultiSelectDropdownProps> = ({
                 <span
                   key={value}
                   className={cn(
-                    'h-2 w-2 rounded-full border border-background',
+                    'border-background h-2 w-2 rounded-full border',
                     option?.color,
                   )}
                   style={{
@@ -74,7 +74,7 @@ export const StatusMultiSelect: React.FC<StatusMultiSelectDropdownProps> = ({
               Status
               <Badge
                 variant="secondary"
-                className="ml-2 text-xs text-muted-foreground"
+                className="text-muted-foreground ml-2 text-xs"
               >
                 {selectedOptions.length}/{options.length}
               </Badge>

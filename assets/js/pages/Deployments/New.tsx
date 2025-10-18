@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { SparklesIcon } from '@heroicons/react/24/solid';
 import { useForm } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
-import { ChevronLeft,FolderOpen } from 'lucide-react';
+import { ChevronLeft, FolderOpen } from 'lucide-react';
 
 import { Header } from '@/components/HeaderPortal';
 import Layout from '@/components/Layout';
@@ -14,27 +14,38 @@ import { ConfigureDeploymentForm } from './form-parts/content';
 import { DeploymentParametersForm } from './form-parts/param';
 import { DeploymentDetailsForm } from './form-parts/review';
 import { UploadZipForm } from './form-parts/upload';
-  
-const Stepper = ({ steps, currentStep }: { steps: string[], currentStep: number }) => {
+
+const Stepper = ({
+  steps,
+  currentStep,
+}: {
+  steps: string[];
+  currentStep: number;
+}) => {
   return (
-    <div className="flex flex-col items-start justify-start w-full">
+    <div className="flex w-full flex-col items-start justify-start">
       {steps.map((step, index) => (
         <React.Fragment key={index}>
           <div className="flex items-start">
-            <div className="flex flex-col items-center justify-start m-0">
-              <div className={`w-2 h-2 mt-[1px] mb-[1px] rounded-full ${index <= currentStep
-                ? 'bg-blue-600 dark:bg-blue-400'
-                : 'bg-gray-300 dark:bg-gray-600'
-                } flex items-center justify-center`}>
-              </div>
+            <div className="m-0 flex flex-col items-center justify-start">
+              <div
+                className={`mt-[1px] mb-[1px] h-2 w-2 rounded-full ${
+                  index <= currentStep
+                    ? 'bg-blue-600 dark:bg-blue-400'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                } flex items-center justify-center`}
+              ></div>
               {index !== steps.length - 1 && (
-                <div className="flex-grow h-[32px] bg-gray-200 dark:bg-gray-600 w-[1px]" />
+                <div className="h-[32px] w-[1px] flex-grow bg-gray-200 dark:bg-gray-600" />
               )}
             </div>
-            <span className={`relative font-medium text-xs m-0 top-[-6px] leading-6 left-2 ${index <= currentStep
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-gray-500 dark:text-gray-400'
-              }`}>
+            <span
+              className={`relative top-[-6px] left-2 m-0 text-xs leading-6 font-medium ${
+                index <= currentStep
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
               {step}
             </span>
           </div>
@@ -44,16 +55,14 @@ const Stepper = ({ steps, currentStep }: { steps: string[], currentStep: number 
   );
 };
 
-
-
-
-
-
 export default function DeploymentUpload() {
   const [step, setStep] = useState(0);
-  const steps = ['Upload Archive', 'Configure Deployment', 'Deployment Parameters', 'Finalize'];
-
-
+  const steps = [
+    'Upload Archive',
+    'Configure Deployment',
+    'Deployment Parameters',
+    'Finalize',
+  ];
 
   const form = useForm({
     name: '',
@@ -66,13 +75,13 @@ export default function DeploymentUpload() {
     root_directory: './',
     install_command: '',
     start_command: '',
-    environment_variables: [] as { key: string; value: string; }[],
-    parameters: [] as { key: string; label: string; description: string; }[],
+    environment_variables: [] as { key: string; value: string }[],
+    parameters: [] as { key: string; label: string; description: string }[],
     package_parameters: {
       title: '',
       description: '',
-      fields: [] as any[]
-    }
+      fields: [] as any[],
+    },
   });
 
   const data = form.data;
@@ -95,7 +104,7 @@ export default function DeploymentUpload() {
 
   const validateStep = () => {
     clearErrors();
-    
+
     switch (step) {
       case 0:
         if (!data.archive) {
@@ -116,20 +125,28 @@ export default function DeploymentUpload() {
         return isValid;
       case 2:
         const packageFields = data.package_parameters.fields || [];
-        const invalidFields = packageFields.some((field: any, index: number) => {
-          if (field.name || field.label) {
-            if (!field.name) {
-              setError(`package_parameters.fields.${index}.name`, 'Field key is required');
-              return true;
+        const invalidFields = packageFields.some(
+          (field: any, index: number) => {
+            if (field.name || field.label) {
+              if (!field.name) {
+                setError(
+                  `package_parameters.fields.${index}.name`,
+                  'Field key is required',
+                );
+                return true;
+              }
+              if (!field.label) {
+                setError(
+                  `package_parameters.fields.${index}.label`,
+                  'Field label is required',
+                );
+                return true;
+              }
             }
-            if (!field.label) {
-              setError(`package_parameters.fields.${index}.label`, 'Field label is required');
-              return true;
-            }
-          }
-          return false;
-        });
-        
+            return false;
+          },
+        );
+
         const invalidParams = data.parameters.some((parameter, index) => {
           if (parameter.key || parameter.label || parameter.description) {
             if (!parameter.key) {
@@ -137,13 +154,16 @@ export default function DeploymentUpload() {
               return true;
             }
             if (!parameter.label) {
-              setError(`parameters.${index}.label`, 'Parameter label is required');
+              setError(
+                `parameters.${index}.label`,
+                'Parameter label is required',
+              );
               return true;
             }
           }
           return false;
         });
-        
+
         return !invalidFields && !invalidParams;
       default:
         return true;
@@ -155,24 +175,30 @@ export default function DeploymentUpload() {
       return;
     }
 
-    form.transform((data) => {
+    form.transform(data => {
       const cleanedData = {
         ...data,
-        environment_variables: data.environment_variables.filter(env => env.key && env.value),
-        parameters: data.parameters.filter(parameter => parameter.key && parameter.label),
+        environment_variables: data.environment_variables.filter(
+          env => env.key && env.value,
+        ),
+        parameters: data.parameters.filter(
+          parameter => parameter.key && parameter.label,
+        ),
         tags: data.tags.filter(tag => tag.trim() !== ''),
       };
 
       if (data.package_parameters.fields) {
         cleanedData.package_parameters = {
           ...data.package_parameters,
-          fields: data.package_parameters.fields.filter((field: any) => field.name && field.label)
+          fields: data.package_parameters.fields.filter(
+            (field: any) => field.name && field.label,
+          ),
         };
       }
 
       return cleanedData;
     });
-    
+
     form.post('/deployments', {
       preserveScroll: true,
       onSuccess: () => {
@@ -183,20 +209,51 @@ export default function DeploymentUpload() {
       },
       onFinish: () => {
         console.log('Form submission finished');
-      }
+      },
     });
   };
 
   const renderStep = () => {
     switch (step) {
       case 0:
-        return <UploadZipForm data={data} setData={setData} errors={errors} onNext={nextStep} />;
+        return (
+          <UploadZipForm
+            data={data}
+            setData={setData}
+            errors={errors}
+            onNext={nextStep}
+          />
+        );
       case 1:
-        return <ConfigureDeploymentForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={previousStep} />;
+        return (
+          <ConfigureDeploymentForm
+            data={data}
+            setData={setData}
+            errors={errors}
+            onNext={nextStep}
+            onPrev={previousStep}
+          />
+        );
       case 2:
-        return <DeploymentParametersForm data={data} setData={setData} errors={errors} onNext={nextStep} onPrev={previousStep} />;
+        return (
+          <DeploymentParametersForm
+            data={data}
+            setData={setData}
+            errors={errors}
+            onNext={nextStep}
+            onPrev={previousStep}
+          />
+        );
       case 3:
-        return <DeploymentDetailsForm data={data} errors={errors} processing={processing} onPrev={previousStep} onSubmit={onSubmit} />;
+        return (
+          <DeploymentDetailsForm
+            data={data}
+            errors={errors}
+            processing={processing}
+            onPrev={previousStep}
+            onSubmit={onSubmit}
+          />
+        );
       default:
         return null;
     }
@@ -208,57 +265,55 @@ export default function DeploymentUpload() {
         <div className="flex flex-col items-start justify-start py-6">
           <Link
             href="/deployments"
-            className="mb-4 flex items-center gap-2 text-sm text-muted-foreground hover:underline"
+            className="text-muted-foreground mb-4 flex items-center gap-2 text-sm hover:underline"
           >
             <ChevronLeft className="h-3 w-3" />
             Back to Deployments
           </Link>
-          {step === 0 ?(
+          {step === 0 ? (
             <>
-              <h1 className="text-5xl font-bold mb-2">
-              New Deployment{' '}
-              <span className="inline-flex items-center whitespace-nowrap relative top-[-10px]">
-                <SparklesIcon className="ml-1 h-10 w-10 text-blue-500" />
-              </span>
-            </h1>
-            <p className="text-primary/70 mb-6 text-sm">
-              Upload and configure your browser automation project
-            </p>
-    
+              <h1 className="mb-2 text-5xl font-bold">
+                New Deployment{' '}
+                <span className="relative top-[-10px] inline-flex items-center whitespace-nowrap">
+                  <SparklesIcon className="ml-1 h-10 w-10 text-blue-500" />
+                </span>
+              </h1>
+              <p className="text-primary/70 mb-6 text-sm">
+                Upload and configure your browser automation project
+              </p>
             </>
           ) : (
-            <>  
-            <h1 className="text-5xl font-bold mb-2">
-              You're almost{' '}
-              <span className="inline-flex items-center whitespace-nowrap relative text-blue-500 ">
-                done <SparklesIcon className="-ml-1 h-10 w-10 text-blue-500 top-[-10px] relative" />
-              </span>
-            </h1>
-            <p className="text-primary/70 mb-6 text-sm">
-              Upload and configure your browser automation project
-            </p>
+            <>
+              <h1 className="mb-2 text-5xl font-bold">
+                You're almost{' '}
+                <span className="relative inline-flex items-center whitespace-nowrap text-blue-500">
+                  done{' '}
+                  <SparklesIcon className="relative top-[-10px] -ml-1 h-10 w-10 text-blue-500" />
+                </span>
+              </h1>
+              <p className="text-primary/70 mb-6 text-sm">
+                Upload and configure your browser automation project
+              </p>
             </>
           )}
         </div>
       </Header>
       <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5 space-y-6">
-            
-
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-5">
             <Stepper steps={steps} currentStep={step} />
 
-            <hr className="border-t my-8" />
+            <hr className="my-8 border-t" />
 
             {data.archive && (
               <>
-                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4">
+                <div className="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   Uploaded File
                 </div>
                 <div className="flex flex-col gap-2 text-sm text-gray-500">
                   <div className="flex items-center gap-2">
-                    <FolderOpen className="w-5 h-5" />
-                    <span className="font-mono truncate">
+                    <FolderOpen className="h-5 w-5" />
+                    <span className="truncate font-mono">
                       {data.archive.name}
                     </span>
                   </div>
@@ -266,10 +321,10 @@ export default function DeploymentUpload() {
               </>
             )}
 
-            {(step >= 1 && data.name) && (
+            {step >= 1 && data.name && (
               <>
-                <hr className="border-t my-8" />
-                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4">
+                <hr className="my-8 border-t" />
+                <div className="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   Deployment Configuration
                 </div>
                 <div className="flex flex-col gap-2 text-sm text-gray-500">
@@ -277,24 +332,20 @@ export default function DeploymentUpload() {
                     <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                       Name:
                     </Label>
-                    <span className="font-mono">
-                      {data.name}
-                    </span>
+                    <span className="font-mono">{data.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                       Root Directory:
                     </Label>
-                    <span className="font-mono">
-                      {data.root_directory}
-                    </span>
+                    <span className="font-mono">{data.root_directory}</span>
                   </div>
                   {data.install_command && (
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                         Install:
                       </Label>
-                      <span className="font-mono truncate">
+                      <span className="truncate font-mono">
                         {data.install_command}
                       </span>
                     </div>
@@ -303,7 +354,7 @@ export default function DeploymentUpload() {
                     <Label className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                       Start:
                     </Label>
-                    <span className="font-mono truncate">
+                    <span className="truncate font-mono">
                       {data.start_command}
                     </span>
                   </div>
@@ -312,9 +363,9 @@ export default function DeploymentUpload() {
             )}
           </div>
 
-          <div className="lg:col-span-7 relative top-[-200px]">
-            <Card className="shadow-xl p-0">
-              <CardContent className="p-6 min-h-[600px] flex flex-col">
+          <div className="relative top-[-200px] lg:col-span-7">
+            <Card className="p-0 shadow-xl">
+              <CardContent className="flex min-h-[600px] flex-col p-6">
                 {renderStep()}
               </CardContent>
             </Card>

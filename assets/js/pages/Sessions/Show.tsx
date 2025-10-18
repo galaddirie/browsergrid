@@ -1,7 +1,14 @@
-import { useEffect,useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, ExternalLink, Settings, StopCircle, Wifi, WifiOff } from 'lucide-react';
+import {
+  ArrowLeft,
+  ExternalLink,
+  Settings,
+  StopCircle,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 
 import Layout from '@/components/Layout';
 import { StreamViewer } from '@/components/StreamViewer';
@@ -9,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSessionsChannel } from '@/hooks/useSessionsChannel';
-import { Session, sessionToFormData } from '@/types';
+import { Session } from '@/types';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
@@ -35,9 +42,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge className={`${getStatusColor(status)} border-0`}>
-      {status}
-    </Badge>
+    <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
   );
 };
 
@@ -49,11 +54,22 @@ export default function SessionShow({ session }: { session: Session }) {
   const [cdpError, setCdpError] = useState<string | null>(null);
 
   const isTerminalStatus = (status: string) => {
-    const terminal = ['completed', 'failed', 'expired', 'crashed', 'timed_out', 'terminated'];
+    const terminal = [
+      'completed',
+      'failed',
+      'expired',
+      'crashed',
+      'timed_out',
+      'terminated',
+    ];
     return terminal.includes(status);
   };
 
-  const streamUrl = currentSession.stream_url || (currentSession.id ? `/sessions/${currentSession.id}/edge/stream` : undefined);
+  const streamUrl =
+    currentSession.stream_url ||
+    (currentSession.id
+      ? `/sessions/${currentSession.id}/edge/stream`
+      : undefined);
   const isStreamActive = !isTerminalStatus(currentSession.status ?? '');
 
   const fetchCdpData = async () => {
@@ -82,7 +98,7 @@ export default function SessionShow({ session }: { session: Session }) {
   }, [session]);
 
   const { isConnected } = useSessionsChannel({
-    onSessionUpdated: (updatedSession) => {
+    onSessionUpdated: updatedSession => {
       if (updatedSession.id === session.id) {
         console.log('Real-time: Session updated on show page', updatedSession);
         setCurrentSession(updatedSession);
@@ -95,7 +111,7 @@ export default function SessionShow({ session }: { session: Session }) {
     onDisconnect: () => {
       console.log('Real-time: Disconnected from sessions channel (show page)');
       setIsChannelConnected(false);
-    }
+    },
   });
 
   useEffect(() => {
@@ -113,11 +129,12 @@ export default function SessionShow({ session }: { session: Session }) {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
                 Session Details
               </h1>
-              <p className="text-sm text-neutral-600 mt-1">
-                {currentSession.id?.slice(0, 8)}... • {currentSession.browser_type} {currentSession.options?.version}
+              <p className="mt-1 text-sm text-neutral-600">
+                {currentSession.id?.slice(0, 8)}... •{' '}
+                {currentSession.browser_type} {currentSession.options?.version}
               </p>
             </div>
           </div>
@@ -128,26 +145,40 @@ export default function SessionShow({ session }: { session: Session }) {
               ) : (
                 <WifiOff className="h-4 w-4 text-gray-400" />
               )}
-              <span className={`text-xs ${isChannelConnected ? 'text-green-600' : 'text-gray-400'}`}>
+              <span
+                className={`text-xs ${isChannelConnected ? 'text-green-600' : 'text-gray-400'}`}
+              >
                 {isChannelConnected ? 'Live' : 'Offline'}
               </span>
             </div>
             {currentSession.live_url && (
-              <Button size="sm" asChild className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs h-8">
-                <a href={currentSession.live_url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3 mr-1.5" />
+              <Button
+                size="sm"
+                asChild
+                className="h-8 bg-neutral-900 text-xs text-white hover:bg-neutral-800"
+              >
+                <a
+                  href={currentSession.live_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="mr-1.5 h-3 w-3" />
                   Open Live Session
                 </a>
               </Button>
             )}
             {!isTerminalStatus(currentSession.status ?? '') && (
-              <Button size="sm" variant="destructive" className="text-xs h-8">
-                <StopCircle className="h-3 w-3 mr-1.5" />
+              <Button size="sm" variant="destructive" className="h-8 text-xs">
+                <StopCircle className="mr-1.5 h-3 w-3" />
                 Stop Session
               </Button>
             )}
-            <Button size="sm" variant="outline" className="border-neutral-200 hover:bg-neutral-50 text-xs h-8">
-              <Settings className="h-3 w-3 mr-1.5" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 border-neutral-200 text-xs hover:bg-neutral-50"
+            >
+              <Settings className="mr-1.5 h-3 w-3" />
               Configure
             </Button>
           </div>
@@ -156,12 +187,16 @@ export default function SessionShow({ session }: { session: Session }) {
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="border-neutral-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-neutral-900">Session Information</CardTitle>
+              <CardTitle className="text-sm font-medium text-neutral-900">
+                Session Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">ID</span>
-                <span className="font-mono text-xs text-neutral-900">{currentSession.id}</span>
+                <span className="font-mono text-xs text-neutral-900">
+                  {currentSession.id}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Status</span>
@@ -170,7 +205,9 @@ export default function SessionShow({ session }: { session: Session }) {
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Created</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.inserted_at ? new Date(currentSession.inserted_at).toLocaleString() : 'N/A'}
+                  {currentSession.inserted_at
+                    ? new Date(currentSession.inserted_at).toLocaleString()
+                    : 'N/A'}
                 </span>
               </div>
 
@@ -187,21 +224,29 @@ export default function SessionShow({ session }: { session: Session }) {
 
           <Card className="border-neutral-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-neutral-900">Browser Configuration</CardTitle>
+              <CardTitle className="text-sm font-medium text-neutral-900">
+                Browser Configuration
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Browser</span>
-                <span className="text-xs text-neutral-900">{currentSession.browser_type} {currentSession.options?.version}</span>
+                <span className="text-xs text-neutral-900">
+                  {currentSession.browser_type}{' '}
+                  {currentSession.options?.version}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Mode</span>
-                <span className="text-xs text-neutral-900">{currentSession.options?.headless ? 'Headless' : 'GUI'}</span>
+                <span className="text-xs text-neutral-900">
+                  {currentSession.options?.headless ? 'Headless' : 'GUI'}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Screen</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.options?.screen_width || 1920}×{currentSession.options?.screen_height || 1080}
+                  {currentSession.options?.screen_width || 1920}×
+                  {currentSession.options?.screen_height || 1080}
                 </span>
               </div>
             </CardContent>
@@ -210,8 +255,12 @@ export default function SessionShow({ session }: { session: Session }) {
 
         <Card className="border-neutral-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-900">Live Browser Stream</CardTitle>
-            <p className="text-xs text-neutral-500">Real-time Xvfb preview for quick diagnostics.</p>
+            <CardTitle className="text-sm font-medium text-neutral-900">
+              Live Browser Stream
+            </CardTitle>
+            <p className="text-xs text-neutral-500">
+              Real-time Xvfb preview for quick diagnostics.
+            </p>
           </CardHeader>
           <CardContent>
             <StreamViewer
@@ -225,19 +274,23 @@ export default function SessionShow({ session }: { session: Session }) {
 
         <Card className="border-neutral-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-900">Browser Debug Info</CardTitle>
-            <p className="text-xs text-neutral-500">Chrome DevTools Protocol JSON data.</p>
+            <CardTitle className="text-sm font-medium text-neutral-900">
+              Browser Debug Info
+            </CardTitle>
+            <p className="text-xs text-neutral-500">
+              Chrome DevTools Protocol JSON data.
+            </p>
           </CardHeader>
           <CardContent>
             {cdpLoading && (
               <div className="flex items-center gap-2 text-sm text-neutral-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-600"></div>
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-neutral-600"></div>
                 Loading CDP data...
               </div>
             )}
 
             {cdpError && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+              <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                 <strong>Error:</strong> {cdpError}
               </div>
             )}
@@ -245,17 +298,19 @@ export default function SessionShow({ session }: { session: Session }) {
             {cdpData && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-neutral-900">JSON Response</span>
+                  <span className="text-sm font-medium text-neutral-900">
+                    JSON Response
+                  </span>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={fetchCdpData}
-                    className="text-xs h-7"
+                    className="h-7 text-xs"
                   >
                     Refresh
                   </Button>
                 </div>
-                <pre className="text-xs bg-neutral-900 text-primary-foreground p-3 rounded overflow-x-auto max-h-96 overflow-y-auto">
+                <pre className="text-primary-foreground max-h-96 overflow-x-auto overflow-y-auto rounded bg-neutral-900 p-3 text-xs">
                   {JSON.stringify(cdpData, null, 2)}
                 </pre>
               </div>
@@ -266,7 +321,7 @@ export default function SessionShow({ session }: { session: Session }) {
                 size="sm"
                 variant="outline"
                 onClick={fetchCdpData}
-                className="text-xs h-7"
+                className="h-7 text-xs"
               >
                 Load CDP Data
               </Button>

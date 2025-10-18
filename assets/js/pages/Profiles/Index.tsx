@@ -1,16 +1,40 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { Link, router } from '@inertiajs/react';
-import { Archive, Chrome, Clock, Download, Eye, Globe,HardDrive, Plus, Trash2, Upload, User } from 'lucide-react';
+import {
+  Archive,
+  Chrome,
+  Clock,
+  Download,
+  Eye,
+  Globe,
+  HardDrive,
+  Plus,
+  Trash2,
+  User,
+} from 'lucide-react';
 
 import { Header } from '@/components/HeaderPortal';
 import Layout from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter,DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Type definitions
+interface User {
+  id: string;
+  email: string;
+  is_admin: boolean;
+}
+
 interface Profile {
   id: string;
   name: string;
@@ -23,6 +47,7 @@ interface Profile {
   has_data: boolean;
   inserted_at: string;
   updated_at: string;
+  user?: User;
 }
 
 interface Stats {
@@ -57,9 +82,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge className={`${getStatusColor(status)} border-0`}>
-      {status}
-    </Badge>
+    <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
   );
 };
 
@@ -83,10 +106,12 @@ const formatBytes = (bytes: number | undefined) => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   if (bytes === 0) return '0 Bytes';
   const index = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, index) * 100) / 100 + ' ' + sizes[index];
+  return (
+    Math.round((bytes / Math.pow(1024, index)) * 100) / 100 + ' ' + sizes[index]
+  );
 };
 
-export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexProps) {
+export default function ProfilesIndex({ profiles, stats }: ProfilesIndexProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -111,7 +136,7 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
         },
         onFinish: () => {
           setIsDeleting(false);
-        }
+        },
       });
     } catch (error) {
       console.error('Error deleting profile:', error);
@@ -139,11 +164,11 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
           <div className="mb-6">
             <Button
               size="sm"
-              className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs h-8"
+              className="h-8 bg-neutral-900 text-xs text-white hover:bg-neutral-800"
               asChild
             >
               <Link href="/profiles/new">
-                <Plus className="h-3 w-3 mr-1.5" />
+                <Plus className="mr-1.5 h-3 w-3" />
                 New Profile
               </Link>
             </Button>
@@ -157,11 +182,15 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-neutral-600">Total:</span>
-              <span className="font-semibold text-neutral-900">{stats.total}</span>
+              <span className="font-semibold text-neutral-900">
+                {stats.total}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-neutral-600">Active:</span>
-              <span className="font-semibold text-neutral-900">{stats.active}</span>
+              <span className="font-semibold text-neutral-900">
+                {stats.active}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-neutral-600">Storage:</span>
@@ -187,42 +216,45 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
           </CardHeader>
           <CardContent className="p-0">
             {!profiles || profiles.length === 0 ? (
-              <div className="text-center py-12">
-                <User className="h-8 w-8 mx-auto text-neutral-400 mb-3" />
-                <h3 className="text-sm font-semibold text-neutral-900 mb-1">No profiles yet</h3>
-                <p className="text-xs text-neutral-600 mb-4">
-                  Create your first browser profile to save and reuse browser state.
+              <div className="py-12 text-center">
+                <User className="mx-auto mb-3 h-8 w-8 text-neutral-400" />
+                <h3 className="mb-1 text-sm font-semibold text-neutral-900">
+                  No profiles yet
+                </h3>
+                <p className="mb-4 text-xs text-neutral-600">
+                  Create your first browser profile to save and reuse browser
+                  state.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs h-8"
+                  className="h-8 bg-neutral-900 text-xs text-white hover:bg-neutral-800"
                   asChild
                 >
                   <Link href="/profiles/new">
-                    <Plus className="h-3 w-3 mr-1.5" />
+                    <Plus className="mr-1.5 h-3 w-3" />
                     Create Profile
                   </Link>
                 </Button>
               </div>
             ) : (
               <div className="divide-y divide-neutral-100">
-                {profiles.map((profile) => (
+                {profiles.map(profile => (
                   <div
                     key={profile.id}
-                    className="px-4 py-3 hover:bg-neutral-50/50 transition-colors duration-150"
+                    className="px-4 py-3 transition-colors duration-150 hover:bg-neutral-50/50"
                   >
                     <div className="flex items-center justify-between">
                       {/* Left side - Profile info */}
-                      <div className="flex items-center gap-4 flex-1">
+                      <div className="flex flex-1 items-center gap-4">
                         <div className="flex-shrink-0">
-                          <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100">
                             <BrowserIcon browser={profile.browser_type} />
                           </div>
                         </div>
-                        
-                        <div className="flex-1 min-w-0">
+
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-neutral-900 truncate">
+                            <h3 className="truncate text-sm font-semibold text-neutral-900">
                               {profile.name}
                             </h3>
                             <StatusBadge status={profile.status} />
@@ -231,18 +263,30 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
                             )}
                           </div>
                           {profile.description && (
-                            <p className="text-xs text-neutral-600 mt-0.5 truncate">
+                            <p className="mt-0.5 truncate text-xs text-neutral-600">
                               {profile.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500">
-                            <span className="capitalize">{profile.browser_type}</span>
+                          <div className="mt-1 flex items-center gap-4 text-xs text-neutral-500">
+                            <span className="capitalize">
+                              {profile.browser_type}
+                            </span>
                             <span>v{profile.version}</span>
-                            <span>{formatBytes(profile.storage_size_bytes)}</span>
+                            <span>
+                              {formatBytes(profile.storage_size_bytes)}
+                            </span>
+                            {profile.user && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {profile.user.email}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {profile.last_used_at
-                                ? new Date(profile.last_used_at).toLocaleDateString()
+                                ? new Date(
+                                    profile.last_used_at,
+                                  ).toLocaleDateString()
                                 : 'Never used'}
                             </span>
                           </div>
@@ -250,7 +294,7 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
                       </div>
 
                       {/* Right side - Actions */}
-                      <div className="flex items-center gap-1 ml-4">
+                      <div className="ml-4 flex items-center gap-1">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -310,8 +354,9 @@ export default function ProfilesIndex({ profiles, total, stats }: ProfilesIndexP
           <DialogHeader>
             <DialogTitle>Delete Profile</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the profile "{profileToDelete?.name}"?
-              This action cannot be undone and will delete all associated snapshots and data.
+              Are you sure you want to delete the profile "
+              {profileToDelete?.name}"? This action cannot be undone and will
+              delete all associated snapshots and data.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

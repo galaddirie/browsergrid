@@ -23,8 +23,6 @@ export const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge className={`${getStatusColor(status)} border-0`}>
-      {status}
-    </Badge>
+    <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
   );
-}; 
+};

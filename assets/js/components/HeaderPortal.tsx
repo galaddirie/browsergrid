@@ -1,5 +1,11 @@
 import { cn } from '@/lib/utils';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 
 interface HeaderContextType {
   headerContent: ReactNode | null;
@@ -10,12 +16,23 @@ interface HeaderContextType {
 
 const HeaderContext = createContext<HeaderContextType | undefined>(undefined);
 
-export const HeaderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const HeaderProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [headerContent, setHeaderContent] = useState<ReactNode | null>(null);
-  const [headerClassName, setHeaderClassName] = useState<string | undefined>(undefined);
+  const [headerClassName, setHeaderClassName] = useState<string | undefined>(
+    undefined,
+  );
 
   return (
-    <HeaderContext.Provider value={{ headerContent, setHeaderContent, headerClassName, setHeaderClassName }}>
+    <HeaderContext.Provider
+      value={{
+        headerContent,
+        setHeaderContent,
+        headerClassName,
+        setHeaderClassName,
+      }}
+    >
       {children}
     </HeaderContext.Provider>
   );
@@ -34,7 +51,10 @@ export const useHeader = () => {
  * @param children - Content to display in the header
  * @param className - Optional className to apply to the header container
  */
-export const Header: React.FC<{ children: ReactNode; className?: string }> = ({ children, className }) => {
+export const Header: React.FC<{ children: ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => {
   const { setHeaderContent, setHeaderClassName } = useHeader();
 
   useEffect(() => {
@@ -67,14 +87,18 @@ export const HeaderPortal: React.FC = () => {
     );
   }
 
-  return <div className={cn(headerClassName, 'w-full h-full')}>{headerContent}</div>;
+  return (
+    <div className={cn(headerClassName, 'h-full w-full')}>{headerContent}</div>
+  );
 };
 
 /**
  * useSetHeader hook for programmatically setting header content
  * Useful for setting headers with title, description, and actions
  */
-export const useSetHeader = (content: { title: string; description: string; actions?: ReactNode } | null) => {
+export const useSetHeader = (
+  content: { title: string; description: string; actions?: ReactNode } | null,
+) => {
   const { setHeaderContent } = useHeader();
 
   useEffect(() => {
@@ -86,15 +110,11 @@ export const useSetHeader = (content: { title: string; description: string; acti
     setHeaderContent(
       <div>
         <h1 className="mb-2 text-4xl font-bold">{content.title}</h1>
-        <p className="text-primary/70 mb-6 text-sm">
-          {content.description}
-        </p>
+        <p className="text-primary/70 mb-6 text-sm">{content.description}</p>
         {content.actions && (
-          <div className="mb-6 flex space-x-2">
-            {content.actions}
-          </div>
+          <div className="mb-6 flex space-x-2">{content.actions}</div>
         )}
-      </div>
+      </div>,
     );
     return () => {
       setHeaderContent(null);

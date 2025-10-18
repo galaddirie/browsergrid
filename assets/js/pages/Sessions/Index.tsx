@@ -1,7 +1,19 @@
-import { useEffect,useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Link, router } from '@inertiajs/react';
-import { CheckSquare, ExternalLink, Eye, Globe, Plus, RefreshCw, Square, StopCircle, Trash2, Wifi, WifiOff } from 'lucide-react';
+import {
+  CheckSquare,
+  ExternalLink,
+  Eye,
+  Globe,
+  Plus,
+  RefreshCw,
+  Square,
+  StopCircle,
+  Trash2,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 
 import { Header } from '@/components/HeaderPortal';
 import Layout from '@/components/Layout';
@@ -15,10 +27,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useSessionsChannel } from '@/hooks/useSessionsChannel';
-import { formDataToSession,Session, SessionFormData } from '@/types';
-
+import { formDataToSession, Session, SessionFormData } from '@/types';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
@@ -44,13 +62,19 @@ const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge className={`${getStatusColor(status)} border-0`}>
-      {status}
-    </Badge>
+    <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
   );
 };
 
-export default function SessionsIndex({ sessions, total, profiles }: { sessions: Session[], total: number, profiles?: any[] }) {
+export default function SessionsIndex({
+  sessions,
+  total,
+  profiles,
+}: {
+  sessions: Session[];
+  total: number;
+  profiles?: any[];
+}) {
   const [sessionsList, setSessionsList] = useState<Session[]>(sessions || []);
   const [sessionsTotal, setSessionsTotal] = useState<number>(total || 0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,7 +82,9 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
+  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(
+    new Set(),
+  );
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isChannelConnected, setIsChannelConnected] = useState(false);
@@ -77,7 +103,6 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
       memory: '4GB',
       timeout_minutes: 30,
     },
-
   });
 
   useEffect(() => {
@@ -108,22 +133,24 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   }, [sessions, total]);
 
   const { isConnected } = useSessionsChannel({
-    onSessionCreated: (newSession) => {
+    onSessionCreated: newSession => {
       console.log('Real-time: Session created', newSession);
       setSessionsList(previous => [newSession, ...previous]);
       setSessionsTotal(previous => previous + 1);
     },
-    onSessionUpdated: (updatedSession) => {
+    onSessionUpdated: updatedSession => {
       console.log('Real-time: Session updated', updatedSession);
       setSessionsList(previous =>
         previous.map(session =>
-          session.id === updatedSession.id ? updatedSession : session
-        )
+          session.id === updatedSession.id ? updatedSession : session,
+        ),
       );
     },
-    onSessionDeleted: (sessionId) => {
+    onSessionDeleted: sessionId => {
       console.log('Real-time: Session deleted', sessionId);
-      setSessionsList(previous => previous.filter(session => session.id !== sessionId));
+      setSessionsList(previous =>
+        previous.filter(session => session.id !== sessionId),
+      );
       setSessionsTotal(previous => previous - 1);
       setSelectedSessions(previous => {
         const newSet = new Set(previous);
@@ -138,7 +165,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
     onDisconnect: () => {
       console.log('Real-time: Disconnected from sessions channel');
       setIsChannelConnected(false);
-    }
+    },
   });
 
   useEffect(() => {
@@ -147,24 +174,44 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
 
   const stats = {
     total: sessionsTotal,
-    running: sessionsList?.filter((s: Session) => ['running', 'claimed', 'active'].includes(s.status ?? '')).length || 0,
-    available: sessionsList?.filter((s: Session) => (s.status ?? '') === 'available').length || 0,
-    failed: sessionsList?.filter((s: Session) => ['failed', 'crashed'].includes(s.status ?? '')).length || 0,
+    running:
+      sessionsList?.filter((s: Session) =>
+        ['running', 'claimed', 'active'].includes(s.status ?? ''),
+      ).length || 0,
+    available:
+      sessionsList?.filter((s: Session) => (s.status ?? '') === 'available')
+        .length || 0,
+    failed:
+      sessionsList?.filter((s: Session) =>
+        ['failed', 'crashed'].includes(s.status ?? ''),
+      ).length || 0,
   };
 
   const handleCreateSession = async (sessionData: Partial<SessionFormData>) => {
     setIsLoading(true);
 
     const backendData = formDataToSession(sessionData);
-    router.post('/sessions', { session: backendData }, {
-      onFinish: () => {
-        setIsLoading(false);
-        setIsModalOpen(false);
+    // Convert to a simple payload format
+    const payload = {
+      name: backendData.name,
+      browser_type: backendData.browser_type,
+      profile_id: backendData.profile_id,
+      options: backendData.options,
+    };
+
+    router.post(
+      '/sessions',
+      { session: payload },
+      {
+        onFinish: () => {
+          setIsLoading(false);
+          setIsModalOpen(false);
+        },
+        onError: errors => {
+          console.error('Failed to create session:', errors);
+        },
       },
-      onError: (errors) => {
-        console.error('Failed to create session:', errors);
-      },
-    });
+    );
   };
 
   const handleSubmit = () => {
@@ -184,14 +231,14 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
     if (!sessionToDelete || !sessionToDelete.id) return;
 
     setIsDeleting(true);
-    
+
     router.delete(`/sessions/${sessionToDelete.id}`, {
       onFinish: () => {
         setIsDeleting(false);
         setDeleteDialogOpen(false);
         setSessionToDelete(null);
       },
-      onError: (errors) => {
+      onError: errors => {
         console.error('Failed to delete session:', errors);
       },
     });
@@ -216,14 +263,19 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && sessions) {
-      const allIds = sessions.map(s => s.id).filter(id => id && id.trim()) as string[];
+      const allIds = sessions
+        .map(s => s.id)
+        .filter(id => id && id.trim()) as string[];
       setSelectedSessions(new Set(allIds));
     } else {
       setSelectedSessions(new Set());
     }
   };
 
-  const isAllSelected = sessionsList && sessionsList.length > 0 && selectedSessions.size === sessionsList.length;
+  const isAllSelected =
+    sessionsList &&
+    sessionsList.length > 0 &&
+    selectedSessions.size === sessionsList.length;
   const isPartialSelected = selectedSessions.size > 0 && !isAllSelected;
 
   const handleBulkDeleteClick = () => {
@@ -235,7 +287,9 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
 
     setIsBulkDeleting(true);
     try {
-      const validSessionIds = [...selectedSessions].filter(id => id && id.trim());
+      const validSessionIds = [...selectedSessions].filter(
+        id => id && id.trim(),
+      );
 
       if (validSessionIds.length === 0) {
         console.error('No valid session IDs to delete');
@@ -248,20 +302,34 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
         fetch(`/sessions/${sessionId}`, {
           method: 'DELETE',
           headers: {
-            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'X-CSRF-Token':
+              document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') || '',
           },
-        })
+        }),
       );
 
       const results = await Promise.allSettled(deletePromises);
-      const successfulDeletes = results.filter(result => result.status === 'fulfilled').length;
-      const failedDeletes = results.filter(result => result.status === 'rejected').length;
+      const successfulDeletes = results.filter(
+        result => result.status === 'fulfilled',
+      ).length;
+      const failedDeletes = results.filter(
+        result => result.status === 'rejected',
+      ).length;
 
-      console.log(`Bulk delete results: ${successfulDeletes} successful, ${failedDeletes} failed`);
+      console.log(
+        `Bulk delete results: ${successfulDeletes} successful, ${failedDeletes} failed`,
+      );
 
       if (failedDeletes > 0) {
-        const failedResults = results.filter(result => result.status === 'rejected') as PromiseRejectedResult[];
-        console.error('Failed delete requests:', failedResults.map(r => r.reason));
+        const failedResults = results.filter(
+          result => result.status === 'rejected',
+        ) as PromiseRejectedResult[];
+        console.error(
+          'Failed delete requests:',
+          failedResults.map(r => r.reason),
+        );
       }
 
       if (successfulDeletes > 0) {
@@ -283,7 +351,14 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
   };
 
   const isTerminalStatus = (status: string) => {
-    const terminal = ['completed', 'failed', 'expired', 'crashed', 'timed_out', 'terminated'];
+    const terminal = [
+      'completed',
+      'failed',
+      'expired',
+      'crashed',
+      'timed_out',
+      'terminated',
+    ];
     return terminal.includes(status);
   };
 
@@ -296,31 +371,31 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
             Manage and monitor your browser automation sessions
           </p>
           <div className="mb-6 flex space-x-2">
-            <Button 
-              onClick={() => window.location.reload()} 
-              variant="outline" 
-              size="sm" 
-              className="text-xs h-8"
+            <Button
+              onClick={() => window.location.reload()}
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
             >
-              <RefreshCw className="h-3 w-3 mr-1.5" />
+              <RefreshCw className="mr-1.5 h-3 w-3" />
               Refresh
             </Button>
             <Button
               size="sm"
-              className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs h-8"
+              className="h-8 bg-neutral-900 text-xs text-white hover:bg-neutral-800"
               onClick={() => setIsModalOpen(true)}
             >
-              <Plus className="h-3 w-3 mr-1.5" />
+              <Plus className="mr-1.5 h-3 w-3" />
               New Session
             </Button>
             {selectedSessions.size > 0 && (
               <Button
                 size="sm"
                 variant="destructive"
-                className="text-xs h-8"
+                className="h-8 text-xs"
                 onClick={handleBulkDeleteClick}
               >
-                <Trash2 className="h-3 w-3 mr-1.5" />
+                <Trash2 className="mr-1.5 h-3 w-3" />
                 Delete Selected ({selectedSessions.size})
               </Button>
             )}
@@ -328,32 +403,40 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
         </div>
       </Header>
       <div className="space-y-6">
-
-
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-neutral-600">Total:</span>
-            <span className="font-semibold text-neutral-900">{stats.total}</span>
+            <span className="font-semibold text-neutral-900">
+              {stats.total}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-neutral-600">Running:</span>
-            <span className="font-semibold text-neutral-900">{stats.running}</span>
+            <span className="font-semibold text-neutral-900">
+              {stats.running}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-neutral-600">Available:</span>
-            <span className="font-semibold text-neutral-900">{stats.available}</span>
+            <span className="font-semibold text-neutral-900">
+              {stats.available}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-neutral-600">Failed:</span>
-            <span className="font-semibold text-neutral-900">{stats.failed}</span>
+            <span className="font-semibold text-neutral-900">
+              {stats.failed}
+            </span>
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             {isChannelConnected ? (
               <Wifi className="h-4 w-4 text-green-600" />
             ) : (
               <WifiOff className="h-4 w-4 text-gray-400" />
             )}
-            <span className={`text-xs ${isChannelConnected ? 'text-green-600' : 'text-gray-400'}`}>
+            <span
+              className={`text-xs ${isChannelConnected ? 'text-green-600' : 'text-gray-400'}`}
+            >
               {isChannelConnected ? 'Live' : 'Offline'}
             </span>
           </div>
@@ -367,18 +450,20 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
           </CardHeader>
           <CardContent className="p-0">
             {!sessionsList || sessionsList.length === 0 ? (
-              <div className="text-center py-12">
-                <Globe className="h-8 w-8 mx-auto text-neutral-400 mb-3" />
-                <h3 className="text-sm font-semibold text-neutral-900 mb-1">No sessions yet</h3>
-                <p className="text-xs text-neutral-600 mb-4">
+              <div className="py-12 text-center">
+                <Globe className="mx-auto mb-3 h-8 w-8 text-neutral-400" />
+                <h3 className="mb-1 text-sm font-semibold text-neutral-900">
+                  No sessions yet
+                </h3>
+                <p className="mb-4 text-xs text-neutral-600">
                   Get started by creating your first browser session.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs h-8"
+                  className="h-8 bg-neutral-900 text-xs text-white hover:bg-neutral-800"
                   onClick={() => setIsModalOpen(true)}
                 >
-                  <Plus className="h-3 w-3 mr-1.5" />
+                  <Plus className="mr-1.5 h-3 w-3" />
                   Create New Session
                 </Button>
               </div>
@@ -386,7 +471,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
               <Table>
                 <TableHeader>
                   <TableRow className="border-neutral-100">
-                    <TableHead className="font-medium text-neutral-700 text-xs h-10 w-12">
+                    <TableHead className="h-10 w-12 text-xs font-medium text-neutral-700">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -396,30 +481,46 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                         {isAllSelected ? (
                           <CheckSquare className="h-4 w-4 text-blue-600" />
                         ) : isPartialSelected ? (
-                          <div className="h-4 w-4 border-2 border-blue-600 bg-blue-50 rounded-sm" />
+                          <div className="h-4 w-4 rounded-sm border-2 border-blue-600 bg-blue-50" />
                         ) : (
                           <Square className="h-4 w-4 text-neutral-400" />
                         )}
                       </Button>
                     </TableHead>
-                    <TableHead className="font-medium text-neutral-700 text-xs h-10">Session</TableHead>
-                    <TableHead className="font-medium text-neutral-700 text-xs h-10">Browser</TableHead>
-                    <TableHead className="font-medium text-neutral-700 text-xs h-10">Status</TableHead>
-                    <TableHead className="font-medium text-neutral-700 text-xs h-10">Created</TableHead>
-                    <TableHead className="text-right font-medium text-neutral-700 text-xs h-10">Actions</TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      Session
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      Browser
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      Status
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-medium text-neutral-700">
+                      Created
+                    </TableHead>
+                    <TableHead className="h-10 text-right text-xs font-medium text-neutral-700">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sessionsList.map((session: Session) => (
-                    <TableRow key={session.id} className="border-neutral-100 hover:bg-neutral-50/50 transition-colors duration-150">
-                      <TableCell className="py-3 w-12">
+                    <TableRow
+                      key={session.id}
+                      className="border-neutral-100 transition-colors duration-150 hover:bg-neutral-50/50"
+                    >
+                      <TableCell className="w-12 py-3">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             if (session.id && session.id.trim()) {
-                              handleSelectSession(session.id, !selectedSessions.has(session.id));
+                              handleSelectSession(
+                                session.id,
+                                !selectedSessions.has(session.id),
+                              );
                             }
                           }}
                           className="h-6 w-6 p-0 hover:bg-neutral-100"
@@ -436,14 +537,18 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                           <div className="font-mono text-xs font-medium text-neutral-900">
                             {session.id?.slice(0, 8)}...
                           </div>
-
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
                           <Globe className="h-3 w-3 text-neutral-400" />
-                          <span className="font-medium text-neutral-900 text-xs">{session.browser_type}</span>
-                          <Badge variant="outline" className="text-xs border-neutral-200 text-neutral-600 px-1.5 py-0">
+                          <span className="text-xs font-medium text-neutral-900">
+                            {session.browser_type}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="border-neutral-200 px-1.5 py-0 text-xs text-neutral-600"
+                          >
                             {session.options?.version || 'latest'}
                           </Badge>
                         </div>
@@ -454,14 +559,22 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                       <TableCell className="py-3">
                         <div className="space-y-0.5">
                           <div className="text-xs text-neutral-900">
-                            {session.inserted_at ? new Date(session.inserted_at).toLocaleDateString() : 'N/A'}
+                            {session.inserted_at
+                              ? new Date(
+                                  session.inserted_at,
+                                ).toLocaleDateString()
+                              : 'N/A'}
                           </div>
                           <div className="text-xs text-neutral-500">
-                            {session.inserted_at ? new Date(session.inserted_at).toLocaleTimeString() : ''}
+                            {session.inserted_at
+                              ? new Date(
+                                  session.inserted_at,
+                                ).toLocaleTimeString()
+                              : ''}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right py-3">
+                      <TableCell className="py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="sm"
@@ -474,8 +587,17 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
                             </Link>
                           </Button>
                           {session.live_url && (
-                            <Button size="sm" variant="ghost" asChild className="h-7 w-7 p-0 hover:bg-neutral-100">
-                              <a href={session.live_url} target="_blank" rel="noopener noreferrer">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              asChild
+                              className="h-7 w-7 p-0 hover:bg-neutral-100"
+                            >
+                              <a
+                                href={session.live_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             </Button>
@@ -510,10 +632,15 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
         </Card>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={(open: boolean) => !open && setIsModalOpen(false)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col">
-          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
-            <DialogTitle className="text-xl font-semibold">Create New Session</DialogTitle>
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open: boolean) => !open && setIsModalOpen(false)}
+      >
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col p-0">
+          <DialogHeader className="flex-shrink-0 border-b px-6 py-4">
+            <DialogTitle className="text-xl font-semibold">
+              Create New Session
+            </DialogTitle>
           </DialogHeader>
 
           {/* Scrollable Content */}
@@ -528,7 +655,7 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
           </div>
 
           {/* Action Buttons - Sticky Footer */}
-          <div className="flex justify-end gap-2 px-6 py-4 border-t bg-white flex-shrink-0">
+          <div className="flex flex-shrink-0 justify-end gap-2 border-t bg-white px-6 py-4">
             <Button
               variant="outline"
               onClick={handleCancel}
@@ -537,12 +664,8 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              type="button"
-            >
-              {isLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+            <Button onClick={handleSubmit} disabled={isLoading} type="button">
+              {isLoading && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
               Create Session
             </Button>
           </div>
@@ -550,10 +673,15 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={(open: boolean) => !open && setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open: boolean) => !open && setDeleteDialogOpen(false)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Delete Session</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Delete Session
+            </DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
@@ -564,8 +692,9 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
               </span>
               ?
             </p>
-            <p className="text-xs text-neutral-500 mt-2">
-              This action cannot be undone. The session and all associated data will be permanently removed.
+            <p className="mt-2 text-xs text-neutral-500">
+              This action cannot be undone. The session and all associated data
+              will be permanently removed.
             </p>
           </div>
 
@@ -584,7 +713,9 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
               disabled={isDeleting}
               size="sm"
             >
-              {isDeleting && <RefreshCw className="h-3 w-3 mr-2 animate-spin" />}
+              {isDeleting && (
+                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+              )}
               Delete
             </Button>
           </div>
@@ -592,22 +723,31 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
       </Dialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <Dialog open={bulkDeleteDialogOpen} onOpenChange={(open: boolean) => !open && setBulkDeleteDialogOpen(false)}>
+      <Dialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={(open: boolean) =>
+          !open && setBulkDeleteDialogOpen(false)
+        }
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Delete Selected Sessions</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Delete Selected Sessions
+            </DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
             <p className="text-sm text-neutral-600">
               Are you sure you want to delete{' '}
               <span className="font-semibold text-neutral-900">
-                {selectedSessions.size} session{selectedSessions.size !== 1 ? 's' : ''}
+                {selectedSessions.size} session
+                {selectedSessions.size !== 1 ? 's' : ''}
               </span>
               ?
             </p>
-            <p className="text-xs text-neutral-500 mt-2">
-              This action cannot be undone. All selected sessions and their associated data will be permanently removed.
+            <p className="mt-2 text-xs text-neutral-500">
+              This action cannot be undone. All selected sessions and their
+              associated data will be permanently removed.
             </p>
           </div>
 
@@ -626,8 +766,11 @@ export default function SessionsIndex({ sessions, total, profiles }: { sessions:
               disabled={isBulkDeleting}
               size="sm"
             >
-              {isBulkDeleting && <RefreshCw className="h-3 w-3 mr-2 animate-spin" />}
-              Delete {selectedSessions.size} Session{selectedSessions.size !== 1 ? 's' : ''}
+              {isBulkDeleting && (
+                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+              )}
+              Delete {selectedSessions.size} Session
+              {selectedSessions.size !== 1 ? 's' : ''}
             </Button>
           </div>
         </DialogContent>

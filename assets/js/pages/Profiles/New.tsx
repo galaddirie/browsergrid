@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Chrome, Globe, Save } from 'lucide-react';
@@ -65,26 +65,52 @@ export default function ProfilesNew() {
     setIsSubmitting(true);
 
     try {
-      await router.post('/profiles', {
-        profile: formData
-      }, {
-        onError: (errors: any) => {
-          setErrors(errors);
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        browser_type: formData.browser_type,
+        initialize: formData.initialize,
+      };
+
+      await router.post(
+        '/profiles',
+        {
+          profile: payload,
         },
-        onFinish: () => {
-          setIsSubmitting(false);
-        }
-      });
+        {
+          onError: (errors: any) => {
+            setErrors(errors);
+          },
+          onFinish: () => {
+            setIsSubmitting(false);
+          },
+        },
+      );
     } catch (error) {
       console.error('Error creating profile:', error);
       setIsSubmitting(false);
     }
   };
 
-  const BrowserOption = ({ value, label, icon: Icon, disabled = false }: { value: string; label: string; icon: any; disabled?: boolean }) => (
-    <div className={`flex items-center space-x-3 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+  const BrowserOption = ({
+    value,
+    label,
+    icon: Icon,
+    disabled = false,
+  }: {
+    value: string;
+    label: string;
+    icon: any;
+    disabled?: boolean;
+  }) => (
+    <div
+      className={`flex items-center space-x-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+    >
       <RadioGroupItem value={value} id={value} disabled={disabled} />
-      <Label htmlFor={value} className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+      <Label
+        htmlFor={value}
+        className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+      >
         <Icon className="h-5 w-5" />
         <span>{label}</span>
       </Label>
@@ -93,18 +119,21 @@ export default function ProfilesNew() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Header */}
         <div className="mb-6">
           <Button asChild variant="ghost" size="sm" className="mb-4">
             <Link href="/profiles">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Profiles
             </Link>
           </Button>
-          <h1 className="text-2xl font-semibold text-neutral-900">Create New Profile</h1>
-          <p className="text-sm text-neutral-600 mt-1">
-            Create a reusable browser profile to save cookies, local storage, and browser state
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            Create New Profile
+          </h1>
+          <p className="mt-1 text-sm text-neutral-600">
+            Create a reusable browser profile to save cookies, local storage,
+            and browser state
           </p>
         </div>
 
@@ -123,7 +152,7 @@ export default function ProfilesNew() {
                 id="name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={e => handleInputChange('name', e.target.value)}
                 placeholder="e.g., Production Testing, Client Demo"
                 className={errors.name ? 'border-red-500' : ''}
               />
@@ -138,7 +167,7 @@ export default function ProfilesNew() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={e => handleInputChange('description', e.target.value)}
                 placeholder="Optional description of what this profile is used for"
                 rows={3}
                 className={errors.description ? 'border-red-500' : ''}
@@ -153,55 +182,78 @@ export default function ProfilesNew() {
               <Label>Browser Type</Label>
               <RadioGroup
                 value={formData.browser_type}
-                onValueChange={(value: any) => handleInputChange('browser_type', value)}
+                onValueChange={(value: any) =>
+                  handleInputChange('browser_type', value)
+                }
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <BrowserOption value="chrome" label="Google Chrome" icon={Chrome} />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border p-4">
+                    <BrowserOption
+                      value="chrome"
+                      label="Google Chrome"
+                      icon={Chrome}
+                    />
                   </div>
-                  <div className="border rounded-lg p-4">
-                    <BrowserOption value="chromium" label="Chromium" icon={Globe} />
+                  <div className="rounded-lg border p-4">
+                    <BrowserOption
+                      value="chromium"
+                      label="Chromium"
+                      icon={Globe}
+                    />
                   </div>
-                  <div className="border rounded-lg p-4">
-                    <BrowserOption value="firefox" label="Firefox" icon={Globe} disabled={true} />
-                    <p className="text-xs text-neutral-500 mt-2 ml-6">Coming soon</p>
+                  <div className="rounded-lg border p-4">
+                    <BrowserOption
+                      value="firefox"
+                      label="Firefox"
+                      icon={Globe}
+                      disabled={true}
+                    />
+                    <p className="mt-2 ml-6 text-xs text-neutral-500">
+                      Coming soon
+                    </p>
                   </div>
                 </div>
               </RadioGroup>
             </div>
 
             {/* Initialize Profile */}
-            <div className="flex items-start space-x-3 p-4 bg-neutral-50 rounded-lg">
+            <div className="flex items-start space-x-3 rounded-lg bg-neutral-50 p-4">
               <Checkbox
                 id="initialize"
                 checked={formData.initialize}
-                onCheckedChange={(checked) => handleInputChange('initialize', !!checked)}
+                onCheckedChange={checked =>
+                  handleInputChange('initialize', !!checked)
+                }
                 className="mt-1"
               />
               <div className="flex-1">
-                <Label htmlFor="initialize" className="cursor-pointer block">
+                <Label htmlFor="initialize" className="block cursor-pointer">
                   Initialize with empty profile data
                 </Label>
-                <p className="text-xs text-neutral-600 mt-1">
-                  Creates an empty profile structure. Uncheck if you plan to upload existing profile data.
+                <p className="mt-1 text-xs text-neutral-600">
+                  Creates an empty profile structure. Uncheck if you plan to
+                  upload existing profile data.
                 </p>
               </div>
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-900 mb-1">What are browser profiles?</h4>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <h4 className="mb-1 text-sm font-semibold text-blue-900">
+                What are browser profiles?
+              </h4>
               <p className="text-xs text-blue-800">
-                Browser profiles save the complete state of a browser session including cookies, 
-                local storage, session storage, and other browser data. This allows you to maintain 
-                logged-in sessions, preferences, and other state across multiple browser sessions.
+                Browser profiles save the complete state of a browser session
+                including cookies, local storage, session storage, and other
+                browser data. This allows you to maintain logged-in sessions,
+                preferences, and other state across multiple browser sessions.
               </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="mt-6 flex justify-end gap-3">
           <Button
             type="button"
             variant="outline"
@@ -219,7 +271,7 @@ export default function ProfilesNew() {
               <>Creating...</>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="mr-2 h-4 w-4" />
                 Create Profile
               </>
             )}

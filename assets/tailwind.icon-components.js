@@ -26,11 +26,16 @@ exports.heroComponent = plugin(({ matchComponents, theme }) => {
   ];
   const values = icons.reduce(
     (accumulator, [suffix, dir]) =>
-      fs.readdirSync(path.join(iconsDir, dir)).reduce((iconsAccumulator, file) => {
-        const name = path.basename(file, '.svg') + suffix;
-        iconsAccumulator[name] = { name, fullPath: path.join(iconsDir, dir, file) };
-        return iconsAccumulator;
-      }, accumulator),
+      fs
+        .readdirSync(path.join(iconsDir, dir))
+        .reduce((iconsAccumulator, file) => {
+          const name = path.basename(file, '.svg') + suffix;
+          iconsAccumulator[name] = {
+            name,
+            fullPath: path.join(iconsDir, dir, file),
+          };
+          return iconsAccumulator;
+        }, accumulator),
     {},
   );
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Channel } from 'phoenix';
 
@@ -18,9 +18,10 @@ export function useSessionsChannel({
   onSessionUpdated,
   onSessionDeleted,
   onConnect,
-  onDisconnect
+  onDisconnect,
 }: UseSessionsChannelProps = {}) {
   const channelReference = useRef<Channel | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -28,26 +29,29 @@ export function useSessionsChannel({
 
     channelReference.current = channel;
     // TODO: Add types
-    channel.join()
-      .receive('ok', (response) => {
+    channel
+      .join()
+      .receive('ok', response => {
         console.log('Successfully joined sessions channel', response);
+        setIsConnected(true);
         onConnect?.();
       })
-      .receive('error', (response) => {
+      .receive('error', response => {
         console.error('Failed to join sessions channel', response);
+        setIsConnected(false);
       });
 
-    channel.on('session_created', (payload) => {
+    channel.on('session_created', payload => {
       console.log('Session created:', payload.session);
       onSessionCreated?.(payload.session);
     });
 
-    channel.on('session_updated', (payload) => {
+    channel.on('session_updated', payload => {
       console.log('Session updated:', payload.session);
       onSessionUpdated?.(payload.session);
     });
 
-    channel.on('session_deleted', (payload) => {
+    channel.on('session_deleted', payload => {
       console.log('Session deleted:', payload.session_id);
       onSessionDeleted?.(payload.session_id);
     });
@@ -58,10 +62,11 @@ export function useSessionsChannel({
 
     socket.onClose(() => {
       console.log('Phoenix socket disconnected');
+      setIsConnected(false);
       onDisconnect?.();
     });
 
-    socket.onError((error) => {
+    socket.onError(error => {
       console.error('Phoenix socket error:', error);
     });
 
@@ -71,14 +76,16 @@ export function useSessionsChannel({
         channelReference.current = null;
       }
     };
-  }, [onSessionCreated, onSessionUpdated, onSessionDeleted, onConnect, onDisconnect]);
+  }, [
+    onSessionCreated,
+    onSessionUpdated,
+    onSessionDeleted,
+    onConnect,
+    onDisconnect,
+  ]);
 
   return {
     channel: channelReference.current,
-    isConnected: channelReference.current?.state === 'joined'
+    isConnected,
   };
 }
-
-
-
-

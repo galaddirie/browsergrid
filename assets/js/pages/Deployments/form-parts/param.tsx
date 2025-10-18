@@ -45,7 +45,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 const FIELD_TYPES: {
-  type: "string" | "number" | "boolean" | "date" | "time" | "datetime" | "file" | "select" | "array" | "object";
+  type:
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'date'
+    | 'time'
+    | 'datetime'
+    | 'file'
+    | 'select'
+    | 'array'
+    | 'object';
   icon: any;
   label: string;
   description: string;
@@ -118,7 +128,17 @@ interface FieldType {
   customId: string;
   name: string;
   label: string;
-  type: "string" | "number" | "boolean" | "date" | "time" | "datetime" | "file" | "select" | "array" | "object";
+  type:
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'date'
+    | 'time'
+    | 'datetime'
+    | 'file'
+    | 'select'
+    | 'array'
+    | 'object';
   is_required: boolean;
   description: string;
   default: string;
@@ -160,7 +180,7 @@ export function DeploymentParametersForm({
   const [tabIndex, setTabIndex] = useState<'inputs' | 'properties'>('inputs');
 
   const packageData = data.package_parameters;
-    
+
   if (!packageData.title && data.name) {
     packageData.title = `${data.name}'s Inputs`;
   }
@@ -171,12 +191,24 @@ export function DeploymentParametersForm({
   const updatePackageData = (updates: any) => {
     const newPackageData = {
       ...packageData,
-      ...updates
+      ...updates,
     };
     setData('package_parameters', newPackageData);
   };
 
-  const handleAddField = (type: "string" | "number" | "boolean" | "date" | "time" | "datetime" | "file" | "select" | "array" | "object") => {
+  const handleAddField = (
+    type:
+      | 'string'
+      | 'number'
+      | 'boolean'
+      | 'date'
+      | 'time'
+      | 'datetime'
+      | 'file'
+      | 'select'
+      | 'array'
+      | 'object',
+  ) => {
     const customId = uuid();
     const newField: FieldType = {
       customId,
@@ -195,7 +227,7 @@ export function DeploymentParametersForm({
     };
 
     updatePackageData({
-      fields: [...fields, newField]
+      fields: [...fields, newField],
     });
 
     setSelectedFieldId(customId);
@@ -205,9 +237,9 @@ export function DeploymentParametersForm({
   const removeField = (index: number) => {
     const fieldId = fields[index]?.customId;
     const updatedFields = fields.filter((_, index_) => index_ !== index);
-    
+
     updatePackageData({
-      fields: updatedFields
+      fields: updatedFields,
     });
 
     if (fieldId === selectedFieldId) {
@@ -217,7 +249,7 @@ export function DeploymentParametersForm({
       } else if (index > 0) {
         newSelectedFieldId = updatedFields[index - 1]?.customId;
       }
-      
+
       if (newSelectedFieldId) {
         setSelectedFieldId(newSelectedFieldId);
         setTabIndex('properties');
@@ -229,22 +261,31 @@ export function DeploymentParametersForm({
   };
 
   const swapFields = (indexA: number, indexB: number) => {
-    if (indexA < 0 || indexB < 0 || indexA >= fields.length || indexB >= fields.length) return;
-    
+    if (
+      indexA < 0 ||
+      indexB < 0 ||
+      indexA >= fields.length ||
+      indexB >= fields.length
+    )
+      return;
+
     const updatedFields = [...fields];
-    [updatedFields[indexA], updatedFields[indexB]] = [updatedFields[indexB], updatedFields[indexA]];
-    
+    [updatedFields[indexA], updatedFields[indexB]] = [
+      updatedFields[indexB],
+      updatedFields[indexA],
+    ];
+
     updatePackageData({
-      fields: updatedFields
+      fields: updatedFields,
     });
   };
 
   const updateField = (index: number, updates: Partial<FieldType>) => {
     const updatedFields = [...fields];
     updatedFields[index] = { ...updatedFields[index], ...updates };
-    
+
     updatePackageData({
-      fields: updatedFields
+      fields: updatedFields,
     });
   };
 
@@ -256,14 +297,16 @@ export function DeploymentParametersForm({
   }, [fields.length]);
 
   return (
-    <div className="flex flex-col gap-4 justify-between h-full">
+    <div className="flex h-full flex-col justify-between gap-4">
       <div>
         {/* Title & Description */}
         <div className="mb-12">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Runtime Parameters</h2>
-              <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+              <h2 className="text-xl font-bold tracking-tight">
+                Runtime Parameters
+              </h2>
+              <p className="text-muted-foreground mt-3 max-w-2xl text-sm">
                 Set up the dynamic user inputs your deployment needs to run.
                 <br />
                 Each time you launch it — via the dashboard or API — you'll
@@ -281,9 +324,9 @@ export function DeploymentParametersForm({
           </div>
           <div className="mt-6 flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
             <div className="h-10 w-1 rounded-full bg-blue-500/50" />
-            <p className="text-sm text-blue-700 dark:text-blue-300 lg:text-xs">
-              <strong>Tip:</strong> Consider adding inputs like URLs, keywords, or
-              custom parameters.
+            <p className="text-sm text-blue-700 lg:text-xs dark:text-blue-300">
+              <strong>Tip:</strong> Consider adding inputs like URLs, keywords,
+              or custom parameters.
               <br />
               Your deployment will use these inputs to run.
             </p>
@@ -301,10 +344,10 @@ export function DeploymentParametersForm({
                   className="mt-2"
                   value={packageData.title}
                   placeholder="Form title"
-                  onChange={(e) => updatePackageData({ title: e.target.value })}
+                  onChange={e => updatePackageData({ title: e.target.value })}
                 />
                 {errors?.['package_parameters.title'] && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {errors['package_parameters.title']}
                   </p>
                 )}
@@ -315,7 +358,9 @@ export function DeploymentParametersForm({
                   className="mt-2"
                   placeholder="Explain how these parameters will be used"
                   value={packageData.description}
-                  onChange={(e) => updatePackageData({ description: e.target.value })}
+                  onChange={e =>
+                    updatePackageData({ description: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -335,14 +380,14 @@ export function DeploymentParametersForm({
                   Add Field
                 </Button>
               </div>
-              
+
               {fields.length === 0 ? (
                 <div className="rounded-lg border-2 border-dashed p-8 text-center">
-                  <Settings className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-xs text-muted-foreground">
+                  <Settings className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                  <p className="text-muted-foreground text-xs">
                     No fields added yet
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     Start by adding a field from the right panel
                   </p>
                 </div>
@@ -350,9 +395,13 @@ export function DeploymentParametersForm({
                 <div className="space-y-1.5">
                   {fields.map((field, index) => {
                     const isSelected = field.customId === selectedFieldId;
-                    const fieldErrors = errors?.[`package_parameters.fields.${index}`];
-                    const hasError = !!fieldErrors && Object.keys(fieldErrors).length > 0;
-                    const fieldIcon = FIELD_TYPES.find(t => t.type === field.type)?.icon || Type;
+                    const fieldErrors =
+                      errors?.[`package_parameters.fields.${index}`];
+                    const hasError =
+                      !!fieldErrors && Object.keys(fieldErrors).length > 0;
+                    const fieldIcon =
+                      FIELD_TYPES.find(t => t.type === field.type)?.icon ||
+                      Type;
 
                     return (
                       <div
@@ -387,7 +436,8 @@ export function DeploymentParametersForm({
                                 className={cn(
                                   'truncate text-sm font-medium text-slate-900 dark:text-slate-100',
                                   {
-                                    'text-blue-600 dark:text-blue-400': isSelected,
+                                    'text-blue-600 dark:text-blue-400':
+                                      isSelected,
                                   },
                                 )}
                               >
@@ -463,11 +513,14 @@ export function DeploymentParametersForm({
             <Card className="p-4">
               <Tabs
                 value={tabIndex}
-                onValueChange={(v: 'inputs' | 'properties') => setTabIndex(v)}
+                onValueChange={v => setTabIndex(v as 'inputs' | 'properties')}
               >
                 <TabsList className="mb-6 grid h-full w-full grid-cols-1 md:grid-cols-2">
                   <TabsTrigger value="inputs">Add Fields</TabsTrigger>
-                  <TabsTrigger value="properties" disabled={selectedIndex === -1}>
+                  <TabsTrigger
+                    value="properties"
+                    disabled={selectedIndex === -1}
+                  >
                     Properties
                   </TabsTrigger>
                 </TabsList>
@@ -478,7 +531,7 @@ export function DeploymentParametersForm({
                     <h3 className="text-lg font-semibold tracking-tight">
                       Add Field
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Choose a field type to add to your form
                     </p>
                   </div>
@@ -486,7 +539,7 @@ export function DeploymentParametersForm({
                   <div className="space-y-6">
                     {Object.entries(groupedFields).map(([category, fields]) => (
                       <div key={category} className="space-y-3">
-                        <h4 className="text-sm font-medium capitalize text-muted-foreground">
+                        <h4 className="text-muted-foreground text-sm font-medium capitalize">
                           {category} Fields
                         </h4>
                         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -531,7 +584,9 @@ export function DeploymentParametersForm({
                       field={fields[selectedIndex]}
                       fieldIndex={selectedIndex}
                       errors={errors}
-                      onUpdateField={(updates) => updateField(selectedIndex, updates)}
+                      onUpdateField={updates =>
+                        updateField(selectedIndex, updates)
+                      }
                     />
                   )}
                 </TabsContent>
@@ -542,7 +597,7 @@ export function DeploymentParametersForm({
       </div>
 
       {/* Navigation buttons */}
-      <div className="flex justify-between pt-6 border-t">
+      <div className="flex justify-between border-t pt-6">
         <Button onClick={onPrev} variant="outline" type="button">
           Previous
         </Button>
@@ -622,14 +677,14 @@ function FieldPropertiesPanel({
   };
 
   return (
-    <div className="w-full space-y-6 animate-in fade-in-50">
+    <div className="animate-in fade-in-50 w-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold tracking-tight">
             Field Properties
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Configure the selected field's behavior and appearance
           </p>
         </div>
@@ -649,10 +704,10 @@ function FieldPropertiesPanel({
               className="font-mono text-sm"
               placeholder={exampleFieldNamePlaceholder(field.type)}
               value={field.name}
-              onChange={(e) => onUpdateField({ name: e.target.value })}
+              onChange={e => onUpdateField({ name: e.target.value })}
             />
             {errors?.[`package_parameters.fields.${fieldIndex}.name`] && (
-              <p className="text-sm text-destructive">
+              <p className="text-destructive text-sm">
                 {errors[`package_parameters.fields.${fieldIndex}.name`]}
               </p>
             )}
@@ -663,10 +718,10 @@ function FieldPropertiesPanel({
             <Input
               placeholder={exampleLabelPlaceholder(field.type)}
               value={field.label}
-              onChange={(e) => onUpdateField({ label: e.target.value })}
+              onChange={e => onUpdateField({ label: e.target.value })}
             />
             {errors?.[`package_parameters.fields.${fieldIndex}.label`] && (
-              <p className="text-sm text-destructive">
+              <p className="text-destructive text-sm">
                 {errors[`package_parameters.fields.${fieldIndex}.label`]}
               </p>
             )}
@@ -680,9 +735,14 @@ function FieldPropertiesPanel({
               <Checkbox
                 id={`field-${fieldIndex}-required`}
                 checked={field.is_required}
-                onCheckedChange={(checked) => onUpdateField({ is_required: !!checked })}
+                onCheckedChange={checked =>
+                  onUpdateField({ is_required: !!checked })
+                }
               />
-              <Label htmlFor={`field-${fieldIndex}-required`} className="text-xs">
+              <Label
+                htmlFor={`field-${fieldIndex}-required`}
+                className="text-xs"
+              >
                 Required
               </Label>
             </div>
@@ -690,7 +750,9 @@ function FieldPropertiesPanel({
               <Checkbox
                 id={`field-${fieldIndex}-hidden`}
                 checked={field.hidden}
-                onCheckedChange={(checked) => onUpdateField({ hidden: !!checked })}
+                onCheckedChange={checked =>
+                  onUpdateField({ hidden: !!checked })
+                }
               />
               <Label htmlFor={`field-${fieldIndex}-hidden`} className="text-xs">
                 Hidden
@@ -700,9 +762,14 @@ function FieldPropertiesPanel({
               <Checkbox
                 id={`field-${fieldIndex}-readonly`}
                 checked={field.readOnly}
-                onCheckedChange={(checked) => onUpdateField({ readOnly: !!checked })}
+                onCheckedChange={checked =>
+                  onUpdateField({ readOnly: !!checked })
+                }
               />
-              <Label htmlFor={`field-${fieldIndex}-readonly`} className="text-xs">
+              <Label
+                htmlFor={`field-${fieldIndex}-readonly`}
+                className="text-xs"
+              >
                 Read Only
               </Label>
             </div>
@@ -716,7 +783,7 @@ function FieldPropertiesPanel({
             className="min-h-[80px] resize-y text-sm"
             placeholder="Help text or instructions for this field..."
             value={field.description}
-            onChange={(e) => onUpdateField({ description: e.target.value })}
+            onChange={e => onUpdateField({ description: e.target.value })}
           />
         </div>
       </div>
@@ -729,7 +796,7 @@ function FieldPropertiesPanel({
           <h4 className="text-sm font-semibold tracking-tight">
             Advanced Settings
           </h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Configure additional field behavior
           </p>
         </div>
@@ -741,7 +808,7 @@ function FieldPropertiesPanel({
               className="text-sm"
               placeholder="Optional default value"
               value={field.default}
-              onChange={(e) => onUpdateField({ default: e.target.value })}
+              onChange={e => onUpdateField({ default: e.target.value })}
             />
           </div>
           <div className="space-y-2">
@@ -750,7 +817,7 @@ function FieldPropertiesPanel({
               className="text-sm"
               placeholder="Placeholder text"
               value={field.placeholder}
-              onChange={(e) => onUpdateField({ placeholder: e.target.value })}
+              onChange={e => onUpdateField({ placeholder: e.target.value })}
             />
           </div>
         </div>
@@ -768,10 +835,7 @@ function FieldPropertiesPanel({
       <Separator />
 
       {/* Conditional Logic */}
-      <ConditionsEditor
-        field={field}
-        onUpdateField={onUpdateField}
-      />
+      <ConditionsEditor field={field} onUpdateField={onUpdateField} />
     </div>
   );
 }
@@ -781,14 +845,24 @@ function TypeSpecificOptions({
   field,
   onUpdateField,
 }: {
-  type: "string" | "number" | "boolean" | "date" | "time" | "datetime" | "file" | "select" | "array" | "object";
+  type:
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'date'
+    | 'time'
+    | 'datetime'
+    | 'file'
+    | 'select'
+    | 'array'
+    | 'object';
   field: FieldType;
   onUpdateField: (updates: Partial<FieldType>) => void;
 }) {
   const updateOptions = (path: string, value: any) => {
     const pathParts = path.split('.');
     const newOptions = { ...field.options };
-    
+
     let current = newOptions;
     for (let index = 0; index < pathParts.length - 1; index++) {
       if (!current[pathParts[index]]) {
@@ -797,7 +871,7 @@ function TypeSpecificOptions({
       current = current[pathParts[index]];
     }
     current[pathParts[pathParts.length - 1]] = value;
-    
+
     onUpdateField({ options: newOptions });
   };
 
@@ -818,7 +892,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             String Options
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Configure string-specific validations
           </p>
         </div>
@@ -828,7 +902,9 @@ function TypeSpecificOptions({
             <Label>Format</Label>
             <Select
               value={getOptionValue('string.format') || 'none'}
-              onValueChange={(value: string) => updateOptions('string.format', value)}
+              onValueChange={(value: string) =>
+                updateOptions('string.format', value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select format" />
@@ -849,7 +925,7 @@ function TypeSpecificOptions({
               type="number"
               className="text-xs"
               value={getOptionValue('string.minLength')}
-              onChange={(e) => updateOptions('string.minLength', e.target.value)}
+              onChange={e => updateOptions('string.minLength', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -858,7 +934,7 @@ function TypeSpecificOptions({
               type="number"
               className="text-xs"
               value={getOptionValue('string.maxLength')}
-              onChange={(e) => updateOptions('string.maxLength', e.target.value)}
+              onChange={e => updateOptions('string.maxLength', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -867,7 +943,7 @@ function TypeSpecificOptions({
               className="font-mono text-xs"
               placeholder="^[a-zA-Z0-9]*$"
               value={getOptionValue('string.regex')}
-              onChange={(e) => updateOptions('string.regex', e.target.value)}
+              onChange={e => updateOptions('string.regex', e.target.value)}
             />
           </div>
         </div>
@@ -882,7 +958,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             Number Options
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Configure numeric constraints and behavior
           </p>
         </div>
@@ -894,7 +970,7 @@ function TypeSpecificOptions({
               type="number"
               className="text-xs"
               value={getOptionValue('number.minimum')}
-              onChange={(e) => updateOptions('number.minimum', e.target.value)}
+              onChange={e => updateOptions('number.minimum', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -903,7 +979,7 @@ function TypeSpecificOptions({
               type="number"
               className="text-xs"
               value={getOptionValue('number.maximum')}
-              onChange={(e) => updateOptions('number.maximum', e.target.value)}
+              onChange={e => updateOptions('number.maximum', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -913,7 +989,7 @@ function TypeSpecificOptions({
               className="text-xs"
               placeholder="e.g. 5 for multiples of 5"
               value={getOptionValue('number.multipleOf')}
-              onChange={(e) => updateOptions('number.multipleOf', e.target.value)}
+              onChange={e => updateOptions('number.multipleOf', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -923,7 +999,7 @@ function TypeSpecificOptions({
               className="text-xs"
               placeholder="Increment/decrement step"
               value={getOptionValue('number.step')}
-              onChange={(e) => updateOptions('number.step', e.target.value)}
+              onChange={e => updateOptions('number.step', e.target.value)}
             />
           </div>
         </div>
@@ -938,7 +1014,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             Select Options
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Configure dropdown choices and behavior
           </p>
         </div>
@@ -953,9 +1029,9 @@ function TypeSpecificOptions({
   {"value": "uk", "label": "United Kingdom"}
 ]`}
               value={getOptionValue('select.options')}
-              onChange={(e) => updateOptions('select.options', e.target.value)}
+              onChange={e => updateOptions('select.options', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               JSON array of options with value and label properties
             </p>
           </div>
@@ -965,7 +1041,9 @@ function TypeSpecificOptions({
               <Checkbox
                 id="select-multiple"
                 checked={!!getOptionValue('select.multiple')}
-                onCheckedChange={(checked) => updateOptions('select.multiple', checked)}
+                onCheckedChange={checked =>
+                  updateOptions('select.multiple', checked)
+                }
               />
               <Label htmlFor="select-multiple" className="text-xs">
                 Allow multiple selections
@@ -975,7 +1053,9 @@ function TypeSpecificOptions({
               <Checkbox
                 id="select-other"
                 checked={!!getOptionValue('select.other')}
-                onCheckedChange={(checked) => updateOptions('select.other', checked)}
+                onCheckedChange={checked =>
+                  updateOptions('select.other', checked)
+                }
               />
               <Label htmlFor="select-other" className="text-xs">
                 Include "Other" option with custom input
@@ -994,7 +1074,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             File Upload Options
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Configure file upload constraints
           </p>
         </div>
@@ -1006,9 +1086,9 @@ function TypeSpecificOptions({
               className="min-h-[80px] resize-y font-mono text-xs"
               placeholder={`["image/png", "image/jpeg", ".pdf", ".doc"]`}
               value={getOptionValue('file.accept')}
-              onChange={(e) => updateOptions('file.accept', e.target.value)}
+              onChange={e => updateOptions('file.accept', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               MIME types or file extensions in JSON array format
             </p>
           </div>
@@ -1019,16 +1099,20 @@ function TypeSpecificOptions({
                 type="number"
                 className="text-xs"
                 value={getOptionValue('file.maxFileSize')}
-                onChange={(e) => updateOptions('file.maxFileSize', e.target.value)}
+                onChange={e =>
+                  updateOptions('file.maxFileSize', e.target.value)
+                }
               />
-              <span className="text-sm text-muted-foreground">bytes</span>
+              <span className="text-muted-foreground text-sm">bytes</span>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="file-multiple"
               checked={!!getOptionValue('file.multiple')}
-              onCheckedChange={(checked) => updateOptions('file.multiple', checked)}
+              onCheckedChange={checked =>
+                updateOptions('file.multiple', checked)
+              }
             />
             <Label htmlFor="file-multiple" className="text-xs">
               Allow multiple files
@@ -1046,7 +1130,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             Array Options
           </h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Configure array field constraints
           </p>
         </div>
@@ -1059,7 +1143,7 @@ function TypeSpecificOptions({
               className="text-sm"
               placeholder="e.g. 1"
               value={getOptionValue('array.minItems')}
-              onChange={(e) => updateOptions('array.minItems', e.target.value)}
+              onChange={e => updateOptions('array.minItems', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -1069,18 +1153,18 @@ function TypeSpecificOptions({
               className="text-sm"
               placeholder="e.g. 10"
               value={getOptionValue('array.maxItems')}
-              onChange={(e) => updateOptions('array.maxItems', e.target.value)}
+              onChange={e => updateOptions('array.maxItems', e.target.value)}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="array-unique"
               checked={!!getOptionValue('array.uniqueItems')}
-              onCheckedChange={(checked) => updateOptions('array.uniqueItems', checked)}
+              onCheckedChange={checked =>
+                updateOptions('array.uniqueItems', checked)
+              }
             />
-            <Label htmlFor="array-unique">
-              Enforce unique items
-            </Label>
+            <Label htmlFor="array-unique">Enforce unique items</Label>
           </div>
         </div>
       </div>
@@ -1094,7 +1178,7 @@ function TypeSpecificOptions({
           <h4 className="text-sm font-semibold tracking-tight">
             Object Options
           </h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Configure nested object field settings
           </p>
         </div>
@@ -1106,9 +1190,9 @@ function TypeSpecificOptions({
               className="min-h-[80px] resize-y font-mono text-sm"
               placeholder={`["firstName", "lastName", "email"]`}
               value={getOptionValue('object.required')}
-              onChange={(e) => updateOptions('object.required', e.target.value)}
+              onChange={e => updateOptions('object.required', e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               JSON array of required property names
             </p>
           </div>
@@ -1130,7 +1214,10 @@ function ConditionsEditor({
   const conditions = field.conditions || [];
 
   const addCondition = () => {
-    const newConditions = [...conditions, { field: '', operator: 'equals', value: '' }];
+    const newConditions = [
+      ...conditions,
+      { field: '', operator: 'equals', value: '' },
+    ];
     onUpdateField({ conditions: newConditions });
   };
 
@@ -1161,7 +1248,7 @@ function ConditionsEditor({
           <h4 className="text-sm font-semibold tracking-tight">
             Conditional Logic
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Define when this field should be shown
           </p>
         </div>
@@ -1169,14 +1256,14 @@ function ConditionsEditor({
           type="button"
           variant="ghost"
           onClick={addCondition}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+          className="text-primary hover:text-primary/80 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       {conditions.length === 0 ? (
-        <div className="rounded-md bg-muted/50 py-4 text-center text-xs text-muted-foreground">
+        <div className="bg-muted/50 text-muted-foreground rounded-md py-4 text-center text-xs">
           No conditions set
         </div>
       ) : (
@@ -1184,17 +1271,21 @@ function ConditionsEditor({
           {conditions.map((condition, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 rounded-md bg-muted/50 p-3"
+              className="bg-muted/50 flex items-center gap-2 rounded-md p-3"
             >
               <Input
                 className="flex-1 text-xs"
                 placeholder="Field name"
                 value={condition.field}
-                onChange={(e) => updateCondition(index, { field: e.target.value })}
+                onChange={e =>
+                  updateCondition(index, { field: e.target.value })
+                }
               />
               <Select
                 value={condition.operator}
-                onValueChange={(value: string) => updateCondition(index, { operator: value })}
+                onValueChange={(value: string) =>
+                  updateCondition(index, { operator: value })
+                }
               >
                 <SelectTrigger className="w-[120px] p-1 text-xs">
                   <SelectValue />
@@ -1216,12 +1307,14 @@ function ConditionsEditor({
                 className="flex-1 text-xs"
                 placeholder="Value"
                 value={condition.value}
-                onChange={(e) => updateCondition(index, { value: e.target.value })}
+                onChange={e =>
+                  updateCondition(index, { value: e.target.value })
+                }
               />
               <button
                 type="button"
                 onClick={() => removeCondition(index)}
-                className="p-2 text-muted-foreground transition-colors hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive p-2 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>

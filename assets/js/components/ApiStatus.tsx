@@ -1,9 +1,13 @@
-import React from 'react';
-
-import { AlertCircle, CheckCircle, Loader2,XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, XCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 interface ApiStatusProps {
   status: 'connected' | 'disconnected' | 'loading' | 'error';
@@ -11,7 +15,11 @@ interface ApiStatusProps {
   endpoint?: string;
 }
 
-export default function ApiStatus({ status, message, endpoint }: ApiStatusProps) {
+export default function ApiStatus({
+  status,
+  message,
+  endpoint,
+}: ApiStatusProps) {
   const getStatusIcon = () => {
     switch (status) {
       case 'connected':
@@ -19,7 +27,7 @@ export default function ApiStatus({ status, message, endpoint }: ApiStatusProps)
       case 'disconnected':
         return <XCircle className="h-4 w-4 text-red-500" />;
       case 'loading':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
       case 'error':
         return <AlertCircle className="h-4 w-4 text-orange-500" />;
       default:
@@ -50,9 +58,7 @@ export default function ApiStatus({ status, message, endpoint }: ApiStatusProps)
           {getStatusIcon()}
         </div>
         {endpoint && (
-          <CardDescription className="text-xs">
-            {endpoint}
-          </CardDescription>
+          <CardDescription className="text-xs">{endpoint}</CardDescription>
         )}
       </CardHeader>
       <CardContent>
@@ -61,11 +67,11 @@ export default function ApiStatus({ status, message, endpoint }: ApiStatusProps)
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </Badge>
           {message && (
-            <span className="text-sm text-muted-foreground">{message}</span>
+            <span className="text-muted-foreground text-sm">{message}</span>
           )}
         </div>
         {status === 'connected' && (
-          <div className="mt-2 text-xs text-muted-foreground">
+          <div className="text-muted-foreground mt-2 text-xs">
             ✓ Ready to create sessions with defaults:
             <br />• Chrome latest on Linux
             <br />• 1920x1080 resolution
@@ -76,4 +82,4 @@ export default function ApiStatus({ status, message, endpoint }: ApiStatusProps)
       </CardContent>
     </Card>
   );
-} 
+}

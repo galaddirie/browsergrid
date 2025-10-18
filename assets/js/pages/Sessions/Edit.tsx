@@ -6,27 +6,20 @@ import { ArrowLeft } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { SessionForm } from '@/components/SessionForm';
 import { Button } from '@/components/ui/button';
-import { formDataToSession,Session, SessionEditProps, SessionFormData, sessionToFormData } from '@/types';
+import {
+  formDataToSession,
+  SessionEditProps,
+  SessionFormData,
+  sessionToFormData,
+} from '@/types';
 
-export default function EditSession({ session, errors = {} }: SessionEditProps) {
-  const [sessionData, setSessionData] = useState<Partial<SessionFormData>>(sessionToFormData(session));
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async () => {
-    setIsLoading(true);
-
-    const backendData = formDataToSession(sessionData);
-    router.put(`/sessions/${session.id}`, { session: backendData }, {
-      onFinish: () => setIsLoading(false),
-      onError: (errors) => {
-        console.error('Failed to update session:', errors);
-      },
-    });
-  };
-
-  const handleCancel = () => {
-    router.visit(`/sessions/${session.id}`);
-  };
+export default function EditSession({
+  session,
+  errors = {},
+}: SessionEditProps) {
+  const [sessionData, setSessionData] = useState<Partial<SessionFormData>>(
+    sessionToFormData(session),
+  );
 
   return (
     <Layout>
@@ -39,10 +32,10 @@ export default function EditSession({ session, errors = {} }: SessionEditProps) 
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
               Edit Session
             </h1>
-            <p className="text-sm text-neutral-600 mt-1">
+            <p className="mt-1 text-sm text-neutral-600">
               Update your browser session settings
             </p>
           </div>
@@ -50,26 +43,45 @@ export default function EditSession({ session, errors = {} }: SessionEditProps) 
 
         {/* Session Form */}
         <div className="max-w-4xl">
-          <SessionForm
-            session={sessionData}
-            onSessionChange={setSessionData}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={isLoading}
-          />
+          <SessionForm session={sessionData} onSessionChange={setSessionData} />
         </div>
 
         {/* Error Display */}
         {Object.keys(errors).length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-red-800 mb-2">Please fix the following errors:</h3>
-            <div className="list-disc list-inside text-sm text-red-700 space-y-1">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <h3 className="mb-2 text-sm font-medium text-red-800">
+              Please fix the following errors:
+            </h3>
+            <div className="list-inside list-disc space-y-1 text-sm text-red-700">
               {Object.entries(errors).map(([field, message]) => (
-                <div key={field} className="ml-4">• {message}</div>
+                <div key={field} className="ml-4">
+                  • {message}
+                </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Action Buttons */}
+        <div className="flex max-w-4xl justify-between gap-2 border-t pt-6">
+          <Button variant="outline" asChild>
+            <Link href={`/sessions/${session.id}`}>Cancel</Link>
+          </Button>
+          <Button
+            onClick={() => {
+              const backendData = formDataToSession(sessionData);
+              const payload = {
+                name: backendData.name,
+                browser_type: backendData.browser_type,
+                profile_id: backendData.profile_id,
+                options: backendData.options,
+              };
+              router.put(`/sessions/${session.id}`, { session: payload });
+            }}
+          >
+            Save Changes
+          </Button>
+        </div>
       </div>
     </Layout>
   );
