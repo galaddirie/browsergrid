@@ -43,7 +43,7 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
   def update(conn, %{"id" => id, "profile" => profile_params}) do
     with {:ok, profile} <- fetch_profile(id),
          {:ok, profile} <- Authorization.authorize_resource(conn, profile),
-         sanitized <- ensure_owner(profile_params, conn),
+         sanitized = ensure_owner(profile_params, conn),
          {:ok, updated} <- Profiles.update_profile(profile, sanitized) do
       json(conn, %{data: updated})
     else

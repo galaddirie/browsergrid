@@ -13,7 +13,9 @@ defmodule BrowsergridWeb.SessionProxyController do
     base_path = build_base_path(conn.path_info, path_segments)
 
     if websocket_upgrade?(conn) do
-      handle_websocket(conn, session_id, path, base_path)
+      conn
+      |> send_resp(:gone, "websocket upgrade no longer supported")
+      |> halt()
     else
       handle_http(conn, session_id, path, base_path)
     end
@@ -23,30 +25,6 @@ defmodule BrowsergridWeb.SessionProxyController do
     conn
     |> get_req_header("upgrade")
     |> Enum.any?(fn header -> String.downcase(header) == "websocket" end)
-  end
-
-  defp handle_websocket(conn, session_id, path, base_path) do
-    case SessionRuntime.upstream_endpoint(session_id) do
-      {:ok, %{host: host, port: port}} ->
-        state = %{
-          session_id: session_id,
-          host: host,
-          port: port,
-          target: append_query(path, conn.query_string),
-          headers: websocket_headers(conn, base_path)
-        }
-
-        conn
-        |> WebSockAdapter.upgrade(BrowsergridWeb.SessionProxySocket, state, timeout: 120_000)
-        |> halt()
-
-      {:error, :not_found} ->
-        send_resp(conn, 404, "session not running")
-
-      {:error, reason} ->
-        Logger.error("websocket proxy failed: #{inspect(reason)}")
-        send_resp(conn, 500, "proxy failure")
-    end
   end
 
   defp handle_http(conn, session_id, path, base_path) do
@@ -234,10 +212,6 @@ defmodule BrowsergridWeb.SessionProxyController do
   defp build_target_uri(host, port, path, ""), do: "http://#{host}:#{port}#{path}"
   defp build_target_uri(host, port, path, query), do: "http://#{host}:#{port}#{path}?#{query}"
 
-  defp append_query(path, ""), do: path
-  defp append_query(path, nil), do: path
-  defp append_query(path, query), do: path <> "?" <> query
-
   defp proxy_request_headers(conn, host, port, base_path) do
     {external_host, external_host_with_prefix, external_scheme} =
       external_connection_parts(conn, base_path)
@@ -294,40 +268,6 @@ defmodule BrowsergridWeb.SessionProxyController do
     headers
     |> Enum.reject(fn {key, _} -> String.downcase(key) in @hop_by_hop_headers end)
     |> Enum.reduce(conn, fn {key, value}, acc -> Plug.Conn.put_resp_header(acc, key, value) end)
-  end
-
-  defp websocket_headers(conn, base_path) do
-    forwarding_headers(conn, base_path) ++
-      Enum.filter(conn.req_headers, fn {key, _} ->
-        String.downcase(key) in ["sec-websocket-protocol", "origin"]
-      end)
-  end
-
-  defp forwarding_headers(conn, base_path) do
-    {external_host, external_host_with_prefix, external_scheme} =
-      external_connection_parts(conn, base_path)
-
-    forwarded_ip =
-      conn.remote_ip
-      |> :inet.ntoa()
-      |> to_string()
-
-    forwarded_header =
-      conn
-      |> get_req_header("x-forwarded-for")
-      |> List.first()
-      |> case do
-        nil -> forwarded_ip
-        existing -> existing <> ", " <> forwarded_ip
-      end
-
-    [
-      {"x-forwarded-host", external_host},
-      {"x-external-host", external_host_with_prefix},
-      {"x-forwarded-proto", external_scheme},
-      {"x-external-scheme", external_scheme},
-      {"x-forwarded-for", forwarded_header}
-    ]
   end
 
   defp external_connection_parts(conn, base_path) do

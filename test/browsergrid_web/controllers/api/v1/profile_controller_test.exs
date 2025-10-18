@@ -25,7 +25,7 @@ defmodule BrowsergridWeb.API.V1.ProfileControllerTest do
       insert_profile!(user, %{name: "My profile"})
       insert_profile!(other_user, %{name: "Other profile"})
 
-      res = get(conn, ~p"/api/v1/profiles") |> json_response(200)
+      res = conn |> get(~p"/api/v1/profiles") |> json_response(200)
 
       assert [%{"name" => "My profile"}] = res["data"]
     end
@@ -40,7 +40,7 @@ defmodule BrowsergridWeb.API.V1.ProfileControllerTest do
         }
       }
 
-      res = post(conn, ~p"/api/v1/profiles", payload) |> json_response(201)
+      res = conn |> post(~p"/api/v1/profiles", payload) |> json_response(201)
 
       assert res["data"]["user_id"] == user.id
       assert res["data"]["name"] == "API Profile"
@@ -53,7 +53,7 @@ defmodule BrowsergridWeb.API.V1.ProfileControllerTest do
 
       payload = %{"profile" => %{"name" => "New"}}
 
-      res = put(conn, ~p"/api/v1/profiles/#{profile.id}", payload) |> json_response(200)
+      res = conn |> put(~p"/api/v1/profiles/#{profile.id}", payload) |> json_response(200)
 
       assert res["data"]["name"] == "New"
     end
@@ -72,15 +72,17 @@ defmodule BrowsergridWeb.API.V1.ProfileControllerTest do
 
   defp insert_profile!(user, attrs) do
     params =
-      %{
-        name: "Profile #{System.unique_integer()}",
-        browser_type: :chrome,
-        user_id: user.id,
-        status: :active,
-        metadata: %{},
-        version: 1
-      }
-      |> Map.merge(attrs)
+      Map.merge(
+        %{
+          name: "Profile #{System.unique_integer()}",
+          browser_type: :chrome,
+          user_id: user.id,
+          status: :active,
+          metadata: %{},
+          version: 1
+        },
+        attrs
+      )
 
     %Profile{}
     |> Profile.changeset(params)

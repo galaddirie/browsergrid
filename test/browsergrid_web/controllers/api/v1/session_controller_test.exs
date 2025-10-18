@@ -25,7 +25,7 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
       insert_session!(user, %{name: "Mine"})
       insert_session!(other_user, %{name: "Theirs"})
 
-      res = get(conn, ~p"/api/v1/sessions") |> json_response(200)
+      res = conn |> get(~p"/api/v1/sessions") |> json_response(200)
 
       assert [%{"name" => "Mine"}] = res["data"]
     end
@@ -40,7 +40,7 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
         }
       }
 
-      res = post(conn, ~p"/api/v1/sessions", payload) |> json_response(201)
+      res = conn |> post(~p"/api/v1/sessions", payload) |> json_response(201)
 
       assert res["data"]["name"] == "API Session"
       assert res["data"]["user_id"] == user.id
@@ -51,7 +51,7 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
     test "returns the session when owned by the user", %{conn: conn, user: user} do
       session = insert_session!(user, %{name: "Owned"})
 
-      res = get(conn, ~p"/api/v1/sessions/#{session.id}") |> json_response(200)
+      res = conn |> get(~p"/api/v1/sessions/#{session.id}") |> json_response(200)
 
       assert res["data"]["id"] == session.id
     end
@@ -72,7 +72,7 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
       session = insert_session!(user, %{name: "Old Name"})
       payload = %{"session" => %{"name" => "New Name", "user_id" => "ignored"}}
 
-      res = put(conn, ~p"/api/v1/sessions/#{session.id}", payload) |> json_response(200)
+      res = conn |> put(~p"/api/v1/sessions/#{session.id}", payload) |> json_response(200)
 
       assert res["data"]["name"] == "New Name"
       assert res["data"]["user_id"] == user.id
@@ -81,17 +81,19 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
 
   defp insert_session!(user, attrs) do
     params =
-      %{
-        name: "Session #{System.unique_integer()}",
-        browser_type: :chrome,
-        status: :pending,
-        user_id: user.id,
-        headless: false,
-        timeout: 30,
-        screen: %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0},
-        limits: %{}
-      }
-      |> Map.merge(attrs)
+      Map.merge(
+        %{
+          name: "Session #{System.unique_integer()}",
+          browser_type: :chrome,
+          status: :pending,
+          user_id: user.id,
+          headless: false,
+          timeout: 30,
+          screen: %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0},
+          limits: %{}
+        },
+        attrs
+      )
 
     %Session{}
     |> Session.changeset(params)

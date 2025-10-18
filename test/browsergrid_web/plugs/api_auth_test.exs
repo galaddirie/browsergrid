@@ -4,6 +4,7 @@ defmodule BrowsergridWeb.Plugs.ApiAuthTest do
   alias Browsergrid.AccountsFixtures
   alias Browsergrid.ApiTokens
   alias Browsergrid.ApiTokens.ApiToken
+  alias BrowsergridWeb.Plugs.ApiAuth
 
   describe "call/2" do
     test "assigns the user and token when the bearer token is valid", %{conn: conn} do
@@ -13,7 +14,7 @@ defmodule BrowsergridWeb.Plugs.ApiAuthTest do
       conn =
         conn
         |> put_req_header("authorization", "Bearer #{plaintext}")
-        |> BrowsergridWeb.Plugs.ApiAuth.call(%{})
+        |> ApiAuth.call(%{})
 
       assert conn.assigns.current_user.id == user.id
       assert %ApiToken{id: token_id} = conn.assigns.api_token
@@ -22,7 +23,7 @@ defmodule BrowsergridWeb.Plugs.ApiAuthTest do
     end
 
     test "returns 401 when authorization header is missing", %{conn: conn} do
-      conn = BrowsergridWeb.Plugs.ApiAuth.call(conn, %{})
+      conn = ApiAuth.call(conn, %{})
 
       assert conn.halted
       assert conn.status == 401
@@ -33,7 +34,7 @@ defmodule BrowsergridWeb.Plugs.ApiAuthTest do
       conn =
         conn
         |> put_req_header("authorization", "Bearer invalid")
-        |> BrowsergridWeb.Plugs.ApiAuth.call(%{})
+        |> ApiAuth.call(%{})
 
       assert conn.halted
       assert conn.status == 401
