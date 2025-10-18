@@ -8,7 +8,7 @@ defmodule Browsergrid.Profiles.Profile do
 
   alias Browsergrid.Media.MediaFile
 
-  @derive {Jason.Encoder, except: [:__meta__, :sessions, :snapshots, :media_file]}
+  @derive {Jason.Encoder, except: [:__meta__, :sessions, :snapshots, :media_file, :user]}
 
   @browser_types [:chrome, :chromium, :firefox]
   @statuses [:active, :archived, :updating, :error]
@@ -38,7 +38,7 @@ defmodule Browsergrid.Profiles.Profile do
     field :storage_size_bytes, :integer
     field :last_used_at, :utc_datetime_usec
     field :version, :integer, default: 1
-    field :user_id, :binary_id
+    belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
 
     # Reference to the current profile data in media storage
     belongs_to :media_file, MediaFile, type: :binary_id

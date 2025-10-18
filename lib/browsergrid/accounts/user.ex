@@ -15,6 +15,8 @@ defmodule Browsergrid.Accounts.User do
     field :confirmed_at, :utc_datetime_usec
     field :is_admin, :boolean, default: false
 
+    has_many :api_tokens, Browsergrid.ApiTokens.ApiToken
+
     timestamps(type: :utc_datetime_usec)
   end
 

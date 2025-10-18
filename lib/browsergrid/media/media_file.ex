@@ -36,7 +36,7 @@ defmodule Browsergrid.Media.MediaFile do
     field :metadata, :map, default: %{}
     field :category, :string
 
-    field :user_id, :binary_id
+    belongs_to :user, Browsergrid.Accounts.User, type: :binary_id
     belongs_to :session, Browsergrid.Sessions.Session, type: :binary_id
 
     timestamps()
