@@ -3,6 +3,8 @@ defmodule Browsergrid.Application do
 
   use Application
 
+  alias Browsergrid.Accounts.AdminBootstrap
+
   require Logger
 
   @impl true
@@ -36,6 +38,8 @@ defmodule Browsergrid.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _pid} = success ->
+        AdminBootstrap.ensure_admin_user!()
+
         Logger.info("""
 
         ============================================

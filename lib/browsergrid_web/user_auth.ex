@@ -1,8 +1,9 @@
 defmodule BrowsergridWeb.UserAuth do
+  @moduledoc false
   use BrowsergridWeb, :verified_routes
 
-  import Plug.Conn
   import Phoenix.Controller
+  import Plug.Conn
 
   alias Browsergrid.Accounts
 

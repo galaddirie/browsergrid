@@ -125,7 +125,6 @@ defmodule Browsergrid.Media do
     {:ok, length(orphaned)}
   end
 
-
   defp read_upload(%{content: content}) when is_binary(content) do
     {:ok, content}
   end

@@ -1,9 +1,10 @@
 defmodule BrowsergridWeb.UserResetPasswordControllerTest do
   use BrowsergridWeb.ConnCase, async: true
 
+  import Browsergrid.AccountsFixtures
+
   alias Browsergrid.Accounts
   alias Browsergrid.Repo
-  import Browsergrid.AccountsFixtures
 
   setup do
     %{user: user_fixture()}

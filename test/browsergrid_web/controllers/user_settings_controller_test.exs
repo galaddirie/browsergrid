@@ -1,8 +1,9 @@
 defmodule BrowsergridWeb.UserSettingsControllerTest do
   use BrowsergridWeb.ConnCase, async: true
 
-  alias Browsergrid.Accounts
   import Browsergrid.AccountsFixtures
+
+  alias Browsergrid.Accounts
 
   setup :register_and_log_in_user
 

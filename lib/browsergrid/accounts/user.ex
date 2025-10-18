@@ -1,6 +1,9 @@
 defmodule Browsergrid.Accounts.User do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "users" do
@@ -9,6 +12,7 @@ defmodule Browsergrid.Accounts.User do
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime_usec
+    field :is_admin, :boolean, default: false
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -127,7 +131,7 @@ defmodule Browsergrid.Accounts.User do
   Confirms the account by setting `confirmed_at`.
   """
   def confirm_changeset(user) do
-    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    now = DateTime.truncate(DateTime.utc_now(), :microsecond)
     change(user, confirmed_at: now)
   end
 

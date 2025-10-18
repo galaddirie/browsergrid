@@ -3,6 +3,10 @@ defmodule BrowsergridWeb.Router do
 
   import BrowsergridWeb.UserAuth
 
+  alias Inertia.V1.DeploymentController
+  alias Inertia.V1.ProfileController
+  alias Inertia.V1.SessionController
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -38,36 +42,36 @@ defmodule BrowsergridWeb.Router do
     get "/dashboard", Inertia.V1.DashboardController, :overview
 
     # Sessions routes
-    get "/sessions", Inertia.V1.SessionController, :index
-    post "/sessions", Inertia.V1.SessionController, :create
-    get "/sessions/:id", Inertia.V1.SessionController, :show
-    get "/sessions/:id/edit", Inertia.V1.SessionController, :edit
-    put "/sessions/:id", Inertia.V1.SessionController, :update
-    patch "/sessions/:id", Inertia.V1.SessionController, :update
-    delete "/sessions/:id", Inertia.V1.SessionController, :delete
+    get "/sessions", SessionController, :index
+    post "/sessions", SessionController, :create
+    get "/sessions/:id", SessionController, :show
+    get "/sessions/:id/edit", SessionController, :edit
+    put "/sessions/:id", SessionController, :update
+    patch "/sessions/:id", SessionController, :update
+    delete "/sessions/:id", SessionController, :delete
 
     # Profile routes
-    get "/profiles", Inertia.V1.ProfileController, :index
-    get "/profiles/new", Inertia.V1.ProfileController, :new
-    post "/profiles", Inertia.V1.ProfileController, :create
-    get "/profiles/:id", Inertia.V1.ProfileController, :show
-    get "/profiles/:id/edit", Inertia.V1.ProfileController, :edit
-    put "/profiles/:id", Inertia.V1.ProfileController, :update
-    patch "/profiles/:id", Inertia.V1.ProfileController, :update
-    delete "/profiles/:id", Inertia.V1.ProfileController, :delete
-    post "/profiles/:id/archive", Inertia.V1.ProfileController, :archive
-    get "/profiles/:id/download", Inertia.V1.ProfileController, :download
-    post "/profiles/:id/upload", Inertia.V1.ProfileController, :upload
-    post "/profiles/:id/restore/:snapshot_id", Inertia.V1.ProfileController, :restore_snapshot
-    post "/profiles/:id/cleanup", Inertia.V1.ProfileController, :cleanup_snapshots
+    get "/profiles", ProfileController, :index
+    get "/profiles/new", ProfileController, :new
+    post "/profiles", ProfileController, :create
+    get "/profiles/:id", ProfileController, :show
+    get "/profiles/:id/edit", ProfileController, :edit
+    put "/profiles/:id", ProfileController, :update
+    patch "/profiles/:id", ProfileController, :update
+    delete "/profiles/:id", ProfileController, :delete
+    post "/profiles/:id/archive", ProfileController, :archive
+    get "/profiles/:id/download", ProfileController, :download
+    post "/profiles/:id/upload", ProfileController, :upload
+    post "/profiles/:id/restore/:snapshot_id", ProfileController, :restore_snapshot
+    post "/profiles/:id/cleanup", ProfileController, :cleanup_snapshots
 
     # Deployment routes
-    get "/deployments", Inertia.V1.DeploymentController, :index
-    get "/deployments/new", Inertia.V1.DeploymentController, :new
-    post "/deployments", Inertia.V1.DeploymentController, :create
-    get "/deployments/:id", Inertia.V1.DeploymentController, :show
-    post "/deployments/:id/deploy", Inertia.V1.DeploymentController, :deploy
-    delete "/deployments/:id", Inertia.V1.DeploymentController, :delete
+    get "/deployments", DeploymentController, :index
+    get "/deployments/new", DeploymentController, :new
+    post "/deployments", DeploymentController, :create
+    get "/deployments/:id", DeploymentController, :show
+    post "/deployments/:id/deploy", DeploymentController, :deploy
+    delete "/deployments/:id", DeploymentController, :delete
   end
 
   # API V1 Routes - Public
@@ -102,8 +106,6 @@ defmodule BrowsergridWeb.Router do
   scope "/", BrowsergridWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
-    get "/users/register", UserRegistrationController, :new
-    post "/users/register", UserRegistrationController, :create
     get "/users/log_in", UserSessionController, :new
     post "/users/log_in", UserSessionController, :create
     get "/users/reset_password", UserResetPasswordController, :new
@@ -123,6 +125,7 @@ defmodule BrowsergridWeb.Router do
   scope "/", BrowsergridWeb do
     pipe_through [:browser]
 
+    get "/users/log_out", UserSessionController, :delete
     delete "/users/log_out", UserSessionController, :delete
     get "/users/confirm", UserConfirmationController, :new
     post "/users/confirm", UserConfirmationController, :create

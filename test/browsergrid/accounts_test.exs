@@ -1,10 +1,11 @@
 defmodule Browsergrid.AccountsTest do
   use Browsergrid.DataCase
 
-  alias Browsergrid.Accounts
-
   import Browsergrid.AccountsFixtures
-  alias Browsergrid.Accounts.{User, UserToken}
+
+  alias Browsergrid.Accounts
+  alias Browsergrid.Accounts.User
+  alias Browsergrid.Accounts.UserToken
 
   describe "get_user_by_email/1" do
     test "does not return the user if the email does not exist" do
@@ -91,6 +92,7 @@ defmodule Browsergrid.AccountsTest do
       assert is_binary(user.hashed_password)
       assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
+      refute user.is_admin
     end
   end
 

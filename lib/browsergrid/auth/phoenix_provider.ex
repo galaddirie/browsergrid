@@ -20,11 +20,6 @@ defmodule Browsergrid.Auth.PhoenixProvider do
   end
 
   @impl true
-  def register(attrs) when is_map(attrs) do
-    Accounts.register_user(attrs)
-  end
-
-  @impl true
   def verify_session(token) when is_binary(token) do
     case Accounts.get_user_by_session_token(token) do
       %User{} = user -> {:ok, user}

@@ -4,9 +4,11 @@ defmodule Browsergrid.Accounts do
   """
 
   import Ecto.Query, warn: false
-  alias Browsergrid.Repo
 
-  alias Browsergrid.Accounts.{User, UserToken, UserNotifier}
+  alias Browsergrid.Accounts.User
+  alias Browsergrid.Accounts.UserNotifier
+  alias Browsergrid.Accounts.UserToken
+  alias Browsergrid.Repo
 
   ## Database getters
 
@@ -38,8 +40,7 @@ defmodule Browsergrid.Accounts do
       nil
 
   """
-  def get_user_by_email_and_password(email, password)
-      when is_binary(email) and is_binary(password) do
+  def get_user_by_email_and_password(email, password) when is_binary(email) and is_binary(password) do
     user = Repo.get_by(User, email: email)
     if User.valid_password?(user, password), do: user
   end

@@ -1,4 +1,5 @@
 defmodule Browsergrid.Accounts.UserNotifier do
+  @moduledoc false
   import Swoosh.Email
 
   alias Browsergrid.Mailer

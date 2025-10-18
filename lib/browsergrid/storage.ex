@@ -94,7 +94,6 @@ defmodule Browsergrid.Storage do
     end
   end
 
-
   defp ensure_extension(sanitized, original) do
     sanitized_ext = Path.extname(sanitized)
     original_ext = Path.extname(original)

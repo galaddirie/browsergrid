@@ -17,9 +17,6 @@ defmodule Browsergrid.Auth do
       # Authenticate a user
       {:ok, user} = Auth.authenticate("user@example.com", "password")
 
-      # Register a new user
-      {:ok, user} = Auth.register(%{email: "user@example.com", password: "password"})
-
       # Generate session token
       token = Auth.generate_session_token(user)
 
@@ -37,11 +34,6 @@ defmodule Browsergrid.Auth do
   Authenticates a user with email and password.
   """
   defdelegate authenticate(email, password), to: @provider
-
-  @doc """
-  Registers a new user.
-  """
-  defdelegate register(attrs), to: @provider
 
   @doc """
   Verifies a session token and returns the user.

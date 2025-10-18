@@ -5,13 +5,8 @@ x-browsergrid-environment: &browsergrid-env
   PORT: 4000
   PHX_HOST: 0.0.0.0
   
-  BROWSERGRID_DATABASE_URL: ${BROWSERGRID_DATABASE_URL:-postgres://${BROWSERGRID_POSTGRES_USER:-postgres}:${BROWSERGRID_POSTGRES_PASSWORD:-postgres}@${BROWSERGRID_POSTGRES_HOST:-postgres}:${BROWSERGRID_POSTGRES_PORT:-5432}/${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}}
-  BROWSERGRID_POSTGRES_HOST: postgres
-  BROWSERGRID_POSTGRES_PORT: 5432
+  BROWSERGRID_DATABASE_URL: postgres://postgres:postgres@postgres:5432/browsergrid_dev
   REDIS_ADDR: redis:6379
-  BROWSERGRID_POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
-  BROWSERGRID_POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
-  BROWSERGRID_POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
   
   SECRET_KEY_BASE: dev_secret_key_base_please_change_in_production_at_least_64_characters_long
   
@@ -54,9 +49,9 @@ services:
     image: postgres:17-alpine
     container_name: browsergrid_postgres_dev
     environment:
-      POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: browsergrid_dev
     ports:
       - "5432:5432"
     volumes:
@@ -68,7 +63,7 @@ services:
       retries: 5
     networks:
       - browsergrid_server
-
+  
   adminer:
     image: adminer
     container_name: browsergrid_adminer_dev
@@ -92,6 +87,8 @@ services:
   browsergrid:
     <<: *browsergrid-common
     container_name: browsergrid_server_dev
+    environment:
+      <<: *browsergrid-env
     ports:
       - "80:80"
       - "4000:4000"

@@ -16,12 +16,6 @@ defmodule Browsergrid.Auth.Provider do
               {:ok, User.t()} | {:error, atom()}
 
   @doc """
-  Registers a new user with the given attributes.
-  Returns {:ok, user} on success, {:error, changeset} on failure.
-  """
-  @callback register(attrs :: map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-
-  @doc """
   Verifies a session token and returns the associated user.
   Returns {:ok, user} on success, {:error, reason} on failure.
   """

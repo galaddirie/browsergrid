@@ -7,10 +7,6 @@
 # General application configuration
 import Config
 
-# Authentication provider configuration
-config :browsergrid,
-  auth_provider: Browsergrid.Auth.PhoenixProvider
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -99,7 +95,7 @@ config :browsergrid, Browsergrid.SessionRuntime,
     profile_volume_mount_path: System.get_env("BROWSERGRID_PROFILE_MOUNT_PATH") || "/home/user/data-dir",
     extra_env: [
       {"REMOTE_DEBUGGING_PORT", System.get_env("BROWSERGRID_REMOTE_DEBUG_PORT", "61000")},
-      {"PORT", System.get_env("BROWSERGRID_BROWSERMUX_PORT", "8080")},
+      {"PORT", System.get_env("BROWSERGRID_BROWSERMUX_PORT", "8080")}
     ]
   ]
 
@@ -149,6 +145,10 @@ config :browsergrid, :storage,
   backend: Browsergrid.Storage.Local,
   local_path: "/var/lib/browsergrid/media",
   base_url: "http://localhost:4000"
+
+# Authentication provider configuration
+config :browsergrid,
+  auth_provider: Browsergrid.Auth.PhoenixProvider
 
 config :browsergrid,
   ecto_repos: [Browsergrid.Repo],

@@ -27,7 +27,6 @@ defmodule Browsergrid.Sessions.Session do
     timestamps()
   end
 
-
   def changeset(session, attrs) do
     session
     |> cast(attrs, [:name, :browser_type, :status, :cluster, :profile_id, :user_id, :headless, :timeout, :screen, :limits])
@@ -84,25 +83,22 @@ defmodule Browsergrid.Sessions.Session do
     |> Map.new()
   end
 
-
   defp validate_screen(changeset) do
     screen = get_field(changeset, :screen) || %{}
 
-    cond do
-      is_map(screen) ->
-        width = Map.get(screen, "width", 1920)
-        height = Map.get(screen, "height", 1080)
-        dpi = Map.get(screen, "dpi", 96)
-        scale = Map.get(screen, "scale", 1.0)
+    if is_map(screen) do
+      width = Map.get(screen, "width", 1920)
+      height = Map.get(screen, "height", 1080)
+      dpi = Map.get(screen, "dpi", 96)
+      scale = Map.get(screen, "scale", 1.0)
 
-        if width > 0 and height > 0 and dpi > 0 and scale > 0 do
-          changeset
-        else
-          add_error(changeset, :screen, "invalid screen dimensions")
-        end
-
-      true ->
-        add_error(changeset, :screen, "must be a map")
+      if width > 0 and height > 0 and dpi > 0 and scale > 0 do
+        changeset
+      else
+        add_error(changeset, :screen, "invalid screen dimensions")
+      end
+    else
+      add_error(changeset, :screen, "must be a map")
     end
   end
 
@@ -123,8 +119,11 @@ defmodule Browsergrid.Sessions.Session do
       if profile.browser_type == browser_type do
         changeset
       else
-        add_error(changeset, :profile_id,
-          "browser type mismatch: profile is #{profile.browser_type}, session is #{browser_type}")
+        add_error(
+          changeset,
+          :profile_id,
+          "browser type mismatch: profile is #{profile.browser_type}, session is #{browser_type}"
+        )
       end
     else
       _ -> changeset
@@ -135,6 +134,7 @@ defmodule Browsergrid.Sessions.Session do
     case get_field(changeset, :name) do
       name when name in [nil, ""] ->
         put_change(changeset, :name, "Session #{:rand.uniform(9999)}")
+
       _ ->
         changeset
     end
@@ -142,6 +142,7 @@ defmodule Browsergrid.Sessions.Session do
 
   defp serialize_screen(nil), do: nil
   defp serialize_screen(%Ecto.Association.NotLoaded{}), do: nil
+
   defp serialize_screen(screen) when is_map(screen) do
     screen
   end

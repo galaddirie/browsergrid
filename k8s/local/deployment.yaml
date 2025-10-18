@@ -41,6 +41,10 @@ spec:
               value: "browsergrid"
             - name: BROWSERGRID_BROWSER_IMAGE_TAG
               value: "latest"
+            - name: BROWSERGRID_ADMIN_EMAIL
+              value: "${BROWSERGRID_ADMIN_EMAIL}"
+            - name: BROWSERGRID_ADMIN_PASSWORD
+              value: "${BROWSERGRID_ADMIN_PASSWORD}"
           ports:
             - name: http
               containerPort: 4000

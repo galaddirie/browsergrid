@@ -1,8 +1,8 @@
 defmodule Browsergrid.Sessions.SessionTest do
   use Browsergrid.DataCase, async: true
 
-  alias Browsergrid.Sessions.Session
   alias Browsergrid.Factory
+  alias Browsergrid.Sessions.Session
 
   describe "changeset/2" do
     test "valid changeset with required fields" do
@@ -19,6 +19,7 @@ defmodule Browsergrid.Sessions.SessionTest do
 
     test "valid changeset with all fields" do
       profile = Factory.insert(:profile, browser_type: :firefox)
+
       attrs = %{
         name: "Test Session",
         browser_type: :firefox,
@@ -88,6 +89,7 @@ defmodule Browsergrid.Sessions.SessionTest do
         status: :pending,
         screen: %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0}
       }
+
       changeset = Session.changeset(%Session{}, attrs)
       assert changeset.valid?
 
@@ -129,6 +131,7 @@ defmodule Browsergrid.Sessions.SessionTest do
         status: :pending,
         limits: %{"cpu" => 2.0, "memory" => 1024}
       }
+
       changeset = Session.changeset(%Session{}, attrs)
       assert changeset.valid?
 
@@ -213,12 +216,13 @@ defmodule Browsergrid.Sessions.SessionTest do
 
   describe "to_runtime_context/1" do
     test "converts session to runtime context" do
-      session = Factory.build(:session,
-        id: "test-session-id",
-        browser_type: :firefox,
-        screen: %{"width" => 1280, "height" => 720, "dpi" => 72, "scale" => 1.5},
-        headless: true
-      )
+      session =
+        Factory.build(:session,
+          id: "test-session-id",
+          browser_type: :firefox,
+          screen: %{"width" => 1280, "height" => 720, "dpi" => 72, "scale" => 1.5},
+          headless: true
+        )
 
       context = Session.to_runtime_context(session)
 
@@ -244,13 +248,14 @@ defmodule Browsergrid.Sessions.SessionTest do
 
   describe "to_runtime_metadata/1" do
     test "converts session to runtime metadata" do
-      session = Factory.build(:session,
-        browser_type: :chromium,
-        profile_id: "profile-123",
-        cluster: "test-cluster",
-        screen: %{"width" => 1280, "height" => 720},
-        headless: true
-      )
+      session =
+        Factory.build(:session,
+          browser_type: :chromium,
+          profile_id: "profile-123",
+          cluster: "test-cluster",
+          screen: %{"width" => 1280, "height" => 720},
+          headless: true
+        )
 
       metadata = Session.to_runtime_metadata(session)
 
@@ -263,12 +268,13 @@ defmodule Browsergrid.Sessions.SessionTest do
     end
 
     test "excludes nil values from metadata" do
-      session = Factory.build(:session,
-        browser_type: :chrome,
-        profile_id: nil,
-        cluster: nil,
-        screen: nil
-      )
+      session =
+        Factory.build(:session,
+          browser_type: :chrome,
+          profile_id: nil,
+          cluster: nil,
+          screen: nil
+        )
 
       metadata = Session.to_runtime_metadata(session)
 

@@ -5,15 +5,15 @@ services:
     image: postgres:17-alpine
     container_name: browsergrid_postgres_dev
     environment:
-      POSTGRES_USER: ${BROWSERGRID_POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${BROWSERGRID_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${BROWSERGRID_POSTGRES_DB:-browsergrid_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-browsergrid_dev}
     ports:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5

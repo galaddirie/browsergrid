@@ -71,6 +71,7 @@ defmodule Browsergrid.Profiles do
   def delete_profile(%Profile{} = profile) do
     Repo.transaction(fn ->
       delete_profile_snapshots(profile)
+
       if profile.media_file_id do
         case Media.get_media_file(profile.media_file_id) do
           nil -> :ok
@@ -188,6 +189,7 @@ defmodule Browsergrid.Profiles do
 
     Repo.transaction(fn ->
       create_snapshot(profile, nil)
+
       profile
       |> Profile.update_version()
       |> change(%{
@@ -237,7 +239,6 @@ defmodule Browsergrid.Profiles do
       {:ok, 0}
     end
   end
-
 
   defp create_snapshot(%Profile{} = profile, session_id) do
     if profile.media_file_id do
