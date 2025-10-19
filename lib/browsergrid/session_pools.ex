@@ -134,8 +134,10 @@ defmodule Browsergrid.SessionPools do
   @doc """
   Claim a ready session from the pool for the given user.
   """
-  @spec claim_session(SessionPool.t(), User.t()) :: claim_result()
-  def claim_session(%SessionPool{} = pool, %User{} = user) do
+  @spec claim_session(SessionPool.t(), User.t(), Keyword.t()) :: claim_result()
+  def claim_session(%SessionPool{} = pool, %User{} = user, opts \\ []) do
+    reconcile? = Keyword.get(opts, :reconcile, true)
+
     fn ->
       case next_ready_session(pool.id) do
         nil ->
@@ -167,7 +169,7 @@ defmodule Browsergrid.SessionPools do
     |> case do
       {:ok, {:ok, session}} ->
         Logger.debug("Claimed session #{session.id} from pool #{pool.id}")
-        reconcile_pool(pool)
+        if reconcile?, do: reconcile_pool(pool)
         {:ok, session}
 
       {:error, :no_available_sessions} ->
@@ -189,55 +191,107 @@ defmodule Browsergrid.SessionPools do
         result
 
       {:error, :no_available_sessions} ->
-        provision_and_claim_session(pool, user)
+        provision_with_optimistic_lock(pool, user)
 
       other ->
         other
     end
   end
 
-  defp provision_and_claim_session(%SessionPool{} = pool, %User{} = user) do
-    with :ok <- ensure_capacity_for_provision(pool),
-         {:ok, session} <- start_prewarmed_session(pool),
-         :ok <- enforce_capacity_after_provision(pool, session),
-         {:ok, claimed} <- claim_session(pool, user) do
-      {:ok, claimed}
-    else
-      {:error, :pool_at_capacity} = error ->
-        error
+  defp provision_with_optimistic_lock(pool, user, attempts \\ 5)
 
-      {:error, :no_available_sessions} ->
-        {:error, :no_available_sessions}
+  defp provision_with_optimistic_lock(%SessionPool{} = pool, %User{} = _user, attempts)
+       when attempts <= 0 do
+    record_provision_result(pool.id, :retry_exhausted)
+    {:error, :pool_at_capacity}
+  end
 
-      {:error, _} = error ->
-        error
+  defp provision_with_optimistic_lock(%SessionPool{} = pool, %User{} = user, attempts) do
+    current_pool = Repo.get!(SessionPool, pool.id)
+    active_count = active_session_count(current_pool.id)
+    max_ready = current_pool.max_ready
+
+    cond do
+      limited_capacity?(max_ready) and active_count >= max_ready ->
+        record_capacity_rejection(current_pool.id)
+        record_provision_result(current_pool.id, :pool_at_capacity)
+        {:error, :pool_at_capacity}
+
+      true ->
+        case increment_lock_version(current_pool) do
+          :ok ->
+            with {:ok, session} <- start_prewarmed_session(current_pool),
+                 {:ok, claimed} <- claim_session_internal(current_pool, user, session) do
+              record_provision_result(current_pool.id, :success)
+              reconcile_pool(current_pool)
+              {:ok, claimed}
+            else
+              {:error, %Ecto.Changeset{} = changeset} ->
+                Logger.error(
+                  "Failed to claim provisioned session for pool #{current_pool.id}: #{inspect(changeset.errors)}"
+                )
+
+                record_provision_result(current_pool.id, :error)
+                {:error, :no_available_sessions}
+
+              {:error, reason} ->
+                record_provision_result(current_pool.id, :error)
+                {:error, reason}
+            end
+
+          :retry ->
+            record_provision_result(current_pool.id, :retry)
+            Process.sleep(provision_retry_backoff(attempts))
+            provision_with_optimistic_lock(pool, user, attempts - 1)
+        end
     end
   end
 
-  defp ensure_capacity_for_provision(%SessionPool{max_ready: max} = pool) do
-    if limited_capacity?(max) and active_session_count(pool.id) >= max do
-      {:error, :pool_at_capacity}
-    else
-      :ok
-    end
+  defp increment_lock_version(%SessionPool{id: pool_id, lock_version: version}) do
+    {updated, _} =
+      SessionPool
+      |> where([sp], sp.id == ^pool_id and sp.lock_version == ^version)
+      |> Repo.update_all(inc: [lock_version: 1])
+
+    if updated == 1, do: :ok, else: :retry
   end
 
-  # todo: a proper system would not allow the session to be provisioned if the pool is at max capacity
-  defp enforce_capacity_after_provision(%SessionPool{max_ready: max} = pool, %Session{} = session) do
-    if limited_capacity?(max) and active_session_count(pool.id) > max do
-      Logger.warning("Provisioned session #{session.id} exceeded capacity for pool #{pool.id}, pruning")
+  defp provision_retry_backoff(attempts) do
+    base = 10
+    step = (6 - attempts) * base
+    delay = max(base, step)
+    min(delay, 100)
+  end
 
-      session
-      |> Sessions.delete_session()
-      |> case do
-        {:ok, _} -> {:error, :pool_at_capacity}
-        {:error, reason} ->
-          Logger.error("Failed to delete excess session #{session.id} from pool #{pool.id}: #{inspect(reason)}")
-          {:error, :pool_at_capacity}
-      end
-    else
-      :ok
-    end
+  defp claim_session_internal(%SessionPool{} = pool, %User{} = user, %Session{} = session) do
+    now = DateTime.utc_now()
+    attachment_deadline = DateTime.add(now, @attachment_wait_seconds, :second)
+    session_user_id = target_user_id_for_claim(pool, user)
+
+    session
+    |> Session.status_changeset(:claimed)
+    |> Ecto.Changeset.change(
+      claimed_at: now,
+      attachment_deadline_at: attachment_deadline,
+      user_id: session_user_id
+    )
+    |> Repo.update()
+  end
+
+  defp record_provision_result(pool_id, result) do
+    :telemetry.execute(
+      [:browsergrid, :pool, :provision],
+      %{attempt: 1},
+      %{pool_id: pool_id, result: result}
+    )
+  end
+
+  defp record_capacity_rejection(pool_id) do
+    :telemetry.execute(
+      [:browsergrid, :pool, :capacity_rejected],
+      %{count: 1},
+      %{pool_id: pool_id}
+    )
   end
 
   defp limited_capacity?(max) when is_integer(max), do: max > 0

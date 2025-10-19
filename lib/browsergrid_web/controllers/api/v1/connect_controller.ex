@@ -26,7 +26,10 @@ defmodule BrowsergridWeb.API.V1.ConnectController do
       {:error, :pool_at_capacity} ->
         conn
         |> put_status(:conflict)
-        |> json(%{error: "pool_at_capacity"})
+        |> json(%{
+          error: "pool_at_capacity",
+          message: "Pool has reached maximum capacity. Try again later."
+        })
 
       {:error, {:upstream_error, status}} ->
         conn

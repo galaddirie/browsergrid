@@ -15,6 +15,7 @@ defmodule Browsergrid.SessionPools.SessionPool do
     field :min_ready, :integer, default: 0
     field :max_ready, :integer, default: 0
     field :idle_shutdown_after_ms, :integer, default: 600_000
+    field :lock_version, :integer, default: 0
     field :system, :boolean, default: false
 
     belongs_to :owner, Browsergrid.Accounts.User, type: :binary_id

@@ -130,6 +130,7 @@ defmodule Browsergrid.Factory do
       min_ready: 0,
       max_ready: 0,
       idle_shutdown_after_ms: 600_000,
+      lock_version: 0,
       system: false
     }
   end
