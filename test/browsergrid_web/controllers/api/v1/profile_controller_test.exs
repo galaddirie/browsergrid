@@ -60,13 +60,14 @@ defmodule BrowsergridWeb.API.V1.ProfileControllerTest do
   end
 
   describe "show" do
-    test "returns 403 when attempting to access another user's profile", %{conn: conn} do
+    test "returns 404 when attempting to access another user's profile", %{conn: conn} do
       other_user = AccountsFixtures.user_fixture()
       profile = insert_profile!(other_user, %{name: "Hidden"})
 
       conn = get(conn, ~p"/api/v1/profiles/#{profile.id}")
 
-      assert conn.status == 403
+      assert conn.status == 404
+      assert %{"error" => "not_found"} = Jason.decode!(conn.resp_body)
     end
   end
 

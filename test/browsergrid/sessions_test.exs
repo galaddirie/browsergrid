@@ -3,6 +3,7 @@ defmodule Browsergrid.SessionsTest do
 
   import Mock
 
+  alias Browsergrid.AccountsFixtures
   alias Browsergrid.Factory
   alias Browsergrid.Sessions
 
@@ -37,6 +38,102 @@ defmodule Browsergrid.SessionsTest do
       session_without_profile = Enum.find(sessions, &(&1.id == session.id))
 
       assert %Ecto.Association.NotLoaded{} = session_without_profile.profile
+    end
+  end
+
+  describe "list_user_sessions/2" do
+    test "returns only sessions owned by the user" do
+      user = AccountsFixtures.user_fixture()
+      other_user = AccountsFixtures.user_fixture()
+
+      owned = Factory.insert(:session, user_id: user.id)
+      _other = Factory.insert(:session, user_id: other_user.id)
+
+      sessions = Sessions.list_user_sessions(user)
+
+      assert Enum.map(sessions, & &1.id) == [owned.id]
+    end
+
+    test "supports filtering by profile" do
+      user = AccountsFixtures.user_fixture()
+      profile = Factory.insert(:profile)
+      other_profile = Factory.insert(:profile)
+
+      owned = Factory.insert(:session, user_id: user.id, profile_id: profile.id)
+      _ignored = Factory.insert(:session, user_id: user.id, profile_id: other_profile.id)
+
+      sessions = Sessions.list_user_sessions(user, profile_id: profile.id)
+
+      assert Enum.map(sessions, & &1.id) == [owned.id]
+    end
+
+    test "admin users bypass ownership scoping" do
+      user = AccountsFixtures.user_fixture()
+      other_user = AccountsFixtures.user_fixture()
+
+      admin =
+        AccountsFixtures.user_fixture()
+        |> change(is_admin: true)
+        |> Repo.update!()
+
+      first = Factory.insert(:session, user_id: user.id)
+      second = Factory.insert(:session, user_id: other_user.id)
+
+      sessions = Sessions.list_user_sessions(admin)
+
+      assert Enum.sort(Enum.map(sessions, & &1.id)) == Enum.sort([first.id, second.id])
+    end
+  end
+
+  describe "fetch_user_session/3" do
+    test "returns the session when the user owns it" do
+      user = AccountsFixtures.user_fixture()
+      session = Factory.insert(:session, user_id: user.id)
+
+      assert {:ok, fetched} = Sessions.fetch_user_session(user, session.id)
+      assert fetched.id == session.id
+    end
+
+    test "returns not_found for sessions owned by someone else" do
+      user = AccountsFixtures.user_fixture()
+      other_user = AccountsFixtures.user_fixture()
+      session = Factory.insert(:session, user_id: other_user.id)
+
+      assert {:error, :not_found} = Sessions.fetch_user_session(user, session.id)
+    end
+
+    test "returns invalid_id for malformed identifiers" do
+      user = AccountsFixtures.user_fixture()
+
+      assert {:error, :invalid_id} = Sessions.fetch_user_session(user, "not-a-uuid")
+    end
+  end
+
+  describe "user_owns_session?/2" do
+    test "returns true for owners" do
+      user = AccountsFixtures.user_fixture()
+      session = Factory.insert(:session, user_id: user.id)
+
+      assert Sessions.user_owns_session?(user, session)
+    end
+
+    test "returns true for admins" do
+      admin =
+        AccountsFixtures.user_fixture()
+        |> change(is_admin: true)
+        |> Repo.update!()
+
+      session = Factory.insert(:session, user_id: AccountsFixtures.user_fixture().id)
+
+      assert Sessions.user_owns_session?(admin, session)
+    end
+
+    test "returns false otherwise" do
+      user = AccountsFixtures.user_fixture()
+      session = Factory.insert(:session, user_id: AccountsFixtures.user_fixture().id)
+
+      refute Sessions.user_owns_session?(user, session)
+      refute Sessions.user_owns_session?(nil, session)
     end
   end
 

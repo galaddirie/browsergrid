@@ -10,10 +10,11 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-# Import required modules
-alias Browsergrid.Repo
 alias Browsergrid.Accounts
 alias Browsergrid.Accounts.User
+
+# Import required modules
+alias Browsergrid.Repo
 
 # Seed a non-admin user
 IO.puts("Creating non-admin user...")
@@ -21,10 +22,11 @@ IO.puts("Creating non-admin user...")
 case Accounts.get_user_by_email("user@example.com") do
   nil ->
     # User doesn't exist, create them
-    {:ok, user} = Accounts.register_user(%{
-      email: "user@example.com",
-      password: "password123456"
-    })
+    {:ok, user} =
+      Accounts.register_user(%{
+        email: "user@example.com",
+        password: "password123456"
+      })
 
     # Confirm the user account
     user

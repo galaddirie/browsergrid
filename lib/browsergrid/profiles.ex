@@ -6,6 +6,8 @@ defmodule Browsergrid.Profiles do
   import Ecto.Changeset
   import Ecto.Query, warn: false
 
+  alias Browsergrid.Accounts.User
+  alias Browsergrid.Authorization
   alias Browsergrid.Media
   alias Browsergrid.Profiles.Profile
   alias Browsergrid.Profiles.ProfileSnapshot
@@ -18,10 +20,13 @@ defmodule Browsergrid.Profiles do
   Returns the list of profiles.
   """
   def list_profiles(opts \\ []) do
-    query = from(p in Profile, order_by: [desc: p.last_used_at, desc: p.inserted_at])
+    base_query = from(p in Profile, order_by: [desc: p.last_used_at, desc: p.inserted_at])
 
     query =
-      Enum.reduce(opts, query, fn
+      base_query
+      |> maybe_scope_user(opts)
+      |> Enum.reduce(opts, fn
+        {:user, _user}, q -> q
         {:user_id, user_id}, q -> where(q, [p], p.user_id == ^user_id)
         {:browser_type, type}, q -> where(q, [p], p.browser_type == ^type)
         {:status, status}, q -> where(q, [p], p.status == ^status)
@@ -29,7 +34,21 @@ defmodule Browsergrid.Profiles do
         _, q -> q
       end)
 
-    Repo.all(query)
+    query
+    |> maybe_preload(opts)
+    |> Repo.all()
+  end
+
+  @doc """
+  Lists profiles owned by the given user.
+  """
+  @spec list_user_profiles(User.t(), Keyword.t()) :: [Profile.t()]
+  def list_user_profiles(%User{} = user, opts \\ []) do
+    Profile
+    |> Authorization.scope_owned(user)
+    |> apply_filters(opts)
+    |> maybe_preload(opts)
+    |> Repo.all()
   end
 
   @doc """
@@ -37,6 +56,42 @@ defmodule Browsergrid.Profiles do
   """
   def get_profile!(id), do: Repo.get!(Profile, id)
   def get_profile(id), do: Repo.get(Profile, id)
+
+  @doc """
+  Fetches a profile belonging to the given user.
+  """
+  @spec fetch_user_profile(User.t(), Ecto.UUID.t(), Keyword.t()) ::
+          {:ok, Profile.t()} | {:error, :not_found}
+  def fetch_user_profile(user, id, opts \\ [])
+
+  def fetch_user_profile(%User{} = user, id, opts) when is_binary(id) do
+    query =
+      Profile
+      |> Authorization.scope_owned(user)
+      |> where([p], p.id == ^id)
+      |> apply_filters(opts)
+      |> maybe_preload(opts)
+
+    case Repo.one(query) do
+      %Profile{} = profile -> {:ok, profile}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  def fetch_user_profile(_user, _id, _opts), do: {:error, :not_found}
+
+  @doc """
+  Fetches a profile for a user and raises if not found.
+  """
+  @spec fetch_user_profile!(User.t(), Ecto.UUID.t(), Keyword.t()) :: Profile.t()
+  def fetch_user_profile!(%User{} = user, id, opts \\ []) do
+    Profile
+    |> Authorization.scope_owned(user)
+    |> where([p], p.id == ^id)
+    |> apply_filters(opts)
+    |> maybe_preload(opts)
+    |> Repo.one!()
+  end
 
   @doc """
   Gets a profile with its media file and user preloaded.
@@ -272,6 +327,42 @@ defmodule Browsergrid.Profiles do
   defp delete_profile_snapshots(%Profile{} = profile) do
     snapshots = list_profile_snapshots(profile)
     Enum.each(snapshots, &delete_snapshot/1)
+  end
+
+  defp maybe_scope_user(query, opts) do
+    case Keyword.get(opts, :user) do
+      %User{} = user -> Authorization.scope_owned(query, user)
+      _ -> query
+    end
+  end
+
+  defp apply_filters(query, opts) do
+    Enum.reduce(opts, query, fn
+      {:user, _}, q -> q
+      {:user_id, user_id}, q -> where(q, [p], p.user_id == ^user_id)
+      {:browser_type, type}, q -> where(q, [p], p.browser_type == ^type)
+      {:status, status}, q -> where(q, [p], p.status == ^status)
+      {:limit, limit}, q -> limit(q, ^limit)
+      {:preload, _}, q -> q
+      _, q -> q
+    end)
+  end
+
+  defp maybe_preload(query, opts) do
+    case Keyword.get(opts, :preload, false) do
+      false -> query
+      nil -> query
+      true -> preload(query, [:media_file, :user])
+      preloads when is_list(preloads) -> preload(query, ^preloads)
+    end
+  end
+
+  @doc """
+  Returns `true` when the user owns the profile (admins always pass).
+  """
+  @spec user_owns_profile?(User.t() | nil, Profile.t()) :: boolean()
+  def user_owns_profile?(user, %Profile{} = profile) do
+    Authorization.owns?(user, profile)
   end
 
   defp create_empty_profile_data(_browser_type) do

@@ -78,9 +78,15 @@ defmodule Browsergrid.SessionPoolsTest do
 
       with_mock Sessions, [:passthrough],
         create_session: fn attrs ->
-          assert attrs[:session_pool_id] == pool.id
-          assert attrs[:user_id] == owner.id
-          {:ok, Factory.insert(:session, Map.put(attrs, :status, :pending))}
+          # Only intercept and assert for sessions created by pool reconciliation
+          if Map.has_key?(attrs, :session_pool_id) do
+            assert attrs[:session_pool_id] == pool.id
+            assert attrs[:user_id] == owner.id
+            {:ok, Factory.insert(:session, Map.put(attrs, :status, :pending))}
+          else
+            # For other sessions, call the real implementation
+            Sessions.create_session(attrs)
+          end
         end do
         assert :ok = SessionPools.reconcile_pool(pool)
         assert called(Sessions.create_session(:_))

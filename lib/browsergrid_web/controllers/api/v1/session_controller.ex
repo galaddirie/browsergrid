@@ -2,26 +2,21 @@ defmodule BrowsergridWeb.API.V1.SessionController do
   use BrowsergridWeb, :controller
 
   alias Browsergrid.Sessions
-  alias BrowsergridWeb.Controllers.API.Concerns.Authorization
 
   action_fallback BrowsergridWeb.API.V1.FallbackController
 
   def index(conn, _params) do
     user = conn.assigns.current_user
-    sessions = Sessions.list_sessions(user_id: user.id)
+    sessions = Sessions.list_user_sessions(user)
     json(conn, %{data: sessions})
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, session} <- Authorization.authorize_resource(conn, session) do
-      json(conn, %{data: session})
-    else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
+    user = conn.assigns.current_user
 
-      {:error, reason} ->
-        {:error, reason}
+    case Sessions.fetch_user_session(user, id) do
+      {:ok, session} -> json(conn, %{data: session})
+      {:error, _reason} -> {:error, :not_found}
     end
   end
 
@@ -43,31 +38,28 @@ defmodule BrowsergridWeb.API.V1.SessionController do
   end
 
   def update(conn, %{"id" => id, "session" => session_params}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, session} <- Authorization.authorize_resource(conn, session),
-         sanitized = ensure_owner(session_params, conn),
+    user = conn.assigns.current_user
+
+    sanitized = ensure_owner(session_params, conn)
+
+    with {:ok, session} <- Sessions.fetch_user_session(user, id),
          {:ok, updated} <- Sessions.update_session(session, sanitized) do
       json(conn, %{data: updated})
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, :not_found}
     end
   end
 
   def delete(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, session} <- Authorization.authorize_resource(conn, session),
+    user = conn.assigns.current_user
+
+    with {:ok, session} <- Sessions.fetch_user_session(user, id),
          {:ok, _deleted} <- Sessions.delete_session(session) do
       send_resp(conn, :no_content, "")
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, :not_found}
     end
   end
 

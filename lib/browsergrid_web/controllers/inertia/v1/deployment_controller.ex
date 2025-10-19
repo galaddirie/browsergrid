@@ -4,8 +4,11 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
   alias Browsergrid.Deployments
   alias Browsergrid.Media
 
+  plug :load_deployment when action in [:show, :deploy, :delete]
+
   def index(conn, _params) do
-    deployments = Deployments.list_deployments()
+    user = conn.assigns.current_user
+    deployments = Deployments.list_user_deployments(user)
 
     conn
     |> assign_prop(:deployments, deployments)
@@ -13,18 +16,10 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
     |> render_inertia("Deployments/Index")
   end
 
-  def show(conn, %{"id" => id}) do
-    case Deployments.get_deployment(id) do
-      nil ->
-        conn
-        |> put_flash(:error, "Deployment not found")
-        |> redirect(to: ~p"/deployments")
-
-      deployment ->
-        conn
-        |> assign_prop(:deployment, deployment)
-        |> render_inertia("Deployments/Show")
-    end
+  def show(%{assigns: %{deployment: deployment}} = conn, _params) do
+    conn
+    |> assign_prop(:deployment, deployment)
+    |> render_inertia("Deployments/Show")
   end
 
   def new(conn, _params) do
@@ -32,8 +27,10 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
   end
 
   def create(conn, params) do
+    user = conn.assigns.current_user
+
     with {:ok, validated_params} <- validate_upload_params(params),
-         {:ok, deployment} <- handle_deployment_upload(validated_params) do
+         {:ok, deployment} <- handle_deployment_upload(validated_params, user) do
       conn
       |> put_flash(:info, "Deployment created successfully")
       |> redirect(to: ~p"/deployments/#{deployment.id}")
@@ -60,47 +57,31 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
     end
   end
 
-  def deploy(conn, %{"id" => id}) do
-    case Deployments.get_deployment(id) do
-      nil ->
+  def deploy(%{assigns: %{deployment: deployment}} = conn, _params) do
+    case Deployments.deploy(deployment) do
+      {:ok, {_updated_deployment, session}} ->
         conn
-        |> put_flash(:error, "Deployment not found")
-        |> redirect(to: ~p"/deployments")
+        |> put_flash(:info, "Deployment started successfully")
+        |> redirect(to: ~p"/sessions/#{session.id}")
 
-      deployment ->
-        case Deployments.deploy(deployment) do
-          {:ok, {_updated_deployment, session}} ->
-            conn
-            |> put_flash(:info, "Deployment started successfully")
-            |> redirect(to: ~p"/sessions/#{session.id}")
-
-          {:error, reason} ->
-            conn
-            |> put_flash(:error, "Failed to deploy: #{inspect(reason)}")
-            |> redirect(to: ~p"/deployments/#{deployment.id}")
-        end
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Failed to deploy: #{inspect(reason)}")
+        |> redirect(to: ~p"/deployments/#{deployment.id}")
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    case Deployments.get_deployment(id) do
-      nil ->
+  def delete(%{assigns: %{deployment: deployment}} = conn, _params) do
+    case Deployments.delete_deployment(deployment) do
+      {:ok, _} ->
         conn
-        |> put_flash(:error, "Deployment not found")
+        |> put_flash(:info, "Deployment deleted successfully")
         |> redirect(to: ~p"/deployments")
 
-      deployment ->
-        case Deployments.delete_deployment(deployment) do
-          {:ok, _} ->
-            conn
-            |> put_flash(:info, "Deployment deleted successfully")
-            |> redirect(to: ~p"/deployments")
-
-          {:error, _} ->
-            conn
-            |> put_flash(:error, "Failed to delete deployment")
-            |> redirect(to: ~p"/deployments/#{deployment.id}")
-        end
+      {:error, _} ->
+        conn
+        |> put_flash(:error, "Failed to delete deployment")
+        |> redirect(to: ~p"/deployments/#{deployment.id}")
     end
   end
 
@@ -212,13 +193,14 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
     if valid?, do: :ok, else: {:error, "Parameters must have non-empty key and label"}
   end
 
-  defp handle_deployment_upload(%{"archive" => archive} = params) when not is_nil(archive) do
+  defp handle_deployment_upload(%{"archive" => archive} = params, user) when not is_nil(archive) do
     case upload_archive(archive) do
       {:ok, media_file} ->
         deployment_attrs =
           params
           |> Map.delete("archive")
           |> Map.put("archive_path", media_file.storage_path)
+          |> Map.put("user_id", user.id)
           |> parse_json_fields()
 
         Deployments.create_deployment(deployment_attrs)
@@ -228,7 +210,7 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
     end
   end
 
-  defp handle_deployment_upload(_params) do
+  defp handle_deployment_upload(_params, _user) do
     {:error, :no_archive}
   end
 
@@ -261,5 +243,24 @@ defmodule BrowsergridWeb.Inertia.V1.DeploymentController do
       _ ->
         params
     end
+  end
+
+  defp load_deployment(%{params: %{"id" => id}} = conn, _opts) do
+    user = conn.assigns.current_user
+
+    case Deployments.fetch_user_deployment(user, id) do
+      {:ok, deployment} -> assign(conn, :deployment, deployment)
+      {:error, _} -> render_not_found(conn)
+    end
+  end
+
+  defp load_deployment(conn, _opts), do: conn
+
+  defp render_not_found(conn) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(BrowsergridWeb.ErrorHTML)
+    |> render("404", layout: false)
+    |> halt()
   end
 end

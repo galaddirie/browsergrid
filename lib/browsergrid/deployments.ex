@@ -5,6 +5,8 @@ defmodule Browsergrid.Deployments do
 
   import Ecto.Query, warn: false
 
+  alias Browsergrid.Accounts.User
+  alias Browsergrid.Authorization
   alias Browsergrid.Deployments.Deployment
   alias Browsergrid.Repo
   alias Browsergrid.Sessions
@@ -22,10 +24,56 @@ defmodule Browsergrid.Deployments do
   end
 
   @doc """
+  Lists deployments owned by the given user.
+  """
+  @spec list_user_deployments(User.t(), Keyword.t()) :: [Deployment.t()]
+  def list_user_deployments(%User{} = user, opts \\ []) do
+    Deployment
+    |> Authorization.scope_owned(user)
+    |> maybe_preload(opts)
+    |> order_by([d], desc: d.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single deployment.
   """
   def get_deployment!(id), do: Repo.get!(Deployment, id)
   def get_deployment(id), do: Repo.get(Deployment, id)
+
+  @doc """
+  Fetches a deployment for the given user, returning `{:error, :not_found}` when unauthorized.
+  """
+  @spec fetch_user_deployment(User.t(), Ecto.UUID.t(), Keyword.t()) ::
+          {:ok, Deployment.t()} | {:error, :not_found}
+  def fetch_user_deployment(user, id, opts \\ [])
+
+  def fetch_user_deployment(%User{} = user, id, opts) when is_binary(id) do
+    query =
+      Deployment
+      |> Authorization.scope_owned(user)
+      |> where([d], d.id == ^id)
+      |> maybe_preload(opts)
+
+    case Repo.one(query) do
+      %Deployment{} = deployment -> {:ok, deployment}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  def fetch_user_deployment(_user, _id, _opts), do: {:error, :not_found}
+
+  @doc """
+  Fetches a deployment for a user, raising on failure.
+  """
+  @spec fetch_user_deployment!(User.t(), Ecto.UUID.t(), Keyword.t()) :: Deployment.t()
+  def fetch_user_deployment!(%User{} = user, id, opts \\ []) do
+    Deployment
+    |> Authorization.scope_owned(user)
+    |> where([d], d.id == ^id)
+    |> maybe_preload(opts)
+    |> Repo.one!()
+  end
 
   @doc """
   Creates a deployment from uploaded archive and configuration.
@@ -110,9 +158,32 @@ defmodule Browsergrid.Deployments do
   end
 
   defp maybe_filter_by_user(query, opts) do
-    case Keyword.get(opts, :user_id) do
-      nil -> query
-      user_id -> where(query, [d], d.user_id == ^user_id)
+    case Keyword.get(opts, :user) do
+      %User{} = user ->
+        Authorization.scope_owned(query, user)
+
+      _ ->
+        case Keyword.get(opts, :user_id) do
+          nil -> query
+          user_id -> where(query, [d], d.user_id == ^user_id)
+        end
     end
+  end
+
+  defp maybe_preload(query, opts) do
+    case Keyword.get(opts, :preload, false) do
+      false -> query
+      nil -> query
+      true -> preload(query, [:user])
+      preloads when is_list(preloads) -> preload(query, ^preloads)
+    end
+  end
+
+  @doc """
+  Returns `true` when the user owns the deployment (admins always pass).
+  """
+  @spec user_owns_deployment?(User.t() | nil, Deployment.t()) :: boolean()
+  def user_owns_deployment?(user, %Deployment{} = deployment) do
+    Authorization.owns?(user, deployment)
   end
 end

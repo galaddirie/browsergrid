@@ -4,13 +4,14 @@ defmodule BrowsergridWeb.Inertia.V1.DashboardController do
   alias Browsergrid.Sessions
 
   def overview(conn, _params) do
-    sessions = Sessions.list_sessions()
+    user = conn.assigns.current_user
+    sessions = Sessions.list_user_sessions(user, preload: [:profile, session_pool: :owner])
 
     stats = %{
       total_sessions: length(sessions),
-      active_sessions: Enum.count(sessions, &(&1.status in ["running", "active", "claimed"])),
-      available_sessions: Enum.count(sessions, &(&1.status == "available")),
-      failed_sessions: Enum.count(sessions, &(&1.status in ["failed", "crashed"]))
+      active_sessions: Enum.count(sessions, &(&1.status in [:running, :claimed, :ready, :starting])),
+      available_sessions: Enum.count(sessions, &(&1.status in [:pending, :ready])),
+      failed_sessions: Enum.count(sessions, &(&1.status in [:error, :stopped]))
     }
 
     render_inertia(conn, "Overview", %{

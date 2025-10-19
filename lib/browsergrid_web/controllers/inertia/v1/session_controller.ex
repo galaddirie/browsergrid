@@ -2,15 +2,16 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   use BrowsergridWeb, :controller
 
   alias Browsergrid.Profiles
-  alias Browsergrid.Repo
   alias Browsergrid.Sessions
 
   require Logger
 
+  plug :load_session when action in [:show, :edit, :update, :delete]
+
   def index(conn, _params) do
     user = conn.assigns.current_user
-    sessions = Sessions.list_sessions(user_id: user.id, preload: true)
-    profiles = Profiles.list_profiles(status: :active)
+    sessions = Sessions.list_user_sessions(user, preload: [:profile, session_pool: :owner])
+    profiles = Profiles.list_user_profiles(user, status: :active)
 
     render_inertia(conn, "Sessions/Index", %{
       sessions: sessions,
@@ -19,17 +20,8 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
     })
   end
 
-  def show(conn, %{"id" => id}) do
-    case Sessions.get_session(id) do
-      {:ok, session} ->
-        session = Repo.preload(session, profile: :user)
-        render_inertia(conn, "Sessions/Show", %{session: session})
-
-      {:error, _} ->
-        conn
-        |> put_flash(:error, "Session not found")
-        |> redirect(to: ~p"/sessions")
-    end
+  def show(%{assigns: %{session: session}} = conn, _params) do
+    render_inertia(conn, "Sessions/Show", %{session: session})
   end
 
   def create(conn, %{"session" => session_params}) do
@@ -45,65 +37,65 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
         |> redirect(to: ~p"/sessions/#{session.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        handle_create_error(conn, changeset, "Validation failed")
+        handle_create_error(conn, user, changeset, "Validation failed")
 
       {:error, reason} ->
-        handle_create_error(conn, nil, format_error(reason))
+        handle_create_error(conn, user, nil, format_error(reason))
     end
   end
 
-  def edit(conn, %{"id" => id}) do
-    case Sessions.get_session(id) do
-      {:ok, session} ->
-        session = Repo.preload(session, profile: :user)
-        render_inertia(conn, "Sessions/Edit", %{session: session})
-
-      {:error, _} ->
-        conn
-        |> put_flash(:error, "Session not found")
-        |> redirect(to: ~p"/sessions")
-    end
+  def edit(%{assigns: %{session: session}} = conn, _params) do
+    render_inertia(conn, "Sessions/Edit", %{session: session})
   end
 
-  def update(conn, %{"id" => id, "session" => params}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, updated} <- Sessions.update_session(session, params) do
-      conn
-      |> put_flash(:info, "Session updated successfully")
-      |> redirect(to: ~p"/sessions/#{updated.id}")
+  def update(%{assigns: %{session: session}} = conn, %{"session" => params}) do
+    user = conn.assigns.current_user
+
+    if Sessions.user_owns_session?(user, session) do
+      case Sessions.update_session(session, params) do
+        {:ok, updated} ->
+          refreshed = Sessions.fetch_user_session!(user, updated.id, preload: [:profile, session_pool: :owner])
+
+          conn
+          |> put_flash(:info, "Session updated successfully")
+          |> redirect(to: ~p"/sessions/#{refreshed.id}")
+
+        {:error, changeset} ->
+          current = Sessions.fetch_user_session!(user, session.id, preload: [:profile, session_pool: :owner])
+          handle_update_error(conn, current, changeset)
+      end
     else
-      {:error, :not_found} ->
-        conn
-        |> put_flash(:error, "Session not found")
-        |> redirect(to: ~p"/sessions")
-
-      {:error, changeset} ->
-        {:ok, session} = Sessions.get_session(id)
-        handle_update_error(conn, session, changeset)
+      render_not_found(conn)
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    with {:ok, session} <- Sessions.get_session(id),
-         {:ok, _} <- Sessions.delete_session(session) do
-      conn
-      |> put_flash(:info, "Session deleted successfully")
-      |> redirect(to: ~p"/sessions")
+  def delete(%{assigns: %{session: session}} = conn, _params) do
+    user = conn.assigns.current_user
+
+    if Sessions.user_owns_session?(user, session) do
+      case Sessions.delete_session(session) do
+        {:ok, _} ->
+          conn
+          |> put_flash(:info, "Session deleted successfully")
+          |> redirect(to: ~p"/sessions")
+
+        {:error, _} ->
+          conn
+          |> put_flash(:error, "Failed to delete session")
+          |> redirect(to: ~p"/sessions")
+      end
     else
-      {:error, _} ->
-        conn
-        |> put_flash(:error, "Failed to delete session")
-        |> redirect(to: ~p"/sessions")
+      render_not_found(conn)
     end
   end
 
   # ===== Private Helpers =====
 
-  defp handle_create_error(conn, changeset, message) do
+  defp handle_create_error(conn, user, changeset, message) do
     Logger.error("Session creation failed: #{message}")
 
-    sessions = Sessions.list_sessions(preload: true)
-    profiles = Profiles.list_profiles(status: :active)
+    sessions = Sessions.list_user_sessions(user, preload: [:profile, session_pool: :owner])
+    profiles = Profiles.list_user_profiles(user, status: :active)
 
     conn
     |> put_flash(:error, "Failed to create session: #{message}")
@@ -122,6 +114,25 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
       session: session,
       errors: format_changeset_errors(changeset)
     })
+  end
+
+  defp load_session(%{params: %{"id" => id}} = conn, _opts) do
+    user = conn.assigns.current_user
+
+    case Sessions.fetch_user_session(user, id, preload: [:profile, :user, session_pool: :owner]) do
+      {:ok, session} -> assign(conn, :session, session)
+      {:error, _} -> render_not_found(conn)
+    end
+  end
+
+  defp load_session(conn, _opts), do: render_not_found(conn)
+
+  defp render_not_found(conn) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(BrowsergridWeb.ErrorHTML)
+    |> render("404", layout: false)
+    |> halt()
   end
 
   defp format_changeset_errors(nil), do: %{}

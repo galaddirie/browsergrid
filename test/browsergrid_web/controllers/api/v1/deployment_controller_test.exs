@@ -60,13 +60,14 @@ defmodule BrowsergridWeb.API.V1.DeploymentControllerTest do
   end
 
   describe "show" do
-    test "returns 403 when accessing another user's deployment", %{conn: conn} do
+    test "returns 404 when accessing another user's deployment", %{conn: conn} do
       other_user = AccountsFixtures.user_fixture()
       deployment = insert_deployment!(other_user, %{name: "Hidden"})
 
       conn = get(conn, ~p"/api/v1/deployments/#{deployment.id}")
 
-      assert conn.status == 403
+      assert conn.status == 404
+      assert %{"error" => "not_found"} = Jason.decode!(conn.resp_body)
     end
   end
 

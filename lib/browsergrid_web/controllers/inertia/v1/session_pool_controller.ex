@@ -38,7 +38,8 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
   end
 
   def new(conn, _params) do
-    profiles = Profiles.list_profiles(status: :active)
+    user = conn.assigns.current_user
+    profiles = Profiles.list_user_profiles(user, status: :active)
 
     render_inertia(conn, "Pools/New", %{
       profiles: Enum.map(profiles, &profile_payload/1),
@@ -57,7 +58,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
         |> redirect(to: ~p"/pools/#{pool.id}")
 
       {:error, changeset} ->
-        profiles = Profiles.list_profiles(status: :active)
+        profiles = Profiles.list_user_profiles(user, status: :active)
 
         conn
         |> put_flash(:error, "Failed to create session pool")
@@ -161,7 +162,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
 
     with {:ok, pool} <- fetch_pool_for_user(id, user),
          {:ok, claimed} <- SessionPools.claim_session(pool, user),
-         claimed <- Repo.preload(claimed, [:profile, :session_pool]),
+         claimed = Repo.preload(claimed, [:profile, :session_pool]),
          {:ok, connection} <- Sessions.get_connection_info(claimed.id) do
       conn
       |> put_flash(:info, "Claimed session #{short_id(claimed.id)}")
@@ -214,9 +215,11 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
       |> Sessions.list_sessions_for_pool(preload: [:profile, session_pool: [:owner]])
       |> Enum.map(&session_payload/1)
 
+    user = conn.assigns.current_user
+
     profiles =
-      [status: :active]
-      |> Profiles.list_profiles()
+      user
+      |> Profiles.list_user_profiles(status: :active)
       |> Enum.map(&profile_payload/1)
 
     assigns =

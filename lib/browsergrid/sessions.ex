@@ -4,6 +4,8 @@ defmodule Browsergrid.Sessions do
   """
   import Ecto.Query, warn: false
 
+  alias Browsergrid.Accounts.User
+  alias Browsergrid.Authorization
   alias Browsergrid.Repo
   alias Browsergrid.SessionRuntime
   alias Browsergrid.Sessions.Session
@@ -14,6 +16,20 @@ defmodule Browsergrid.Sessions do
   def list_sessions(opts \\ []) do
     Session
     |> maybe_filter_by_user(opts)
+    |> apply_filters(opts)
+    |> maybe_preload(opts)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Lists sessions owned by the given user. Admin users receive unscoped results.
+  """
+  @spec list_user_sessions(User.t(), Keyword.t()) :: [Session.t()]
+  def list_user_sessions(%User{} = user, opts \\ []) do
+    Session
+    |> Authorization.scope_owned(user)
+    |> apply_filters(opts)
     |> maybe_preload(opts)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
@@ -38,6 +54,43 @@ defmodule Browsergrid.Sessions do
   end
 
   def get_session!(id), do: Repo.get!(Session, id)
+
+  @doc """
+  Fetches a session owned by the given user. Returns `{:error, :not_found}` when
+  the user does not own the session or it does not exist.
+  """
+  @spec fetch_user_session(User.t(), Ecto.UUID.t(), Keyword.t()) ::
+          {:ok, Session.t()} | {:error, :invalid_id | :not_found}
+  def fetch_user_session(user, id, opts \\ [])
+
+  def fetch_user_session(%User{} = user, id, opts) when is_binary(id) do
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+         %Session{} = session <-
+           Session
+           |> Authorization.scope_owned(user)
+           |> where([s], s.id == ^id)
+           |> maybe_preload(opts)
+           |> Repo.one() do
+      {:ok, session}
+    else
+      :error -> {:error, :invalid_id}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  def fetch_user_session(_user, _id, _opts), do: {:error, :invalid_id}
+
+  @doc """
+  Fetches a session for a user but raises on failure.
+  """
+  @spec fetch_user_session!(User.t(), Ecto.UUID.t(), Keyword.t()) :: Session.t()
+  def fetch_user_session!(%User{} = user, id, opts \\ []) do
+    Session
+    |> Authorization.scope_owned(user)
+    |> where([s], s.id == ^id)
+    |> maybe_preload(opts)
+    |> Repo.one!()
+  end
 
   def get_session_with_profile!(id) do
     Session
@@ -282,10 +335,28 @@ defmodule Browsergrid.Sessions do
   end
 
   defp maybe_filter_by_user(query, opts) do
-    case Keyword.get(opts, :user_id) do
-      nil -> query
-      user_id -> where(query, [s], s.user_id == ^user_id)
+    case Keyword.get(opts, :user) do
+      %User{} = user ->
+        Authorization.scope_owned(query, user)
+
+      _ ->
+        case Keyword.get(opts, :user_id) do
+          nil -> query
+          user_id -> where(query, [s], s.user_id == ^user_id)
+        end
     end
+  end
+
+  defp apply_filters(query, opts) do
+    Enum.reduce(opts, query, fn
+      {:user, _}, q -> q
+      {:user_id, _}, q -> q
+      {:preload, _}, q -> q
+      {:profile_id, profile_id}, q -> where(q, [s], s.profile_id == ^profile_id)
+      {:session_pool_id, pool_id}, q -> where(q, [s], s.session_pool_id == ^pool_id)
+      {:status, status}, q -> where(q, [s], s.status == ^status)
+      _, q -> q
+    end)
   end
 
   defp broadcast_if_ok({:ok, session}, event) do
@@ -314,5 +385,13 @@ defmodule Browsergrid.Sessions do
       end
 
     Changeset.change(base_changeset, attachment_deadline_at: nil)
+  end
+
+  @doc """
+  Returns `true` when the provided user owns the session (admins always pass).
+  """
+  @spec user_owns_session?(User.t() | nil, Session.t()) :: boolean()
+  def user_owns_session?(user, %Session{} = session) do
+    Authorization.owns?(user, session)
   end
 end

@@ -56,14 +56,14 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
       assert res["data"]["id"] == session.id
     end
 
-    test "returns 403 when accessing another user's session", %{conn: conn} do
+    test "returns 404 when accessing another user's session", %{conn: conn} do
       other_user = AccountsFixtures.user_fixture()
       session = insert_session!(other_user, %{name: "Foreign"})
 
       conn = get(conn, ~p"/api/v1/sessions/#{session.id}")
 
-      assert conn.status == 403
-      assert %{"error" => "forbidden"} = Jason.decode!(conn.resp_body)
+      assert conn.status == 404
+      assert %{"error" => "not_found"} = Jason.decode!(conn.resp_body)
     end
   end
 

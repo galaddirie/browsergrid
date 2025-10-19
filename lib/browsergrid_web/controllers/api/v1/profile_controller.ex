@@ -2,27 +2,21 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
   use BrowsergridWeb, :controller
 
   alias Browsergrid.Profiles
-  alias Browsergrid.Profiles.Profile
-  alias BrowsergridWeb.Controllers.API.Concerns.Authorization
 
   action_fallback BrowsergridWeb.API.V1.FallbackController
 
   def index(conn, _params) do
     user = conn.assigns.current_user
-    profiles = Profiles.list_profiles(user_id: user.id)
+    profiles = Profiles.list_user_profiles(user)
     json(conn, %{data: profiles})
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, profile} <- fetch_profile(id),
-         {:ok, profile} <- Authorization.authorize_resource(conn, profile) do
-      json(conn, %{data: profile})
-    else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
+    user = conn.assigns.current_user
 
-      {:error, reason} ->
-        {:error, reason}
+    case Profiles.fetch_user_profile(user, id) do
+      {:ok, profile} -> json(conn, %{data: profile})
+      {:error, _} -> {:error, :not_found}
     end
   end
 
@@ -41,38 +35,25 @@ defmodule BrowsergridWeb.API.V1.ProfileController do
   end
 
   def update(conn, %{"id" => id, "profile" => profile_params}) do
-    with {:ok, profile} <- fetch_profile(id),
-         {:ok, profile} <- Authorization.authorize_resource(conn, profile),
-         sanitized = ensure_owner(profile_params, conn),
+    user = conn.assigns.current_user
+    sanitized = ensure_owner(profile_params, conn)
+
+    with {:ok, profile} <- Profiles.fetch_user_profile(user, id),
          {:ok, updated} <- Profiles.update_profile(profile, sanitized) do
       json(conn, %{data: updated})
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _} -> {:error, :not_found}
     end
   end
 
   def delete(conn, %{"id" => id}) do
-    with {:ok, profile} <- fetch_profile(id),
-         {:ok, profile} <- Authorization.authorize_resource(conn, profile),
+    user = conn.assigns.current_user
+
+    with {:ok, profile} <- Profiles.fetch_user_profile(user, id),
          {:ok, _} <- Profiles.delete_profile(profile) do
       send_resp(conn, :no_content, "")
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp fetch_profile(id) do
-    case Profiles.get_profile(id) do
-      %Profile{} = profile -> {:ok, profile}
-      nil -> {:error, :not_found}
+      {:error, _} -> {:error, :not_found}
     end
   end
 

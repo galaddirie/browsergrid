@@ -2,27 +2,21 @@ defmodule BrowsergridWeb.API.V1.DeploymentController do
   use BrowsergridWeb, :controller
 
   alias Browsergrid.Deployments
-  alias Browsergrid.Deployments.Deployment
-  alias BrowsergridWeb.Controllers.API.Concerns.Authorization
 
   action_fallback BrowsergridWeb.API.V1.FallbackController
 
   def index(conn, _params) do
     user = conn.assigns.current_user
-    deployments = Deployments.list_deployments(user_id: user.id)
+    deployments = Deployments.list_user_deployments(user)
     json(conn, %{data: deployments})
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, deployment} <- fetch_deployment(id),
-         {:ok, deployment} <- Authorization.authorize_resource(conn, deployment) do
-      json(conn, %{data: deployment})
-    else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
+    user = conn.assigns.current_user
 
-      {:error, reason} ->
-        {:error, reason}
+    case Deployments.fetch_user_deployment(user, id) do
+      {:ok, deployment} -> json(conn, %{data: deployment})
+      {:error, _} -> {:error, :not_found}
     end
   end
 
@@ -41,37 +35,24 @@ defmodule BrowsergridWeb.API.V1.DeploymentController do
   end
 
   def delete(conn, %{"id" => id}) do
-    with {:ok, deployment} <- fetch_deployment(id),
-         {:ok, deployment} <- Authorization.authorize_resource(conn, deployment),
+    user = conn.assigns.current_user
+
+    with {:ok, deployment} <- Deployments.fetch_user_deployment(user, id),
          {:ok, _} <- Deployments.delete_deployment(deployment) do
       send_resp(conn, :no_content, "")
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _} -> {:error, :not_found}
     end
   end
 
   def deploy(conn, %{"id" => id}) do
-    with {:ok, deployment} <- fetch_deployment(id),
-         {:ok, deployment} <- Authorization.authorize_resource(conn, deployment),
+    user = conn.assigns.current_user
+
+    with {:ok, deployment} <- Deployments.fetch_user_deployment(user, id),
          {:ok, {deployment, session}} <- Deployments.deploy(deployment) do
       json(conn, %{data: %{deployment: deployment, session: session}})
     else
-      {:error, %Plug.Conn{} = conn} ->
-        conn
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp fetch_deployment(id) do
-    case Deployments.get_deployment(id) do
-      %Deployment{} = deployment -> {:ok, deployment}
-      nil -> {:error, :not_found}
+      {:error, _} -> {:error, :not_found}
     end
   end
 
