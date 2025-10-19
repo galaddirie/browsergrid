@@ -22,6 +22,22 @@ defmodule BrowsergridWeb.Plugs.ApiAuthTest do
       refute conn.halted
     end
 
+    test "assigns the user and token when the token query param is present", %{conn: conn} do
+      user = AccountsFixtures.user_fixture()
+      {:ok, api_token, plaintext} = ApiTokens.create_token(user, %{"name" => "API"})
+
+      conn =
+        conn
+        |> Map.put(:query_string, "token=#{plaintext}")
+        |> Plug.Conn.fetch_query_params()
+        |> ApiAuth.call(%{})
+
+      assert conn.assigns.current_user.id == user.id
+      assert %ApiToken{id: token_id} = conn.assigns.api_token
+      assert token_id == api_token.id
+      refute conn.halted
+    end
+
     test "returns 401 when authorization header is missing", %{conn: conn} do
       conn = ApiAuth.call(conn, %{})
 
