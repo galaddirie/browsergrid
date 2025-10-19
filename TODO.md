@@ -59,12 +59,15 @@ UX
 
 - [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
 - [ ] non admins should not be able to view or modify default browser pool or sessions - this should be a system level setting and not something defined per controller or context
-- [ ] non admins can claim sessions from the default pool
-- [ ] non admins should only see sessions they have claimed or are associated with in their session list
-- [ ] non admins should only be able to view their own related resources
+- [x] non admins can claim sessions from the default pool
+- [x] non admins should only see sessions they have claimed or are associated with in their session list
+- [x] non admins should only be able to view their own related resources
 
 
-- [ ] update pool params to be like this:
+- [x] update pool params to be like this:
   "min": 0, // minimum number of sessions to keep prewarmed basically target_ready 
   "max": 10, // maximum number of sessions to keep prewarmed if 0 then unlimited
   "idle_shutdown_after": :timer.minutes(5) // timeout for idle unclaimed session, browser sessions overtime start to degrade in performance and should be removed, if 0 then sessions are never removed default is 10 minutes, this way the pool always has high performance sessions available
+
+- [ ] add realtime websocket channel to pool page
+- [ ]imporve interaction between idle shutdown and min ready, we wouldnt want all idle sessions to be removed if we are below the min ready threshold, we would want to keep the session thats ready to be culled until its replacement is ready
