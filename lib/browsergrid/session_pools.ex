@@ -175,6 +175,41 @@ defmodule Browsergrid.SessionPools do
   end
 
   @doc """
+  Resolve a pool identifier for claiming and ensure the user is allowed to claim from it.
+  """
+  @spec fetch_pool_for_claim(String.t() | atom() | nil, User.t()) ::
+          {:ok, SessionPool.t()} | {:error, term()}
+  def fetch_pool_for_claim(identifier, %User{} = user) do
+    with {:ok, pool} <- resolve_pool_identifier(identifier),
+         :ok <- authorize_claim(pool, user) do
+      {:ok, pool}
+    end
+  end
+
+  @doc """
+  Resolve a session pool identifier, treating nil or \"default\" as the default system pool.
+  """
+  @spec resolve_pool_identifier(String.t() | atom() | nil) ::
+          {:ok, SessionPool.t()} | {:error, :not_found}
+  def resolve_pool_identifier(identifier)
+
+  def resolve_pool_identifier(nil), do: fetch_pool(:default)
+  def resolve_pool_identifier(""), do: fetch_pool(:default)
+  def resolve_pool_identifier(:default), do: fetch_pool(:default)
+  def resolve_pool_identifier("default"), do: fetch_pool(:default)
+  def resolve_pool_identifier(identifier) when is_binary(identifier), do: fetch_pool(identifier)
+
+  @doc """
+  Authorize a user to claim sessions from the given pool.
+  """
+  @spec authorize_claim(SessionPool.t(), User.t()) :: :ok | {:error, :forbidden}
+  def authorize_claim(%SessionPool{system: true}, _user), do: :ok
+
+  def authorize_claim(%SessionPool{owner_id: owner_id}, %User{id: user_id}) when owner_id == user_id, do: :ok
+
+  def authorize_claim(_pool, _user), do: {:error, :forbidden}
+
+  @doc """
   Reconcile a pool ensuring the desired number of ready sessions.
   """
   @spec reconcile_pool(SessionPool.t()) :: :ok

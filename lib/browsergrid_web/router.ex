@@ -105,40 +105,45 @@ defmodule BrowsergridWeb.Router do
   end
 
   # API V1 Routes - Authenticated
-  scope "/api/v1", BrowsergridWeb.API.V1, as: :api_v1 do
+  scope "/api/v1", BrowsergridWeb do
     pipe_through :api_authenticated
 
-    # Session routes
-    get "/sessions", SessionController, :index
-    post "/sessions", SessionController, :create
-    get "/sessions/:id", SessionController, :show
-    put "/sessions/:id", SessionController, :update
-    delete "/sessions/:id", SessionController, :delete
+    # Convenience connect route
+    get "/connect/*path", API.V1.ConnectController, :show
 
     # Session proxy routes - handles CDP connections and WebSocket proxying
-    match :*, "/sessions/:id/connect/*path", BrowsergridWeb.SessionProxyController, :proxy
+    match :*, "/sessions/:id/connect/*path", SessionProxyController, :proxy
 
-    # Profile routes
-    get "/profiles", ProfileController, :index
-    post "/profiles", ProfileController, :create
-    get "/profiles/:id", ProfileController, :show
-    put "/profiles/:id", ProfileController, :update
-    delete "/profiles/:id", ProfileController, :delete
+    scope "/", API.V1, as: :api_v1 do
+      # Session routes
+      get "/sessions", SessionController, :index
+      post "/sessions", SessionController, :create
+      get "/sessions/:id", SessionController, :show
+      put "/sessions/:id", SessionController, :update
+      delete "/sessions/:id", SessionController, :delete
 
-    # Deployment routes
-    get "/deployments", DeploymentController, :index
-    post "/deployments", DeploymentController, :create
-    get "/deployments/:id", DeploymentController, :show
-    post "/deployments/:id/deploy", DeploymentController, :deploy
-    delete "/deployments/:id", DeploymentController, :delete
+      # Profile routes
+      get "/profiles", ProfileController, :index
+      post "/profiles", ProfileController, :create
+      get "/profiles/:id", ProfileController, :show
+      put "/profiles/:id", ProfileController, :update
+      delete "/profiles/:id", ProfileController, :delete
 
-    # Session pools
-    get "/pools", SessionPoolController, :index
-    get "/pools/:id/stats", SessionPoolController, :stats
-    post "/pools", SessionPoolController, :create
-    put "/pools/:id", SessionPoolController, :update
-    delete "/pools/:id", SessionPoolController, :delete
-    post "/pools/:id/claim", SessionPoolController, :claim
+      # Deployment routes
+      get "/deployments", DeploymentController, :index
+      post "/deployments", DeploymentController, :create
+      get "/deployments/:id", DeploymentController, :show
+      post "/deployments/:id/deploy", DeploymentController, :deploy
+      delete "/deployments/:id", DeploymentController, :delete
+
+      # Session pools
+      get "/pools", SessionPoolController, :index
+      get "/pools/:id/stats", SessionPoolController, :stats
+      post "/pools", SessionPoolController, :create
+      put "/pools/:id", SessionPoolController, :update
+      delete "/pools/:id", SessionPoolController, :delete
+      post "/pools/:id/claim", SessionPoolController, :claim
+    end
   end
 
   # Health check endpoint

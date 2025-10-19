@@ -17,7 +17,7 @@
 - [x] rename /sessions/:id/edge to /sessions/:id/connect and update all references to it
     - [x] add api/sessions/:id/connect endpoint aswell 
 
-- [] add api/v1/connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
+- [x] add api/v1/connect/ convience endpoint - uses default pool of sessions ( connect endpoint immediately returns proxied details to a session, claim stuff happens automatically in the background) 
 
 example: https://browsergrid.com/connect/json?token=... 
 returns: 
@@ -31,9 +31,8 @@ returns:
   "webSocketDebuggerUrl": "ws://browsergrid.com/session/:id/connect/devtools/browser/fd033ce1-f5ce-4fba-b9c0-99539fedec53"
 }
 
-    - [ ] add optional ?pool=  to select a pool of sessions to use
-
-
+    - [x] add optional ?pool=  to select a pool of sessions to use
+-  [ ] allow connect endpoint to provision sessions from a pool if the pool is not full but no session is available
 - [ ] adding CUA endpoint for browser
     - [ ] add visual ( similar to chatgpt where we should a  rendering  similar to this https://screen.studio/?aff=Yy75o )
     - [ ] chat  (jido agents?)
@@ -47,7 +46,7 @@ returns:
       - would it be possible to restore the near exact state of the browser from the previous message?
       -maybe add a flag for persistant chat browser sessions and warn users that they will be charged for the idle time between messages while the chat window is open
 - [ ] test to see if we can test 1 million sessions ( fake pods/containers) 
-
+- [ ] 
 - [ ] Deployment integration
 - [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
@@ -66,7 +65,6 @@ UX
 
 
 - [ ] update pool params to be like this:
-  "min": 0,
-  "max": 10,
-  "max_concurrency": 5,
-  "timeout_minutes": 30
+  "min": 0, // minimum number of sessions to keep prewarmed basically target_ready 
+  "max": 10, // maximum number of sessions to keep prewarmed if 0 then unlimited
+  "idle_shutdown_after": :timer.minutes(5) // timeout for idle unclaimed session, browser sessions overtime start to degrade in performance and should be removed, if 0 then sessions are never removed default is 10 minutes, this way the pool always has high performance sessions available

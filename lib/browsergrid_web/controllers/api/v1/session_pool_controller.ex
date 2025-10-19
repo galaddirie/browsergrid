@@ -78,29 +78,14 @@ defmodule BrowsergridWeb.API.V1.SessionPoolController do
     end
   end
 
-  defp fetch_pool_for_user("default", user), do: fetch_pool_for_claim("default", user)
-  defp fetch_pool_for_user(id, user), do: authorize_pool(id, user)
+  defp fetch_pool_for_user(identifier, user) do
+    with {:ok, pool} <- SessionPools.resolve_pool_identifier(identifier),
+         :ok <- SessionPools.authorize_claim(pool, user) do
+      {:ok, pool}
+    end
+  end
 
   defp fetch_pool_for_claim(identifier, user) do
-    with {:ok, pool} <- resolve_pool(identifier),
-         :ok <- authorize_claim(pool, user) do
-      {:ok, pool}
-    end
+    SessionPools.fetch_pool_for_claim(identifier, user)
   end
-
-  defp authorize_pool(id, user) do
-    with {:ok, pool} <- SessionPools.fetch_pool(id),
-         :ok <- authorize_claim(pool, user) do
-      {:ok, pool}
-    end
-  end
-
-  defp resolve_pool("default"), do: SessionPools.fetch_pool(:default)
-  defp resolve_pool(id), do: SessionPools.fetch_pool(id)
-
-  defp authorize_claim(%{system: true}, _user), do: :ok
-
-  defp authorize_claim(%{owner_id: owner_id}, %{id: user_id}) when owner_id == user_id, do: :ok
-
-  defp authorize_claim(_pool, _user), do: {:error, :forbidden}
 end
