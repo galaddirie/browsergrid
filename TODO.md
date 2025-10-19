@@ -21,7 +21,7 @@
       - would it be possible to restore the near exact state of the browser from the previous message?
       -maybe add a flag for persistant chat browser sessions and warn users that they will be charged for the idle time between messages while the chat window is open
 - [ ] test to see if we can test 1 million sessions ( fake pods/containers) 
-- [ ] 
+- [ ] add a chaos engineering test suite
 - [ ] Deployment integration
 - [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
