@@ -1,5 +1,5 @@
 defmodule Browsergrid.SessionsTest do
-  use Browsergrid.DataCase, async: true
+  use Browsergrid.DataCase, async: false
 
   import Mock
 
