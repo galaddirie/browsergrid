@@ -14,7 +14,7 @@ defmodule BrowsergridWeb.API.V1.ConnectController do
     pool_identifier = Map.get(conn.params, "pool")
 
     with {:ok, pool} <- SessionPools.fetch_pool_for_claim(pool_identifier, user),
-         {:ok, session} <- SessionPools.claim_session(pool, user),
+         {:ok, session} <- SessionPools.claim_or_provision_session(pool, user),
          {:ok, payload} <- fetch_cdp_payload(session.id, path_segments, conn) do
       json(conn, payload)
     else
@@ -22,6 +22,11 @@ defmodule BrowsergridWeb.API.V1.ConnectController do
         conn
         |> put_status(:conflict)
         |> json(%{error: "no_available_sessions"})
+
+      {:error, :pool_at_capacity} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{error: "pool_at_capacity"})
 
       {:error, {:upstream_error, status}} ->
         conn

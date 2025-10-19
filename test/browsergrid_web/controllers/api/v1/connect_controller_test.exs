@@ -25,7 +25,7 @@ defmodule BrowsergridWeb.API.V1.ConnectControllerTest do
 
       with_mocks([
         {Browsergrid.SessionPools, [:passthrough], fetch_pool_for_claim: fn nil, ^user -> {:ok, :pool} end,
-         claim_session: fn :pool, ^user -> {:ok, session} end},
+         claim_or_provision_session: fn :pool, ^user -> {:ok, session} end},
         {Browsergrid.SessionRuntime, [:passthrough],
          upstream_endpoint: fn "session-123" -> {:ok, %{host: "127.0.0.1", port: 9222, scheme: "http"}} end},
         {Finch, [:passthrough],
@@ -54,7 +54,7 @@ defmodule BrowsergridWeb.API.V1.ConnectControllerTest do
         assert result["devtoolsFrontendUrl"] == result["webSocketDebuggerUrl"]
 
         assert_called(Browsergrid.SessionPools.fetch_pool_for_claim(nil, user))
-        assert_called(Browsergrid.SessionPools.claim_session(:pool, user))
+        assert_called(Browsergrid.SessionPools.claim_or_provision_session(:pool, user))
       end
     end
 
@@ -63,7 +63,7 @@ defmodule BrowsergridWeb.API.V1.ConnectControllerTest do
 
       with_mocks([
         {Browsergrid.SessionPools, [:passthrough], fetch_pool_for_claim: fn "custom", ^user -> {:ok, :custom_pool} end,
-         claim_session: fn :custom_pool, ^user -> {:ok, session} end},
+         claim_or_provision_session: fn :custom_pool, ^user -> {:ok, session} end},
         {Browsergrid.SessionRuntime, [:passthrough],
          upstream_endpoint: fn "page-456" -> {:ok, %{host: "127.0.0.1", port: 9333, scheme: "http"}} end},
         {Finch, [:passthrough],
@@ -90,17 +90,27 @@ defmodule BrowsergridWeb.API.V1.ConnectControllerTest do
                  "ws://www.example.com/sessions/page-456/connect/devtools/page/page-456"
 
         assert_called(Browsergrid.SessionPools.fetch_pool_for_claim("custom", user))
-        assert_called(Browsergrid.SessionPools.claim_session(:custom_pool, user))
+        assert_called(Browsergrid.SessionPools.claim_or_provision_session(:custom_pool, user))
       end
     end
 
     test "returns conflict when no sessions are available", %{conn: conn, user: user} do
       with_mock Browsergrid.SessionPools,
         fetch_pool_for_claim: fn nil, ^user -> {:ok, :pool} end,
-        claim_session: fn :pool, ^user -> {:error, :no_available_sessions} end do
+        claim_or_provision_session: fn :pool, ^user -> {:error, :no_available_sessions} end do
         response_conn = get(conn, ~p"/api/v1/connect/json")
         assert response_conn.status == 409
         assert %{"error" => "no_available_sessions"} = Jason.decode!(response_conn.resp_body)
+      end
+    end
+
+    test "returns conflict when pool is at capacity", %{conn: conn, user: user} do
+      with_mock Browsergrid.SessionPools,
+        fetch_pool_for_claim: fn nil, ^user -> {:ok, :pool} end,
+        claim_or_provision_session: fn :pool, ^user -> {:error, :pool_at_capacity} end do
+        response_conn = get(conn, ~p"/api/v1/connect/json")
+        assert response_conn.status == 409
+        assert %{"error" => "pool_at_capacity"} = Jason.decode!(response_conn.resp_body)
       end
     end
 

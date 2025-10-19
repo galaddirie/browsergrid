@@ -14,6 +14,7 @@ defmodule Browsergrid.SessionPools do
   require Logger
 
   @attachment_wait_seconds 10
+  @active_statuses [:pending, :starting, :ready, :claimed, :running]
 
   @type pool_id :: Ecto.UUID.t()
   @type claim_result :: {:ok, Session.t()} | {:error, :not_found | :no_available_sessions}
@@ -176,6 +177,77 @@ defmodule Browsergrid.SessionPools do
         Logger.error("Failed to claim session from pool #{pool.id}: #{inspect(changeset.errors)}")
         {:error, :no_available_sessions}
     end
+  end
+
+  @doc """
+  Claim a ready session from the pool, provisioning a new session when capacity allows.
+  """
+  @spec claim_or_provision_session(SessionPool.t(), User.t()) :: claim_result()
+  def claim_or_provision_session(%SessionPool{} = pool, %User{} = user) do
+    case claim_session(pool, user) do
+      {:ok, _session} = result ->
+        result
+
+      {:error, :no_available_sessions} ->
+        provision_and_claim_session(pool, user)
+
+      other ->
+        other
+    end
+  end
+
+  defp provision_and_claim_session(%SessionPool{} = pool, %User{} = user) do
+    with :ok <- ensure_capacity_for_provision(pool),
+         {:ok, session} <- start_prewarmed_session(pool),
+         :ok <- enforce_capacity_after_provision(pool, session),
+         {:ok, claimed} <- claim_session(pool, user) do
+      {:ok, claimed}
+    else
+      {:error, :pool_at_capacity} = error ->
+        error
+
+      {:error, :no_available_sessions} ->
+        {:error, :no_available_sessions}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp ensure_capacity_for_provision(%SessionPool{max_ready: max} = pool) do
+    if limited_capacity?(max) and active_session_count(pool.id) >= max do
+      {:error, :pool_at_capacity}
+    else
+      :ok
+    end
+  end
+
+  # todo: a proper system would not allow the session to be provisioned if the pool is at max capacity
+  defp enforce_capacity_after_provision(%SessionPool{max_ready: max} = pool, %Session{} = session) do
+    if limited_capacity?(max) and active_session_count(pool.id) > max do
+      Logger.warning("Provisioned session #{session.id} exceeded capacity for pool #{pool.id}, pruning")
+
+      session
+      |> Sessions.delete_session()
+      |> case do
+        {:ok, _} -> {:error, :pool_at_capacity}
+        {:error, reason} ->
+          Logger.error("Failed to delete excess session #{session.id} from pool #{pool.id}: #{inspect(reason)}")
+          {:error, :pool_at_capacity}
+      end
+    else
+      :ok
+    end
+  end
+
+  defp limited_capacity?(max) when is_integer(max), do: max > 0
+  defp limited_capacity?(_), do: false
+
+  defp active_session_count(pool_id) do
+    pool_id
+    |> pool_session_scope()
+    |> where([s], s.status in ^@active_statuses)
+    |> Repo.aggregate(:count, :id)
   end
 
   @doc """

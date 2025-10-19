@@ -52,6 +52,50 @@ defmodule Browsergrid.SessionPoolsTest do
     end
   end
 
+  describe "claim_or_provision_session/2" do
+    test "provisions a session when none are ready but capacity allows" do
+      owner = AccountsFixtures.user_fixture()
+      pool = Factory.insert(:session_pool, owner_id: owner.id, min_ready: 0, max_ready: 2)
+
+      with_mock Sessions, [:passthrough],
+        create_session: fn attrs ->
+          assert attrs[:session_pool_id] == pool.id
+          assert attrs[:user_id] == owner.id
+
+          session =
+            Factory.insert(:session,
+              status: :ready,
+              session_pool_id: pool.id,
+              user_id: owner.id
+            )
+
+          {:ok, session}
+        end do
+        assert {:ok, claimed} = SessionPools.claim_or_provision_session(pool, owner)
+        assert claimed.session_pool_id == pool.id
+        assert claimed.status == :claimed
+        assert claimed.user_id == owner.id
+        assert claimed.claimed_at
+      end
+    end
+
+    test "returns conflict when pool is at capacity" do
+      owner = AccountsFixtures.user_fixture()
+      pool = Factory.insert(:session_pool, owner_id: owner.id, min_ready: 0, max_ready: 1)
+
+      Factory.insert(:session,
+        status: :running,
+        session_pool_id: pool.id,
+        user_id: owner.id
+      )
+
+      with_mock Sessions, [:passthrough],
+        create_session: fn _attrs -> flunk("should not attempt to create session when at capacity") end do
+        assert {:error, :pool_at_capacity} = SessionPools.claim_or_provision_session(pool, owner)
+      end
+    end
+  end
+
   describe "reap_expired_claims/1" do
     test "deletes sessions whose attachment deadline expired" do
       owner = AccountsFixtures.user_fixture()
