@@ -15,7 +15,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import {
   Browser,
-  BrowserVersion,
   Profile,
   ResourceLimits,
   ScreenConfig,
@@ -66,10 +65,10 @@ export function SessionForm({
     });
   };
 
-  const updateResourceLimits = (limitsUpdates: Partial<ResourceLimits>) => {
+  const updateLimits = (limitsUpdates: Partial<ResourceLimits>) => {
     updateSession({
-      resource_limits: {
-        ...session.resource_limits,
+      limits: {
+        ...session.limits,
         ...limitsUpdates,
       },
     });
@@ -86,7 +85,7 @@ export function SessionForm({
               Browser Configuration
             </h3>
             <p className="mt-1 text-xs text-gray-500">
-              Choose your browser type, version, and operating system
+              Choose your browser type and core runtime preferences
             </p>
           </div>
         </div>
@@ -98,7 +97,7 @@ export function SessionForm({
                 Browser
               </Label>
               <Select
-                value={session.browser_type}
+                value={session.browser_type ?? 'chrome'}
                 onValueChange={(value: Browser) =>
                   updateSession({ browser_type: value })
                 }
@@ -115,24 +114,16 @@ export function SessionForm({
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-medium tracking-wider text-gray-700 uppercase">
-                Version
+                Session Name
               </Label>
-              <Select
-                value={session.version}
-                onValueChange={(value: BrowserVersion) =>
-                  updateSession({ version: value })
+              <Input
+                value={session.name ?? ''}
+                onChange={event =>
+                  updateSession({ name: event.target.value || undefined })
                 }
-              >
-                <SelectTrigger className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20">
-                  <SelectValue placeholder="Select version" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="latest">Latest</SelectItem>
-                  <SelectItem value="stable">Stable</SelectItem>
-                  <SelectItem value="canary">Canary</SelectItem>
-                  <SelectItem value="dev">Dev</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Optional friendly name"
+                className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20"
+              />
             </div>
           </div>
 
@@ -148,7 +139,7 @@ export function SessionForm({
             </div>
             <Switch
               id="headless"
-              checked={session.headless}
+              checked={!!session.headless}
               onCheckedChange={(checked: boolean) =>
                 updateSession({ headless: checked })
               }
@@ -377,9 +368,9 @@ export function SessionForm({
                 min="0.5"
                 max="8"
                 placeholder="2.0"
-                value={session.resource_limits?.cpu || ''}
+                value={session.limits?.cpu ?? ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateResourceLimits({
+                  updateLimits({
                     cpu: e.target.value
                       ? parseFloat(e.target.value)
                       : undefined,
@@ -393,9 +384,9 @@ export function SessionForm({
                 Memory
               </Label>
               <Select
-                value={session.resource_limits?.memory || ''}
+                value={session.limits?.memory || ''}
                 onValueChange={(value: string) =>
-                  updateResourceLimits({ memory: value || undefined })
+                  updateLimits({ memory: value || undefined })
                 }
               >
                 <SelectTrigger className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20">
@@ -421,9 +412,9 @@ export function SessionForm({
                 min="5"
                 max="480"
                 placeholder="30"
-                value={session.resource_limits?.timeout_minutes || ''}
+                value={session.limits?.timeout_minutes ?? ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateResourceLimits({
+                  updateLimits({
                     timeout_minutes: e.target.value
                       ? parseInt(e.target.value)
                       : undefined,
@@ -447,6 +438,65 @@ export function SessionForm({
             <p className="mt-1 text-xs text-gray-500">
               Additional configuration options for the session
             </p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium tracking-wider text-gray-700 uppercase">
+              Session Timeout (minutes)
+            </Label>
+            <Input
+              id="session-timeout"
+              type="number"
+              min={1}
+              value={session.timeout ?? 30}
+              onChange={event =>
+                updateSession({
+                  timeout:
+                    event.target.value === ''
+                      ? undefined
+                      : Number.parseInt(event.target.value, 10),
+                })
+              }
+              className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium tracking-wider text-gray-700 uppercase">
+              TTL (seconds, optional)
+            </Label>
+            <Input
+              id="session-ttl"
+              type="number"
+              min={0}
+              value={session.ttl_seconds ?? ''}
+              onChange={event =>
+                updateSession({
+                  ttl_seconds:
+                    event.target.value === ''
+                      ? null
+                      : Number.parseInt(event.target.value, 10),
+                })
+              }
+              placeholder="Default from pool/runtime"
+              className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium tracking-wider text-gray-700 uppercase">
+              Cluster (optional)
+            </Label>
+            <Input
+              id="session-cluster"
+              value={session.cluster ?? ''}
+              onChange={event =>
+                updateSession({
+                  cluster: event.target.value || undefined,
+                })
+              }
+              placeholder="Override the default cluster"
+              className="h-9 border-gray-200 transition-colors focus:border-blue-500 focus:ring-blue-500/20"
+            />
           </div>
         </div>
       </div>

@@ -145,6 +145,9 @@ export default function PoolsShow({
     setIsClaiming(false);
   }, [claimResult?.session?.id]);
 
+  const ttlSeconds = pool.session_template?.ttl_seconds ?? null;
+  const idleShutdownMinutes = Math.round(pool.idle_shutdown_after_ms / 60000);
+
   const handleClaim = () => {
     setIsClaiming(true);
     router.post(
@@ -202,7 +205,9 @@ export default function PoolsShow({
                 'Prewarmed browser sessions with shared configuration.'}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-              <span>Target ready: {pool.target_ready}</span>
+              <span>
+                Capacity: {pool.min} min / {pool.max === 0 ? 'unlimited' : pool.max} max
+              </span>
               <span>
                 Visibility:{' '}
                 <Badge
@@ -286,13 +291,24 @@ export default function PoolsShow({
                   <p className="mt-1 text-2xl font-bold">{stats.errored}</p>
                 </div>
               </div>
-              {pool.ttl_seconds && (
+              {ttlSeconds && ttlSeconds > 0 && (
                 <div className="flex items-center gap-2 rounded border border-neutral-200/60 bg-neutral-50 p-3 text-xs text-neutral-600">
                   <Clock className="h-4 w-4 text-neutral-500" />
                   <span>
                     Sessions expire after{' '}
-                    <strong>{pool.ttl_seconds} seconds</strong> without an
-                    attached client.
+                    <strong>{ttlSeconds} seconds</strong> without an attached
+                    client.
+                  </span>
+                </div>
+              )}
+
+              {idleShutdownMinutes > 0 && (
+                <div className="flex items-center gap-2 rounded border border-neutral-200/60 bg-neutral-50 p-3 text-xs text-neutral-600">
+                  <Clock className="h-4 w-4 text-neutral-500" />
+                  <span>
+                    Idle ready sessions recycle every{' '}
+                    <strong>{idleShutdownMinutes} minutes</strong> to keep the
+                    pool fresh.
                   </span>
                 </div>
               )}

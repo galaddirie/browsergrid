@@ -198,7 +198,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
                   <TableHead className="w-[220px]">Pool</TableHead>
                   <TableHead>Visibility</TableHead>
                   <TableHead>Owner</TableHead>
-                  <TableHead>Target Ready</TableHead>
+                  <TableHead>Capacity</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Health</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -243,7 +243,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
                       {pool.owner?.email || (pool.system ? 'Platform' : '—')}
                     </TableCell>
                     <TableCell className="py-4 text-sm text-neutral-700">
-                      {pool.target_ready}
+                      {pool.min} min / {pool.max === 0 ? 'unlimited' : pool.max} max
                     </TableCell>
                     <TableCell className="py-4 text-xs text-neutral-600">
                       {formatCounts(pool.statistics)}

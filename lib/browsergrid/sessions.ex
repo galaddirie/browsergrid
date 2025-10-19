@@ -130,6 +130,7 @@ defmodule Browsergrid.Sessions do
       limits: session.limits,
       headless: session.headless,
       timeout: session.timeout,
+      ttl_seconds: session.ttl_seconds,
       profile_id: session.profile_id
     })
   end

@@ -28,34 +28,26 @@ export interface ResourceLimits {
 export interface Session {
   id?: string;
   name?: string;
-  browser_type?: Browser;
+  browser_type: Browser;
   status?: string;
   live_url?: string;
   stream_url?: string;
-  options?: {
-    headless?: boolean;
-    version?: BrowserVersion;
-    screen_width?: number;
-    screen_height?: number;
-    screen_dpi?: number;
-    screen_scale?: number;
-    cpu_cores?: number;
-    memory_limit?: string;
-    timeout?: number;
-    profile_enabled?: boolean;
-    [key: string]: any; // Allow additional options
-  };
   cluster?: string;
   profile_id?: string;
+  headless?: boolean;
+  timeout?: number;
+  ttl_seconds?: number | null;
+  screen?: ScreenConfig | null;
+  limits?: ResourceLimits | null;
+  session_pool_id?: string;
+  session_pool?: SessionPoolSummary;
   inserted_at?: string;
   updated_at?: string;
   claimed_at?: string;
   attachment_deadline_at?: string;
-  session_pool_id?: string;
-  session_pool?: SessionPoolSummary;
-  // Optional profile relation (when preloaded)
+  user_id?: string;
+  // Optional relations when preloaded
   profile?: Profile;
-  // Optional user relation (when preloaded)
   user?: User;
 }
 
@@ -76,6 +68,7 @@ export interface PoolTemplate {
   browser_type?: Browser;
   headless?: boolean;
   timeout?: number;
+  ttl_seconds?: number | null;
   profile_id?: string;
   cluster?: string;
   name?: string;
@@ -90,8 +83,9 @@ export interface SessionPoolSummary {
   system: boolean;
   visibility: 'system' | 'private';
   owner?: PoolOwner | null;
-  target_ready: number;
-  ttl_seconds?: number | null;
+  min: number;
+  max: number;
+  idle_shutdown_after_ms: number;
   health: string;
   statistics: SessionPoolStatistics;
   session_template?: PoolTemplate | Record<string, any>;
@@ -102,8 +96,9 @@ export interface SessionPoolSummary {
 export interface SessionPoolFormValues {
   name: string;
   description?: string;
-  target_ready: number;
-  ttl_seconds?: number | null;
+  min: number;
+  max: number;
+  idle_shutdown_after: number;
   session_template: PoolTemplate & Record<string, any>;
 }
 
@@ -124,11 +119,14 @@ export interface SessionFormData {
   id?: string;
   name?: string;
   browser_type?: Browser;
-  version?: BrowserVersion;
   headless?: boolean;
   profile_id?: string;
   screen?: ScreenConfig;
-  resource_limits?: ResourceLimits;
+  limits?: ResourceLimits;
+  timeout?: number;
+  ttl_seconds?: number | null;
+  cluster?: string;
+  session_pool_id?: string;
 }
 
 // API Response Interface (matches API view)
@@ -140,19 +138,11 @@ export interface SessionAPI {
   live_url?: string;
   stream_url?: string;
   cluster?: string;
-  options: {
-    headless?: boolean;
-    version?: BrowserVersion;
-    screen_width?: number;
-    screen_height?: number;
-    screen_dpi?: number;
-    screen_scale?: number;
-    cpu_cores?: number;
-    memory_limit?: string;
-    timeout?: number;
-    profile_enabled?: boolean;
-    [key: string]: any;
-  };
+  headless?: boolean;
+  timeout?: number;
+  ttl_seconds?: number | null;
+  screen?: ScreenConfig | null;
+  limits?: ResourceLimits | null;
 }
 
 // Component Props
@@ -170,83 +160,70 @@ export interface SessionEditProps {
 }
 
 /**
- * Convert form data to API payload
- * Flattens nested structures into options map
+ * Convert form data to the backend payload shape.
  */
 export function formDataToSession(formData: SessionFormData): Partial<Session> {
   const session: Partial<Session> = {
     name: formData.name,
-    browser_type: formData.browser_type,
+    browser_type: formData.browser_type ?? 'chrome',
     profile_id: formData.profile_id,
-    options: {},
+    headless: formData.headless ?? false,
+    timeout: formData.timeout,
+    ttl_seconds: formData.ttl_seconds ?? null,
+    cluster: formData.cluster,
+    session_pool_id: formData.session_pool_id,
   };
 
-  // Simple fields that go into options
-  const simpleOptions = {
-    version: formData.version,
-    headless: formData.headless,
-  };
-
-  // Add simple options (filter out undefined)
-  Object.entries(simpleOptions).forEach(([key, value]) => {
-    if (value !== undefined) {
-      session.options![key] = value;
-    }
-  });
-
-  // Flatten screen config into options
   if (formData.screen) {
-    session.options!.screen_width = formData.screen.width;
-    session.options!.screen_height = formData.screen.height;
-    session.options!.screen_dpi = formData.screen.dpi;
-    session.options!.screen_scale = formData.screen.scale;
+    session.screen = {
+      width: formData.screen.width ?? 1920,
+      height: formData.screen.height ?? 1080,
+      dpi: formData.screen.dpi ?? 96,
+      scale: formData.screen.scale ?? 1.0,
+    };
   }
 
-  // Flatten resource limits into options
-  if (formData.resource_limits) {
-    if (formData.resource_limits.cpu !== undefined) {
-      session.options!.cpu_cores = formData.resource_limits.cpu;
-    }
-    if (formData.resource_limits.memory) {
-      session.options!.memory_limit = formData.resource_limits.memory;
-    }
-    if (formData.resource_limits.timeout_minutes !== undefined) {
-      session.options!.timeout = formData.resource_limits.timeout_minutes;
-    }
+  if (formData.limits) {
+    session.limits = {
+      cpu: formData.limits.cpu,
+      memory: formData.limits.memory,
+      timeout_minutes: formData.limits.timeout_minutes,
+    };
   }
 
   return session;
 }
 
 /**
- * Convert API session to form data
- * Extracts options back into nested structure
+ * Convert API session to form data and hydrate defaults.
  */
 export function sessionToFormData(session: Session): SessionFormData {
-  const options = session.options || {};
+  const screen = session.screen || {};
+  const limits = session.limits || {};
 
   return {
+    id: session.id,
     name: session.name,
-    browser_type: session.browser_type,
+    browser_type: session.browser_type ?? 'chrome',
     profile_id: session.profile_id,
-
-    // Extract simple options
-    version: options.version as BrowserVersion,
-    headless: options.headless,
-
-    // Reconstruct screen config
+    headless: session.headless ?? false,
+    timeout: session.timeout ?? 30,
+    ttl_seconds: session.ttl_seconds ?? null,
+    cluster: session.cluster,
+    session_pool_id: session.session_pool_id,
     screen: {
-      width: options.screen_width || 1920,
-      height: options.screen_height || 1080,
-      dpi: options.screen_dpi || 96,
-      scale: options.screen_scale || 1.0,
+      width: Number(screen.width ?? 1920),
+      height: Number(screen.height ?? 1080),
+      dpi: Number(screen.dpi ?? 96),
+      scale: Number(screen.scale ?? 1.0),
     },
-
-    // Reconstruct resource limits
-    resource_limits: {
-      cpu: options.cpu_cores,
-      memory: options.memory_limit,
-      timeout_minutes: options.timeout || 30,
+    limits: {
+      cpu: limits.cpu !== undefined ? Number(limits.cpu) : undefined,
+      memory: limits.memory,
+      timeout_minutes:
+        limits.timeout_minutes !== undefined
+          ? Number(limits.timeout_minutes)
+          : 30,
     },
   };
 }

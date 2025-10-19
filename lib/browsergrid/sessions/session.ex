@@ -20,6 +20,7 @@ defmodule Browsergrid.Sessions.Session do
 
     field :headless, :boolean, default: false
     field :timeout, :integer, default: 30
+    field :ttl_seconds, :integer
 
     field :claimed_at, :utc_datetime_usec
     field :attachment_deadline_at, :utc_datetime_usec
@@ -42,6 +43,7 @@ defmodule Browsergrid.Sessions.Session do
       :user_id,
       :headless,
       :timeout,
+      :ttl_seconds,
       :screen,
       :limits,
       :session_pool_id
@@ -50,6 +52,7 @@ defmodule Browsergrid.Sessions.Session do
     |> validate_inclusion(:browser_type, @browser_types)
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:timeout, greater_than: 0)
+    |> validate_ttl()
     |> validate_screen()
     |> validate_limits()
     |> validate_profile_compatibility()
@@ -67,12 +70,14 @@ defmodule Browsergrid.Sessions.Session do
       :user_id,
       :headless,
       :timeout,
+      :ttl_seconds,
       :screen,
       :limits,
       :session_pool_id
     ])
     |> put_change(:status, :pending)
     |> validate_inclusion(:browser_type, @browser_types)
+    |> validate_ttl()
     |> validate_screen()
     |> validate_limits()
     |> validate_profile_compatibility()
@@ -104,10 +109,26 @@ defmodule Browsergrid.Sessions.Session do
       "profile_id" => session.profile_id,
       "cluster" => session.cluster,
       "screen" => serialize_screen(session.screen),
-      "headless" => session.headless
+      "headless" => session.headless,
+      "ttl_seconds" => session.ttl_seconds
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
     |> Map.new()
+  end
+
+  defp validate_ttl(changeset) do
+    ttl = get_field(changeset, :ttl_seconds)
+
+    cond do
+      is_nil(ttl) ->
+        changeset
+
+      is_integer(ttl) and ttl > 0 ->
+        changeset
+
+      true ->
+        add_error(changeset, :ttl_seconds, "must be a positive integer")
+    end
   end
 
   defp validate_screen(changeset) do

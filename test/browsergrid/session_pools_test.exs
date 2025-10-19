@@ -15,22 +15,26 @@ defmodule Browsergrid.SessionPoolsTest do
       attrs = %{
         name: "Team Chrome",
         description: "Prewarmed chrome sessions",
-        pool_size: 0,
-        ttl: 120
+        min: 0,
+        max: 10,
+        idle_shutdown_after: 300_000,
+        session_template: %{"ttl_seconds" => 120}
       }
 
       assert {:ok, pool} = SessionPools.create_pool(attrs, owner)
       assert pool.owner_id == owner.id
       refute pool.system
-      assert pool.target_ready == 0
-      assert pool.ttl_seconds == 120
+      assert pool.min_ready == 0
+      assert pool.max_ready == 10
+      assert pool.idle_shutdown_after_ms == 300_000
+      assert SessionPools.session_template(pool)["ttl_seconds"] == 120
     end
   end
 
   describe "claim_session/2" do
     test "transitions a ready session to claimed and sets attachment deadline" do
       owner = AccountsFixtures.user_fixture()
-      {:ok, pool} = SessionPools.create_pool(%{name: "Pool", pool_size: 0}, owner)
+      {:ok, pool} = SessionPools.create_pool(%{name: "Pool", min: 0}, owner)
 
       session =
         Factory.insert(:session,
@@ -51,7 +55,7 @@ defmodule Browsergrid.SessionPoolsTest do
   describe "reap_expired_claims/1" do
     test "deletes sessions whose attachment deadline expired" do
       owner = AccountsFixtures.user_fixture()
-      pool = Factory.insert(:session_pool, owner_id: owner.id, target_ready: 0)
+      pool = Factory.insert(:session_pool, owner_id: owner.id, min_ready: 0)
 
       expired_session =
         Factory.insert(:session,
@@ -74,7 +78,7 @@ defmodule Browsergrid.SessionPoolsTest do
   describe "reconcile_pool/1" do
     test "starts new sessions when ready capacity is below target" do
       owner = AccountsFixtures.user_fixture()
-      pool = Factory.insert(:session_pool, owner_id: owner.id, target_ready: 2)
+      pool = Factory.insert(:session_pool, owner_id: owner.id, min_ready: 2)
 
       with_mock Sessions, [:passthrough],
         create_session: fn attrs ->

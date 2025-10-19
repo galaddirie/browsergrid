@@ -91,7 +91,8 @@ export default function Overview({
                         {session.id?.slice(0, 8)}...
                       </div>
                       <div className="text-muted-foreground text-sm">
-                        {session.browser_type} {session.options?.version}
+                        {session.browser_type}{' '}
+                        {session.headless ? '(Headless)' : '(GUI)'}
                       </div>
                     </div>
                     <div className="text-sm">

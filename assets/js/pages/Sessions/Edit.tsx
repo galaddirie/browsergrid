@@ -70,12 +70,31 @@ export default function EditSession({
           <Button
             onClick={() => {
               const backendData = formDataToSession(sessionData);
-              const payload = {
+              const payload: Record<string, unknown> = {
                 name: backendData.name,
                 browser_type: backendData.browser_type,
                 profile_id: backendData.profile_id,
-                options: backendData.options,
+                headless: backendData.headless,
+                timeout: backendData.timeout,
+                ttl_seconds: backendData.ttl_seconds,
+                cluster: backendData.cluster,
+                session_pool_id: backendData.session_pool_id,
               };
+
+              if (backendData.screen) {
+                payload.screen = backendData.screen;
+              }
+
+              if (backendData.limits) {
+                payload.limits = backendData.limits;
+              }
+
+              Object.keys(payload).forEach(key => {
+                if (payload[key] === undefined) {
+                  delete payload[key];
+                }
+              });
+
               router.put(`/sessions/${session.id}`, { session: payload });
             }}
           >

@@ -6,15 +6,19 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
   alias Browsergrid.SessionPools
   alias Browsergrid.Sessions
 
+  @idle_default 600_000
+
   @default_form %{
     "name" => "",
     "description" => "",
-    "target_ready" => 1,
-    "ttl_seconds" => nil,
+    "min" => 1,
+    "max" => 0,
+    "idle_shutdown_after" => @idle_default,
     "session_template" => %{
       "browser_type" => "chrome",
       "headless" => false,
       "timeout" => 30,
+      "ttl_seconds" => nil,
       "screen" => %{"width" => 1920, "height" => 1080, "dpi" => 96, "scale" => 1.0},
       "limits" => %{"cpu" => nil, "memory" => nil, "timeout_minutes" => 30}
     }
@@ -246,8 +250,9 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
       id: pool.id,
       name: pool.name,
       description: pool.description,
-      target_ready: pool.target_ready,
-      ttl_seconds: pool.ttl_seconds,
+      min: pool.min_ready,
+      max: pool.max_ready,
+      idle_shutdown_after_ms: pool.idle_shutdown_after_ms,
       system: pool.system,
       visibility: if(pool.system, do: "system", else: "private"),
       owner:
@@ -272,6 +277,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
       cluster: session.cluster,
       headless: session.headless,
       timeout: session.timeout,
+      ttl_seconds: session.ttl_seconds,
       inserted_at: session.inserted_at,
       updated_at: session.updated_at,
       claimed_at: session.claimed_at,
@@ -308,13 +314,13 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
       Map.get(stats, :errored, 0) > 0 ->
         "degraded"
 
-      pool.target_ready == 0 and Map.get(stats, :ready, 0) == 0 ->
+      pool.min_ready == 0 and Map.get(stats, :ready, 0) == 0 ->
         "idle"
 
-      Map.get(stats, :ready, 0) >= pool.target_ready ->
+      Map.get(stats, :ready, 0) >= pool.min_ready ->
         "healthy"
 
-      Map.get(stats, :ready, 0) + Map.get(stats, :warming, 0) >= pool.target_ready ->
+      Map.get(stats, :ready, 0) + Map.get(stats, :warming, 0) >= pool.min_ready ->
         "scaling"
 
       true ->
@@ -355,8 +361,9 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
     %{
       "name" => pool.name,
       "description" => pool.description,
-      "target_ready" => pool.target_ready,
-      "ttl_seconds" => pool.ttl_seconds,
+      "min" => pool.min_ready,
+      "max" => pool.max_ready,
+      "idle_shutdown_after" => pool.idle_shutdown_after_ms,
       "session_template" => template
     }
   end

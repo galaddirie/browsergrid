@@ -135,7 +135,8 @@ export default function SessionShow({ session }: { session: Session }) {
               </h1>
               <p className="mt-1 text-sm text-neutral-600">
                 {currentSession.id?.slice(0, 8)}... •{' '}
-                {currentSession.browser_type} {currentSession.options?.version}
+                {currentSession.browser_type}{' '}
+                {currentSession.headless ? '(Headless)' : '(GUI)'}
               </p>
             </div>
           </div>
@@ -248,11 +249,27 @@ export default function SessionShow({ session }: { session: Session }) {
                 </span>
               </div>
 
-              {currentSession.options?.timeout && (
+              {currentSession.timeout && (
                 <div className="flex justify-between py-1">
                   <span className="text-xs text-neutral-600">Timeout</span>
                   <span className="text-xs text-neutral-900">
-                    {currentSession.options.timeout} minutes
+                    {currentSession.timeout} minutes
+                  </span>
+                </div>
+              )}
+              {currentSession.ttl_seconds && (
+                <div className="flex justify-between py-1">
+                  <span className="text-xs text-neutral-600">TTL</span>
+                  <span className="text-xs text-neutral-900">
+                    {currentSession.ttl_seconds} seconds
+                  </span>
+                </div>
+              )}
+              {currentSession.cluster && (
+                <div className="flex justify-between py-1">
+                  <span className="text-xs text-neutral-600">Cluster</span>
+                  <span className="text-xs text-neutral-900">
+                    {currentSession.cluster}
                   </span>
                 </div>
               )}
@@ -269,23 +286,33 @@ export default function SessionShow({ session }: { session: Session }) {
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Browser</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.browser_type}{' '}
-                  {currentSession.options?.version}
+                  {currentSession.browser_type}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Mode</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.options?.headless ? 'Headless' : 'GUI'}
+                  {currentSession.headless ? 'Headless' : 'GUI'}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-xs text-neutral-600">Screen</span>
                 <span className="text-xs text-neutral-900">
-                  {currentSession.options?.screen_width || 1920}×
-                  {currentSession.options?.screen_height || 1080}
+                  {currentSession.screen?.width ?? 1920}×
+                  {currentSession.screen?.height ?? 1080}
                 </span>
               </div>
+              {(currentSession.limits?.cpu || currentSession.limits?.memory ||
+                currentSession.limits?.timeout_minutes) && (
+                <div className="flex justify-between py-1">
+                  <span className="text-xs text-neutral-600">Limits</span>
+                  <span className="text-xs text-neutral-900">
+                    CPU {currentSession.limits?.cpu ?? 'default'} • Memory{' '}
+                    {currentSession.limits?.memory ?? 'default'} • Timeout{' '}
+                    {currentSession.limits?.timeout_minutes ?? 'default'}m
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

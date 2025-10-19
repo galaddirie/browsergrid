@@ -47,9 +47,12 @@ const defaultTemplate: PoolTemplate & Record<string, any> = {
   browser_type: 'chrome',
   headless: false,
   timeout: 30,
+  ttl_seconds: null,
   screen: { width: 1920, height: 1080, dpi: 96, scale: 1.0 },
   limits: { cpu: null, memory: null, timeout_minutes: 30 },
 };
+
+const IDLE_DEFAULT_MS = 600_000;
 
 export function PoolForm({
   action,
@@ -63,6 +66,9 @@ export function PoolForm({
 }: PoolFormProps) {
   const [form, setForm] = useState<SessionPoolFormValues>({
     ...initialValues,
+    min: initialValues.min ?? 1,
+    max: initialValues.max ?? 0,
+    idle_shutdown_after: initialValues.idle_shutdown_after ?? IDLE_DEFAULT_MS,
     session_template: {
       ...defaultTemplate,
       ...(initialValues.session_template || {}),
@@ -80,6 +86,9 @@ export function PoolForm({
   useEffect(() => {
     setForm({
       ...initialValues,
+      min: initialValues.min ?? 1,
+      max: initialValues.max ?? 0,
+      idle_shutdown_after: initialValues.idle_shutdown_after ?? IDLE_DEFAULT_MS,
       session_template: {
         ...defaultTemplate,
         ...(initialValues.session_template || {}),
@@ -93,7 +102,9 @@ export function PoolForm({
         },
       },
     });
-  }, [initialValues.session_template, initialValues.target_ready, initialValues.name, initialValues.description, initialValues.ttl_seconds]);
+  }, [initialValues.session_template, initialValues.min, initialValues.max, initialValues.idle_shutdown_after, initialValues.name, initialValues.description]);
+
+  const idleShutdownMinutes = Math.round((form.idle_shutdown_after ?? IDLE_DEFAULT_MS) / 60000);
 
   const handleChange = (
     field: keyof SessionPoolFormValues,
@@ -103,6 +114,22 @@ export function PoolForm({
       ...previous,
       [field]: value,
     }));
+  };
+
+  const handleIdleMinutesChange = (value: string) => {
+    if (value === '') {
+      handleChange('idle_shutdown_after', 0);
+      return;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+
+    if (Number.isNaN(parsed) || parsed < 0) {
+      handleChange('idle_shutdown_after', 0);
+      return;
+    }
+
+    handleChange('idle_shutdown_after', parsed * 60_000);
   };
 
   const updateTemplate = (updates: Partial<PoolTemplate>) => {
@@ -164,6 +191,7 @@ export function PoolForm({
       `Browser: ${template.browser_type || 'chrome'} (${template.headless ? 'headless' : 'headed'})`,
       template.profile_id ? `Profile: ${profiles.find(p => p.id === template.profile_id)?.name || template.profile_id}` : 'Profile: none',
       `Timeout: ${template.timeout ?? 30} minutes`,
+      template.ttl_seconds ? `TTL: ${template.ttl_seconds} seconds` : 'TTL: default controller value',
       `Screen: ${screen.width}x${screen.height} @${screen.dpi} DPI`,
       `CPU: ${limits.cpu ?? 'default'} cores, Memory: ${limits.memory ?? 'default'}`,
       template.cluster ? `Cluster: ${template.cluster}` : 'Cluster: default',
@@ -210,47 +238,64 @@ export function PoolForm({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="pool-target">
-                  Target Ready Sessions{' '}
+                <Label htmlFor="pool-min">
+                  Minimum Ready Sessions{' '}
                   <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="pool-target"
+                  id="pool-min"
                   type="number"
                   min={0}
-                  value={form.target_ready}
+                  value={form.min}
                   onChange={event =>
                     handleChange(
-                      'target_ready',
+                      'min',
                       Number.parseInt(event.target.value || '0', 10),
                     )
                   }
-                  className={errors.target_ready ? 'border-destructive' : ''}
+                  className={errors.min_ready ? 'border-destructive' : ''}
                 />
-                {errors.target_ready && (
-                  <p className="text-sm text-destructive">
-                    {errors.target_ready}
-                  </p>
+                {errors.min_ready && (
+                  <p className="text-sm text-destructive">{errors.min_ready}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pool-ttl">TTL (seconds)</Label>
+                <Label htmlFor="pool-max">Maximum Ready Sessions (0 = unlimited)</Label>
                 <Input
-                  id="pool-ttl"
+                  id="pool-max"
                   type="number"
                   min={0}
-                  value={form.ttl_seconds ?? ''}
+                  value={form.max}
                   onChange={event =>
                     handleChange(
-                      'ttl_seconds',
-                      event.target.value === ''
-                        ? null
-                        : Number.parseInt(event.target.value, 10),
+                      'max',
+                      Number.parseInt(event.target.value || '0', 10),
                     )
                   }
+                  className={errors.max_ready ? 'border-destructive' : ''}
                 />
+                {errors.max_ready && (
+                  <p className="text-sm text-destructive">{errors.max_ready}</p>
+                )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pool-idle">Idle Shutdown After (minutes)</Label>
+              <Input
+                id="pool-idle"
+                type="number"
+                min={0}
+                value={idleShutdownMinutes}
+                onChange={event => handleIdleMinutesChange(event.target.value)}
+                className={errors.idle_shutdown_after_ms ? 'border-destructive' : ''}
+              />
+              {errors.idle_shutdown_after_ms && (
+                <p className="text-sm text-destructive">
+                  {errors.idle_shutdown_after_ms}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -344,6 +389,29 @@ export function PoolForm({
                     updateTemplate({ cluster: event.target.value || undefined })
                   }
                   placeholder="Optional cluster hint"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="template-ttl">TTL (seconds)</Label>
+                <Input
+                  id="template-ttl"
+                  type="number"
+                  min={0}
+                  value={
+                    form.session_template.ttl_seconds === null ||
+                    form.session_template.ttl_seconds === undefined
+                      ? ''
+                      : form.session_template.ttl_seconds
+                  }
+                  onChange={event =>
+                    updateTemplate({
+                      ttl_seconds:
+                        event.target.value === ''
+                          ? null
+                          : Number.parseInt(event.target.value || '0', 10),
+                    })
+                  }
                 />
               </div>
             </div>
@@ -462,7 +530,8 @@ export function PoolForm({
                   Always-on capacity
                 </p>
                 <p className="text-xs text-neutral-500">
-                  Pool will keep {form.target_ready} sessions warm with{' '}
+                  Pool keeps at least {form.min} sessions warm
+                  {(form.max ?? 0) > 0 ? ` (max ${form.max ?? 0})` : ' (no upper limit)'} with{' '}
                   {form.session_template.browser_type || 'chrome'} ready to go.
                 </p>
               </div>

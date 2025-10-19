@@ -127,8 +127,9 @@ defmodule Browsergrid.Factory do
       name: sequence(:pool_name, &"Pool #{&1}"),
       description: "Test pool",
       session_template: %{},
-      target_ready: 0,
-      ttl_seconds: nil,
+      min_ready: 0,
+      max_ready: 0,
+      idle_shutdown_after_ms: 600_000,
       system: false
     }
   end

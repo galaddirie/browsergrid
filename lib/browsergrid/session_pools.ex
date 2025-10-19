@@ -93,9 +93,13 @@ defmodule Browsergrid.SessionPools do
     attrs =
       attrs
       |> stringify_keys()
-      |> alias_key("pool_size", "target_ready")
-      |> alias_key("ttl", "ttl_seconds")
+      |> alias_key("pool_size", "min_ready")
+      |> alias_key("target_ready", "min_ready")
+      |> alias_key("min", "min_ready")
+      |> alias_key("max", "max_ready")
+      |> alias_key("idle_shutdown_after", "idle_shutdown_after_ms")
       |> Map.drop(if pool.system, do: ["owner_id", "system"], else: [])
+      |> Map.update("idle_shutdown_after_ms", nil, &normalize_idle_shutdown/1)
       |> Map.update("session_template", nil, &normalize_template/1)
 
     pool
@@ -214,8 +218,22 @@ defmodule Browsergrid.SessionPools do
   """
   @spec reconcile_pool(SessionPool.t()) :: :ok
   def reconcile_pool(%SessionPool{id: pool_id} = pool) do
+    prune_idle_sessions(pool)
+
     {ready, warming} = ready_and_warming_counts(pool_id)
-    missing = max(pool.target_ready - (ready + warming), 0)
+    min_ready = pool.min_ready || 0
+    current_total = ready + warming
+    missing = max(min_ready - current_total, 0)
+
+    missing =
+      case pool.max_ready do
+        max when is_integer(max) and max > 0 ->
+          allowed = max - current_total
+          if allowed < 0, do: 0, else: min(missing, allowed)
+
+        _ ->
+          missing
+      end
 
     started =
       if missing > 0 do
@@ -233,8 +251,7 @@ defmodule Browsergrid.SessionPools do
         0
       end
 
-    excess = max(ready - pool.target_ready, 0)
-    prune_excess_ready(pool, excess)
+    prune_excess_ready(pool, ready)
 
     if started > 0 do
       Logger.debug("Queued #{started} prewarm sessions for pool #{pool.id}")
@@ -306,17 +323,51 @@ defmodule Browsergrid.SessionPools do
     {ready, warming}
   end
 
-  defp prune_excess_ready(_pool, excess) when excess <= 0, do: :ok
+  defp prune_idle_sessions(%SessionPool{id: pool_id, idle_shutdown_after_ms: idle_ms}) do
+    if is_integer(idle_ms) and idle_ms > 0 do
+      cutoff = DateTime.add(DateTime.utc_now(), -idle_ms, :millisecond)
 
-  defp prune_excess_ready(%SessionPool{id: pool_id}, excess) do
-    query =
       pool_id
       |> pool_session_scope()
       |> where([s], s.status == :ready)
-      |> order_by([s], asc: s.inserted_at)
-      |> limit(^excess)
+      |> where([s], s.updated_at < ^cutoff)
+      |> Repo.all()
+      |> Enum.each(fn session ->
+        Logger.debug("Pruning idle ready session #{session.id} from pool #{pool_id}")
+        Sessions.delete_session(session)
+      end)
+    else
+      :ok
+    end
+  end
 
-    query
+  defp prune_excess_ready(%SessionPool{} = pool, ready_count) do
+    cond do
+      prune_to_max?(pool, ready_count) ->
+        prune_ready_sessions(pool, ready_count - pool.max_ready)
+
+      ready_count > (pool.min_ready || 0) ->
+        prune_ready_sessions(pool, ready_count - (pool.min_ready || 0))
+
+      true ->
+        :ok
+    end
+  end
+
+  defp prune_to_max?(%SessionPool{max_ready: max}, ready_count) when is_integer(max) and max > 0 do
+    ready_count > max
+  end
+
+  defp prune_to_max?(_, _), do: false
+
+  defp prune_ready_sessions(_pool, excess) when excess <= 0, do: :ok
+
+  defp prune_ready_sessions(%SessionPool{id: pool_id}, excess) do
+    pool_id
+    |> pool_session_scope()
+    |> where([s], s.status == :ready)
+    |> order_by([s], asc: s.inserted_at)
+    |> limit(^excess)
     |> Repo.all()
     |> Enum.each(fn session ->
       Logger.debug("Pruning excess ready session #{session.id} from pool #{pool_id}")
@@ -354,6 +405,7 @@ defmodule Browsergrid.SessionPools do
       screen: Map.get(template, "screen"),
       limits: Map.get(template, "limits"),
       timeout: Map.get(template, "timeout"),
+      ttl_seconds: Map.get(template, "ttl_seconds"),
       profile_id: Map.get(template, "profile_id"),
       cluster: Map.get(template, "cluster"),
       session_pool_id: pool.id,
@@ -374,7 +426,15 @@ defmodule Browsergrid.SessionPools do
   defp system_pools_config do
     :browsergrid
     |> Application.get_env(:session_pools, [])
-    |> Keyword.get(:system_pools, [%{name: "default", target_ready: 0, session_template: %{}}])
+    |> Keyword.get(:system_pools, [
+      %{
+        name: "default",
+        min_ready: 0,
+        max_ready: 0,
+        idle_shutdown_after_ms: 600_000,
+        session_template: %{}
+      }
+    ])
   end
 
   defp ensure_system_pool_config(config) when is_map(config) do
@@ -401,19 +461,30 @@ defmodule Browsergrid.SessionPools do
   defp normalize_custom_attrs(attrs, owner) do
     attrs
     |> stringify_keys()
-    |> alias_key("pool_size", "target_ready")
-    |> alias_key("ttl", "ttl_seconds")
+    |> alias_key("pool_size", "min_ready")
+    |> alias_key("target_ready", "min_ready")
+    |> alias_key("min", "min_ready")
+    |> alias_key("max", "max_ready")
+    |> alias_key("idle_shutdown_after", "idle_shutdown_after_ms")
     |> Map.put("owner_id", owner.id)
     |> Map.put("system", false)
+    |> Map.put_new("idle_shutdown_after_ms", 600_000)
+    |> Map.update("idle_shutdown_after_ms", nil, &normalize_idle_shutdown/1)
     |> Map.update("session_template", %{}, &normalize_template/1)
   end
 
   defp normalize_system_attrs(attrs) do
     attrs
     |> stringify_keys()
-    |> alias_key("pool_size", "target_ready")
-    |> alias_key("ttl", "ttl_seconds")
-    |> Map.put_new("target_ready", 0)
+    |> alias_key("pool_size", "min_ready")
+    |> alias_key("target_ready", "min_ready")
+    |> alias_key("min", "min_ready")
+    |> alias_key("max", "max_ready")
+    |> alias_key("idle_shutdown_after", "idle_shutdown_after_ms")
+    |> Map.put_new("min_ready", 0)
+    |> Map.put_new("max_ready", 0)
+    |> Map.put_new("idle_shutdown_after_ms", 600_000)
+    |> Map.update("idle_shutdown_after_ms", nil, &normalize_idle_shutdown/1)
     |> Map.put_new("session_template", %{})
     |> Map.put("system", true)
     |> Map.update("session_template", %{}, &normalize_template/1)
@@ -425,18 +496,21 @@ defmodule Browsergrid.SessionPools do
   defp normalize_template(template) when is_map(template) do
     template
     |> stringify_keys()
+    |> alias_key("ttl", "ttl_seconds")
     |> Map.take([
       "browser_type",
       "headless",
       "screen",
       "limits",
       "timeout",
+      "ttl_seconds",
       "profile_id",
       "cluster",
       "name"
     ])
     |> Map.update("screen", nil, &normalize_screen/1)
     |> Map.update("limits", nil, &normalize_limits/1)
+    |> Map.update("ttl_seconds", nil, &normalize_ttl/1)
   end
 
   defp normalize_template(_other), do: %{}
@@ -448,6 +522,38 @@ defmodule Browsergrid.SessionPools do
   defp normalize_limits(nil), do: nil
   defp normalize_limits(%{} = limits), do: stringify_keys(limits)
   defp normalize_limits(_), do: nil
+
+  defp normalize_ttl(nil), do: nil
+
+  defp normalize_ttl(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {parsed, _} -> normalize_ttl(parsed)
+      :error -> nil
+    end
+  end
+
+  defp normalize_ttl(value) when is_float(value) do
+    value |> Float.round() |> trunc() |> normalize_ttl()
+  end
+
+  defp normalize_ttl(value) when is_integer(value) and value > 0, do: value
+  defp normalize_ttl(_), do: nil
+
+  defp normalize_idle_shutdown(nil), do: nil
+
+  defp normalize_idle_shutdown(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {parsed, _} -> normalize_idle_shutdown(parsed)
+      :error -> nil
+    end
+  end
+
+  defp normalize_idle_shutdown(value) when is_float(value) do
+    value |> Float.round() |> trunc() |> normalize_idle_shutdown()
+  end
+
+  defp normalize_idle_shutdown(value) when is_integer(value) and value >= 0, do: value
+  defp normalize_idle_shutdown(_), do: nil
 
   defp stringify_keys(map) when is_map(map) do
     Map.new(map, fn

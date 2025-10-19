@@ -91,15 +91,16 @@ export default function SessionsIndex({
   const [isChannelConnected, setIsChannelConnected] = useState(false);
   const [session, setSession] = useState<Partial<SessionFormData>>({
     browser_type: 'chrome',
-    version: 'latest',
     headless: false,
+    timeout: 30,
+    ttl_seconds: null,
     screen: {
       width: 1920,
       height: 1080,
       dpi: 96,
       scale: 1.0,
     },
-    resource_limits: {
+    limits: {
       cpu: 2.0,
       memory: '4GB',
       timeout_minutes: 30,
@@ -110,16 +111,16 @@ export default function SessionsIndex({
     if (isModalOpen) {
       setSession({
         browser_type: 'chrome',
-        version: 'latest',
         headless: false,
-
+        timeout: 30,
+        ttl_seconds: null,
         screen: {
           width: 1920,
           height: 1080,
           dpi: 96,
           scale: 1.0,
         },
-        resource_limits: {
+        limits: {
           cpu: 2.0,
           memory: '4GB',
           timeout_minutes: 30,
@@ -195,13 +196,31 @@ export default function SessionsIndex({
     setIsLoading(true);
 
     const backendData = formDataToSession(sessionData);
-    // Convert to a simple payload format
-    const payload = {
+
+    const payload: Record<string, unknown> = {
       name: backendData.name,
       browser_type: backendData.browser_type,
       profile_id: backendData.profile_id,
-      options: backendData.options,
+      headless: backendData.headless,
+      timeout: backendData.timeout,
+      ttl_seconds: backendData.ttl_seconds,
+      cluster: backendData.cluster,
+      session_pool_id: backendData.session_pool_id,
     };
+
+    if (backendData.screen) {
+      payload.screen = backendData.screen;
+    }
+
+    if (backendData.limits) {
+      payload.limits = backendData.limits;
+    }
+
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
 
     router.post(
       '/sessions',
@@ -559,7 +578,7 @@ export default function SessionsIndex({
                             variant="outline"
                             className="border-neutral-200 px-1.5 py-0 text-xs text-neutral-600"
                           >
-                            {session.options?.version || 'latest'}
+                            {session.headless ? 'Headless' : 'GUI'}
                           </Badge>
                         </div>
                       </TableCell>
