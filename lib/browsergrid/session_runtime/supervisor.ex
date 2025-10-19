@@ -5,6 +5,7 @@ defmodule Browsergrid.SessionRuntime.Supervisor do
   use Supervisor
 
   alias Browsergrid.SessionRuntime.NodeListener
+  alias Browsergrid.SessionRuntime.PodWatcher
   alias Browsergrid.SessionRuntime.SessionRegistry
   alias Browsergrid.SessionRuntime.SessionSupervisor
   alias Browsergrid.SessionRuntime.StateStore
@@ -19,7 +20,8 @@ defmodule Browsergrid.SessionRuntime.Supervisor do
       StateStore.child_spec([]),
       {SessionRegistry, []},
       {SessionSupervisor, []},
-      {NodeListener, []}
+      {NodeListener, []},
+      {PodWatcher, []}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

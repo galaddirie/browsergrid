@@ -356,7 +356,14 @@ defmodule Browsergrid.SessionRuntime.Browser do
             "env" => env,
             "ports" => ports,
             "volumeMounts" => mounts,
-            "resources" => resources
+            "resources" => resources,
+            "lifecycle" => %{
+              "preStop" => %{
+                "exec" => %{
+                  "command" => ["/bin/sh", "-c", "kill -TERM 1; sleep 15"]
+                }
+              }
+            }
           }
         ],
         "volumes" => volumes
