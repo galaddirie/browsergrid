@@ -1,13 +1,10 @@
 - [ ] Profile integration
-- [ ] Add session state machine and reconilliation worker
 - [ ] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
 
 
 - [ ] Webhook integration
 
 
-
--  [ ] allow connect endpoint to provision sessions from a pool if the pool is not at max capacity but no session is available ( ex. max 10 sessions, min 0 sessions, we would want to provision a session )
 - [ ] adding CUA endpoint for browser
     - [ ] add visual ( similar to chatgpt where we should a  rendering  similar to this https://screen.studio/?aff=Yy75o )
     - [ ] chat  (jido agents?)
@@ -31,7 +28,7 @@
 
 UX
 - [ ] Add copy icon to new API token modal
-- [ ] Fix account sign out everywhere button - it only signs out on the current device
+- [ ] remove account sign out everywhere button - it only signs out on the current device
 
 - [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
 - [ ] non admins should not be able to view or modify default browser pool or sessions - this should be a system level setting and not something defined per controller or context
