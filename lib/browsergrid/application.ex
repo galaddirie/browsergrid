@@ -20,13 +20,11 @@ defmodule Browsergrid.Application do
       # Metrics and monitoring
       Browsergrid.Telemetry.Metrics,
 
-      # Job processing and Redis pub/sub
+      # Job processing
       {Oban, Application.fetch_env!(:browsergrid, Oban)},
-      Browsergrid.Redis,
       {Finch, name: Browsergrid.Finch},
       Browsergrid.SessionRuntime.Supervisor,
       Browsergrid.SessionPools.Manager,
-      Browsergrid.Edge.Directory,
       # Web endpoint (should start last)
       BrowsergridWeb.Endpoint
     ]

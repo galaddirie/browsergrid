@@ -133,21 +133,7 @@ if config_env() == :prod do
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
 
-# Runtime overrides for Redis / Edge
-redis_url =
-  System.get_env("REDIS_URL") ||
-    System.get_env("BROWSERGRID_REDIS_URL") ||
-    case System.get_env("REDIS_ADDR") || System.get_env("BROWSERGRID_REDIS_ADDR") do
-      nil -> nil
-      addr -> "redis://" <> addr
-    end
-
-if redis_url do
-  config :browsergrid, :redis,
-    url: redis_url,
-    route_channel: System.get_env("BROWSERGRID_ROUTE_CHANNEL") || System.get_env("ROUTE_CHANNEL", "route-updates")
-end
-
+# Runtime overrides for Edge
 edge_host = System.get_env("EDGE_HOST")
 
 if edge_host do

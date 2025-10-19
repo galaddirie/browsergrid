@@ -132,11 +132,6 @@ config :browsergrid, :profiles,
   max_profile_size_mb: 500,
   allowed_browser_types: [:chrome, :chromium, :firefox]
 
-# Redis (pub/sub for route fanout)
-config :browsergrid, :redis,
-  url: "redis://localhost:6379",
-  route_channel: "route-updates"
-
 config :browsergrid,
        :session_profiles_path,
        System.get_env("BROWSERGRID_SESSION_PROFILES_PATH", "/var/lib/browsergrid/profiles")

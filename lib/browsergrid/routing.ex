@@ -1,6 +1,6 @@
 defmodule Browsergrid.Routing do
   @moduledoc """
-  Routing context for authoritative routes table and Redis fanout.
+  Routing context for the authoritative routes table.
   """
   import Ecto.Query, warn: false
 
@@ -30,25 +30,7 @@ defmodule Browsergrid.Routing do
 
     Logger.debug("Changeset for session #{session_id}: #{inspect(changeset)}")
 
-    case Repo.insert_or_update(changeset) do
-      {:ok, route} ->
-        Logger.debug("Route inserted/updated successfully: #{inspect(route)}")
-        Logger.debug("Publishing route to Redis for session #{session_id}")
-
-        case Browsergrid.Redis.publish_route_upsert(session_id, ip, port) do
-          {:ok, _subscribers} ->
-            Logger.debug("Route published to Redis successfully for session #{session_id}")
-            {:ok, route}
-
-          error ->
-            Logger.error("Failed to publish route to Redis for session #{session_id}: #{inspect(error)}")
-            {:ok, route}
-        end
-
-      error ->
-        Logger.error("Failed to upsert route for session #{session_id}: #{inspect(error)}")
-        error
-    end
+    Repo.insert_or_update(changeset)
   end
 
   @spec delete_route(String.t()) :: :ok
@@ -58,16 +40,7 @@ defmodule Browsergrid.Routing do
         :ok
 
       %Route{} = route ->
-        {:ok, _} = Repo.delete(route)
-
-        case Browsergrid.Redis.publish_route_delete(session_id) do
-          {:ok, _subscribers} ->
-            Logger.debug("Route deletion published to Redis for session #{session_id}")
-
-          error ->
-            Logger.error("Failed to publish route deletion to Redis for session #{session_id}: #{inspect(error)}")
-        end
-
+        Repo.delete(route)
         :ok
     end
   end

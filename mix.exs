@@ -65,7 +65,6 @@ defmodule Browsergrid.MixProject do
       {:libcluster, "~> 3.5"},
       {:calendar, "~> 1.0"},
       {:oban, "~> 2.19"},
-      {:redix, "~> 1.5"},
       {:yaml_elixir, "~> 2.9"},
       {:inertia, "~> 2.5"},
 

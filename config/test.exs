@@ -41,11 +41,6 @@ config :browsergrid, Oban,
   plugins: false,
   queues: false
 
-# Point Redis to a local URL; tests mock publish calls and don't require a server
-config :browsergrid, :redis,
-  url: "redis://localhost:6379",
-  route_channel: "route-updates-test"
-
 # Use system temp directory for session profiles in tests
 config :browsergrid, :session_profiles_path, System.tmp_dir!()
 
