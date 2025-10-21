@@ -36,3 +36,14 @@ UX
 
 - [ ] add realtime phoneix channel to pool page
 - [ ]imporve interaction between idle shutdown and min ready, we wouldnt want all idle sessions to be removed if we are below the min ready threshold, we would want to keep the session thats ready to be culled until its replacement is ready
+
+
+- [ ] use libcluster + horde + k8 for a sepreate server to scale websocket connections and websocket clusters  ex. ws://connect.browsergrid.io - make it easy to self host (auto dns?)
+
+- [ ] improve websocket scale - study where we are bottlenecked and improve it 
+
+- [ ] remove polling with K8s watchers (real-time events) to reduce API calls.
+
+review - does it make sense to distrubute session actors across multiple nodes?
+
+how do we distrubute the phoneix api
