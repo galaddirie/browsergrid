@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+curl -sf http://localhost:9222/json/version > /dev/null
+curl -sf http://localhost:${STREAM_SERVER_PORT:-8083}/health > /dev/null
+
+exit 0

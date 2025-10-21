@@ -3,7 +3,7 @@ version: '3'
 vars:
   KIND_CLUSTER: browsergrid-dev
   KUBECONFIG: "{{.ROOT_DIR}}/kubeconfig"
-  BROWSER: '{{.BROWSER | default "chrome"}}'
+  BROWSER: '{{.BROWSER | default "$(uname -s | grep -q Darwin && echo chromium || echo chrome)"}}'
   BROWSER_TYPES: "chrome chromium"
 
 tasks:
@@ -57,6 +57,44 @@ tasks:
     deps: [kind:create, browsers:build]
     cmds:
       - kind load docker-image browsergrid/base:latest browsergrid/{{.BROWSER}}:latest --name {{.KIND_CLUSTER}}
+
+  browsers:load-all:
+    desc: Build and load all browser images into the kind cluster (skips Chrome on Mac/ARM)
+    deps: [kind:create]
+    cmds:
+      - |
+        # Detect system type
+        if uname -s | grep -q Darwin; then
+          IS_MAC=true
+        else
+          IS_MAC=false
+        fi
+
+        if uname -m | grep -q arm; then
+          IS_ARM=true
+        else
+          IS_ARM=false
+        fi
+
+        # Determine which browsers to build and load
+        BROWSERS_TO_BUILD="{{.BROWSER_TYPES}}"
+        if [ "$IS_MAC" = "true" ] && [ "$IS_ARM" = "true" ]; then
+          echo "Detected Mac ARM system - skipping Chrome, building Chromium only"
+          BROWSERS_TO_BUILD="chromium"
+        else
+          echo "Building all browsers: $BROWSERS_TO_BUILD"
+        fi
+
+        # Build base image once
+        echo "Building browser base..."
+        BROWSER=chrome docker-compose -f docker/docker-compose.browsers.yml build base
+
+        # Build and load each browser
+        for browser in $BROWSERS_TO_BUILD; do
+          echo "Building and loading $browser..."
+          BROWSER=$browser docker-compose -f docker/docker-compose.browsers.yml build browser
+          kind load docker-image browsergrid/base:latest browsergrid/$browser:latest --name {{.KIND_CLUSTER}}
+        done
 
   browsers:build:
     desc: Build browser images using docker-compose (use BROWSER=chrome|chromium)
@@ -166,7 +204,7 @@ tasks:
       - task: resources:wait
       - task: kind:recreate
       - task: k8s:bootstrap
-      - task: browsers:load
+      - task: browsers:load-all
       - task: dev:build
       - task: dev:up
       - |

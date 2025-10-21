@@ -157,39 +157,3 @@ RUN mkdir -p ${HOME}/.cache && \
     chown -R browseruser:browseruser ${HOME} && \
     chmod -R 755 ${HOME}
 
-# Stage 3: Chrome browser
-FROM browser-base AS chrome-browser
-
-LABEL org.opencontainers.image.description="Chrome browser with embedded browsermux for Browsergrid"
-LABEL org.opencontainers.image.version="${BROWSER_VERSION}"
-LABEL browsergrid.browser.version="${BROWSER_VERSION}"
-LABEL browsergrid.playwright.version="${PLAYWRIGHT_VERSION}"
-
-ARG PLAYWRIGHT_VERSION=latest
-ARG BROWSER_VERSION=latest
-
-# Set working directory before npm operations
-WORKDIR ${HOME}
-
-# Install Playwright and Chrome
-RUN npm i playwright@${PLAYWRIGHT_VERSION}
-RUN npx playwright install --with-deps chrome
-
-# Create Chrome data directory with proper permissions
-RUN mkdir -p ${HOME}/data-dir && \
-    chown -R browseruser:browseruser ${HOME}/data-dir && \
-    chmod -R 755 ${HOME}/data-dir
-
-# Copy Chrome-specific scripts
-COPY docker/browsers/chrome/start.sh /start.sh
-COPY docker/browsers/chrome/docker-healthcheck /usr/local/bin/docker-healthcheck
-RUN chmod +x /start.sh /usr/local/bin/docker-healthcheck && \
-    chown browseruser:browseruser /start.sh
-
-# Expose all required ports
-EXPOSE 80 443
-
-HEALTHCHECK --interval=5s --timeout=3s --retries=3 CMD ["docker-healthcheck"]
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["su", "-c", "/start.sh", "browseruser"]
