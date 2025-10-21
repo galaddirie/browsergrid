@@ -1,6 +1,6 @@
 - [ ] Profile integration
 - [x] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
-
+- [ ] make default browser in the dropdown based on the system type
 
 - [ ] Webhook integration
 
