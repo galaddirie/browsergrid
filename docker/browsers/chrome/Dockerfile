@@ -1,5 +1,5 @@
 FROM browsergrid/base:latest
-
+WORKDIR /home/user
 LABEL org.opencontainers.image.description="Chrome browser for Browsergrid"
 LABEL org.opencontainers.image.version="${BROWSER_VERSION}"
 LABEL browsergrid.browser.version="${BROWSER_VERSION}"

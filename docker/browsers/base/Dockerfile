@@ -151,8 +151,7 @@ RUN chmod -R +x /opt/browsergrid/scripts/ && \
 
 # Set up user directories
 RUN mkdir -p ${HOME}/.cache && \
-    mkdir -p ${HOME}/.config && \
-    mkdir -p ${HOME}/.npm && \
+    mkdir -p ${HOME}/.config &&  \
     chown -R browseruser:browseruser /opt/browsergrid && \
     chown -R browseruser:browseruser ${HOME} && \
     chmod -R 755 ${HOME}
