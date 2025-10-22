@@ -7,7 +7,7 @@ defmodule BrowsergridWeb.Router do
   alias Inertia.V1.ApiTokenController
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "json"]
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {BrowsergridWeb.Layouts, :root}
@@ -44,6 +44,7 @@ defmodule BrowsergridWeb.Router do
     get "/sessions/:id/edit", Inertia.V1.SessionController, :edit
     put "/sessions/:id", Inertia.V1.SessionController, :update
     patch "/sessions/:id", Inertia.V1.SessionController, :update
+    post "/sessions/:id/stop", Inertia.V1.SessionController, :stop
     delete "/sessions/:id", Inertia.V1.SessionController, :delete
 
     # Session proxy routes - handles CDP connections and WebSocket proxying
@@ -120,6 +121,7 @@ defmodule BrowsergridWeb.Router do
       post "/sessions", SessionController, :create
       get "/sessions/:id", SessionController, :show
       put "/sessions/:id", SessionController, :update
+      post "/sessions/:id/stop", SessionController, :stop
       delete "/sessions/:id", SessionController, :delete
 
       # Profile routes

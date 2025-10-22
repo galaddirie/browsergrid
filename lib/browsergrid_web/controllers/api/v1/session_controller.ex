@@ -63,6 +63,27 @@ defmodule BrowsergridWeb.API.V1.SessionController do
     end
   end
 
+  def stop(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+
+    case Sessions.fetch_user_session(user, id) do
+      {:ok, session} ->
+        case Sessions.stop_session(session) do
+          {:ok, _stopped} ->
+            refreshed = Sessions.fetch_user_session!(user, session.id)
+            json(conn, %{data: refreshed, message: "Session stopping"})
+
+          {:error, reason} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: "Failed to stop session", reason: inspect(reason)})
+        end
+
+      {:error, _reason} ->
+        {:error, :not_found}
+    end
+  end
+
   defp put_owner(params, conn) do
     user_id = conn.assigns.current_user.id
     Map.put(params, "user_id", user_id)

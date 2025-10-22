@@ -83,6 +83,9 @@ export default function SessionsIndex({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [stoppingSessions, setStoppingSessions] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(
     new Set(),
   );
@@ -191,6 +194,9 @@ export default function SessionsIndex({
         ),
       ).length || 0,
   };
+
+  const isSessionStopping = (id?: string | null) =>
+    Boolean(id && stoppingSessions.has(id));
 
   const handleCreateSession = async (sessionData: Partial<SessionFormData>) => {
     setIsLoading(true);
@@ -373,7 +379,78 @@ export default function SessionsIndex({
     setBulkDeleteDialogOpen(false);
   };
 
+  const handleStopSession = async (sessionDetails: Session) => {
+    const sessionId = sessionDetails.id;
+    if (!sessionId || stoppingSessions.has(sessionId)) return;
+
+    const currentStatus = sessionDetails.status;
+
+    setStoppingSessions(previous => {
+      const next = new Set(previous);
+      next.add(sessionId);
+      return next;
+    });
+
+    setSessionsList(previous =>
+      previous.map(session =>
+        session.id === sessionId ? { ...session, status: 'stopping' } : session,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/sessions/${sessionId}/stop`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token':
+            document
+              .querySelector('meta[name="csrf-token"]')
+              ?.getAttribute('content') || '',
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to stop session ${sessionId}: ${response.status}`,
+        );
+      }
+
+      let nextStatus = 'stopped';
+
+      try {
+        const payload = await response.json();
+        if (payload?.data?.status) {
+          nextStatus = payload.data.status;
+        }
+      } catch (_error) {
+        // Swallow JSON parsing errors - payload optional
+      }
+
+      setSessionsList(previous =>
+        previous.map(session =>
+          session.id === sessionId ? { ...session, status: nextStatus } : session,
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to stop session:', error);
+      setSessionsList(previous =>
+        previous.map(session =>
+          session.id === sessionId ? { ...session, status: currentStatus } : session,
+        ),
+      );
+    } finally {
+      setStoppingSessions(previous => {
+        const next = new Set(previous);
+        next.delete(sessionId);
+        return next;
+      });
+    }
+  };
+
   const isTerminalStatus = (status: string) => {
+    const normalized = (status || '').toLowerCase();
     const terminal = [
       'completed',
       'failed',
@@ -381,8 +458,9 @@ export default function SessionsIndex({
       'crashed',
       'timed_out',
       'terminated',
+      'stopped',
     ];
-    return terminal.includes(status);
+    return terminal.includes(normalized);
   };
 
   return (
@@ -671,10 +749,16 @@ export default function SessionsIndex({
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
+                              onClick={() => handleStopSession(session)}
+                              disabled={isSessionStopping(session.id)}
+                              className={`h-7 w-7 p-0 text-red-600 hover:bg-red-50 ${isSessionStopping(session.id) ? 'cursor-not-allowed opacity-60' : ''}`}
                               title="Stop session"
                             >
-                              <StopCircle className="h-3 w-3" />
+                              {isSessionStopping(session.id) ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <StopCircle className="h-3 w-3" />
+                              )}
                             </Button>
                           )}
                           <Button

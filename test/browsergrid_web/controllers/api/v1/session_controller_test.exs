@@ -79,6 +79,29 @@ defmodule BrowsergridWeb.API.V1.SessionControllerTest do
     end
   end
 
+  describe "stop" do
+    test "stops the session and returns updated payload", %{conn: conn, user: user} do
+      session = insert_session!(user, %{status: :running})
+
+      res = conn |> post(~p"/api/v1/sessions/#{session.id}/stop") |> json_response(200)
+
+      assert res["data"]["id"] == session.id
+      assert res["data"]["status"] == "stopped"
+
+      assert Repo.get!(Session, session.id).status == :stopped
+    end
+
+    test "returns 404 when stopping a session not owned by the user", %{conn: conn} do
+      other_user = AccountsFixtures.user_fixture()
+      session = insert_session!(other_user, %{status: :running})
+
+      conn = post(conn, ~p"/api/v1/sessions/#{session.id}/stop")
+
+      assert conn.status == 404
+      assert %{"error" => "not_found"} = Jason.decode!(conn.resp_body)
+    end
+  end
+
   defp insert_session!(user, attrs) do
     params =
       Map.merge(

@@ -57,5 +57,27 @@ defmodule Browsergrid.SessionRuntime.PodWatcherTest do
       assert {:ok, updated} = Sessions.get_session(session.id)
       assert updated.status == :error
     end
+
+    test "keeps stopping session status when pod is deleted" do
+      session = Factory.insert(:session, status: :stopping)
+      Factory.insert(:route, id: session.id)
+
+      event = %{
+        "type" => "DELETED",
+        "object" => %{
+          "metadata" => %{
+            "labels" => %{"browsergrid/session-id" => session.id},
+            "namespace" => "browsergrid"
+          },
+          "status" => %{"phase" => "Succeeded"}
+        }
+      }
+
+      :ok = PodWatcher.process_event(event)
+
+      assert {:ok, updated} = Sessions.get_session(session.id)
+      assert updated.status == :stopping
+      assert Routing.get_route(session.id) == nil
+    end
   end
 end

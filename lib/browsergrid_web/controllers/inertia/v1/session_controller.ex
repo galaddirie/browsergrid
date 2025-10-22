@@ -6,7 +6,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
 
   require Logger
 
-  plug :load_session when action in [:show, :edit, :update, :delete]
+  plug :load_session when action in [:show, :edit, :update, :delete, :stop]
 
   def index(conn, _params) do
     user = conn.assigns.current_user
@@ -69,6 +69,29 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
     end
   end
 
+  def stop(%{assigns: %{session: session}} = conn, _params) do
+    user = conn.assigns.current_user
+
+    if Sessions.user_owns_session?(user, session) do
+      case Sessions.stop_session(session) do
+        {:ok, _stopped} ->
+          refreshed =
+            Sessions.fetch_user_session!(
+              user,
+              session.id,
+              preload: [:profile, :user, session_pool: :owner]
+            )
+
+          respond_stop_success(conn, refreshed)
+
+        {:error, reason} ->
+          respond_stop_error(conn, session, reason)
+      end
+    else
+      render_not_found(conn)
+    end
+  end
+
   def delete(%{assigns: %{session: session}} = conn, _params) do
     user = conn.assigns.current_user
 
@@ -116,6 +139,51 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
     })
   end
 
+  defp respond_stop_success(conn, session) do
+    case get_format(conn) do
+      "json" ->
+        json(conn, %{data: session, message: "Session stopping"})
+
+      _ ->
+        conn
+        |> put_flash(:info, "Session stopping")
+        |> redirect(to: stop_redirect_path(conn, session))
+    end
+  end
+
+  defp respond_stop_error(conn, session, reason) do
+    message = "Failed to stop session: #{format_stop_error(reason)}"
+
+    case get_format(conn) do
+      "json" ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: message})
+
+      _ ->
+        conn
+        |> put_flash(:error, message)
+        |> redirect(to: stop_redirect_path(conn, session))
+    end
+  end
+
+  defp stop_redirect_path(conn, session) do
+    conn
+    |> get_req_header("referer")
+    |> case do
+      [referer | _] ->
+        referer
+        |> URI.parse()
+        |> case do
+          %URI{path: path} when is_binary(path) and path != "" -> path
+          _ -> ~p"/sessions/#{session.id}"
+        end
+
+      _ ->
+        ~p"/sessions/#{session.id}"
+    end
+  end
+
   defp load_session(%{params: %{"id" => id}} = conn, _opts) do
     user = conn.assigns.current_user
 
@@ -144,6 +212,23 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
       end)
     end)
   end
+
+  defp format_stop_error({:error, reason}), do: format_stop_error(reason)
+
+  defp format_stop_error(%Ecto.Changeset{} = changeset) do
+    changeset
+    |> format_changeset_errors()
+    |> Enum.flat_map(fn {field, messages} ->
+      messages
+      |> List.wrap()
+      |> Enum.map(&"#{field} #{&1}")
+    end)
+    |> Enum.join(", ")
+  end
+
+  defp format_stop_error(reason) when is_binary(reason), do: reason
+  defp format_stop_error(reason) when is_atom(reason), do: Atom.to_string(reason)
+  defp format_stop_error(reason), do: inspect(reason)
 
   defp format_error({:browser_not_ready, reason}), do: "Browser not ready: #{inspect(reason)}"
   defp format_error({:browser_start_failed, reason}), do: "Browser start failed: #{inspect(reason)}"

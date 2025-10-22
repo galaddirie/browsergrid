@@ -196,34 +196,49 @@ defmodule Browsergrid.SessionRuntime.PodWatcher do
   defp mark_session_failed(session_id, reason, pod) do
     phase = get_in(pod, ["status", "phase"])
 
-    case Sessions.update_status_by_id(session_id, :error) do
-      {:ok, _session} ->
+    case session_status(session_id) do
+      {:ok, status} when status in [:stopping, :stopped] ->
+        Logger.info(
+          "session pod deleted during shutdown; keeping session status",
+          session: session_id,
+          reason: reason,
+          phase: phase
+        )
+
+        stop_runtime_session(session_id)
+        Routing.delete_route(session_id)
         :ok
 
-      {:error, :not_found} ->
-        Logger.debug("session #{session_id} not found when marking failure")
-        :ok
+      _ ->
+        case Sessions.update_status_by_id(session_id, :error) do
+          {:ok, _session} ->
+            :ok
 
-      {:error, other} ->
-        Logger.error("unable to update session #{session_id} status: #{inspect(other)}")
+          {:error, :not_found} ->
+            Logger.debug("session #{session_id} not found when marking failure")
+            :ok
+
+          {:error, other} ->
+            Logger.error("unable to update session #{session_id} status: #{inspect(other)}")
+            :ok
+        end
+
+        stop_runtime_session(session_id)
+        Routing.delete_route(session_id)
+
+        :telemetry.execute(
+          [:browsergrid, :pod, :failure],
+          %{count: 1},
+          %{
+            session_id: session_id,
+            reason: telemetry_reason(reason),
+            phase: phase,
+            namespace: pod |> Map.get("metadata", %{}) |> Map.get("namespace")
+          }
+        )
+
         :ok
     end
-
-    stop_runtime_session(session_id)
-    Routing.delete_route(session_id)
-
-    :telemetry.execute(
-      [:browsergrid, :pod, :failure],
-      %{count: 1},
-      %{
-        session_id: session_id,
-        reason: telemetry_reason(reason),
-        phase: phase,
-        namespace: pod |> Map.get("metadata", %{}) |> Map.get("namespace")
-      }
-    )
-
-    :ok
   end
 
   defp extract_session_id(pod) do
@@ -262,4 +277,11 @@ defmodule Browsergrid.SessionRuntime.PodWatcher do
   defp telemetry_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
   defp telemetry_reason(reason) when is_binary(reason), do: reason
   defp telemetry_reason(_reason), do: "unknown"
+
+  defp session_status(session_id) do
+    case Sessions.get_session(session_id) do
+      {:ok, session} -> {:ok, session.status}
+      other -> other
+    end
+  end
 end

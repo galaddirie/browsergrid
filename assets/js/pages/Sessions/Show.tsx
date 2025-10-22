@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/react';
 import {
   ArrowLeft,
   ExternalLink,
+  RefreshCw,
   Settings,
   StopCircle,
   Wifi,
@@ -53,8 +54,10 @@ export default function SessionShow({ session }: { session: Session }) {
   const [cdpData, setCdpData] = useState<any>(null);
   const [cdpLoading, setCdpLoading] = useState(false);
   const [cdpError, setCdpError] = useState<string | null>(null);
+  const [isStopping, setIsStopping] = useState(false);
 
   const isTerminalStatus = (status: string) => {
+    const normalized = (status || '').toLowerCase();
     const terminal = [
       'completed',
       'failed',
@@ -62,8 +65,9 @@ export default function SessionShow({ session }: { session: Session }) {
       'crashed',
       'timed_out',
       'terminated',
+      'stopped',
     ];
-    return terminal.includes(status);
+    return terminal.includes(normalized);
   };
 
   const streamUrl =
@@ -97,6 +101,63 @@ export default function SessionShow({ session }: { session: Session }) {
   useEffect(() => {
     setCurrentSession(session);
   }, [session]);
+
+  const handleStopSession = async () => {
+    if (!currentSession.id || isStopping) return;
+
+    const previousStatus = currentSession.status;
+
+    setIsStopping(true);
+    setCurrentSession(prev => ({
+      ...prev,
+      status: 'stopping',
+    }));
+
+    try {
+      const response = await fetch(`/sessions/${currentSession.id}/stop`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token':
+            document
+              .querySelector('meta[name="csrf-token"]')
+              ?.getAttribute('content') || '',
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to stop session ${currentSession.id}: ${response.status}`,
+        );
+      }
+
+      let nextStatus = 'stopped';
+
+      try {
+        const payload = await response.json();
+        if (payload?.data?.status) {
+          nextStatus = payload.data.status;
+        }
+      } catch (_error) {
+        // No-op: some responses may omit JSON payloads
+      }
+
+      setCurrentSession(prev => ({
+        ...prev,
+        status: nextStatus,
+      }));
+    } catch (error) {
+      console.error('Failed to stop session:', error);
+      setCurrentSession(prev => ({
+        ...prev,
+        status: previousStatus,
+      }));
+    } finally {
+      setIsStopping(false);
+    }
+  };
 
   const { isConnected } = useSessionsChannel({
     onSessionUpdated: updatedSession => {
@@ -170,9 +231,19 @@ export default function SessionShow({ session }: { session: Session }) {
               </Button>
             )}
             {!isTerminalStatus(currentSession.status ?? '') && (
-              <Button size="sm" variant="destructive" className="h-8 text-xs">
-                <StopCircle className="mr-1.5 h-3 w-3" />
-                Stop Session
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-8 text-xs"
+                onClick={handleStopSession}
+                disabled={isStopping}
+              >
+                {isStopping ? (
+                  <RefreshCw className="mr-1.5 h-3 w-3 animate-spin" />
+                ) : (
+                  <StopCircle className="mr-1.5 h-3 w-3" />
+                )}
+                {isStopping ? 'Stopping...' : 'Stop Session'}
               </Button>
             )}
             <Button
