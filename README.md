@@ -2,7 +2,6 @@
 
 A distributed browser automation platform built with Elixir and Phoenix LiveView.
 
-
 ## Development Setup
 
 ### Prerequisites 
@@ -36,11 +35,7 @@ A distributed browser automation platform built with Elixir and Phoenix LiveView
    task app:deploy
    ```
 
-5. Access the application:
-   ```bash
-   task app:port-forward
-   # Browsergrid is now available at http://localhost:4000
-   ```
+5. Access the application at http://localhost:4000
 
 ### Detailed Kubernetes Development Setup
 
