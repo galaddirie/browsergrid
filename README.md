@@ -5,7 +5,7 @@ A distributed browser automation platform built with Elixir and Phoenix LiveView
 
 ## Development Setup
 
-### Prerequisites
+### Prerequisites 
 
 - [Taskfile](https://taskfile.dev/#/installation) (`task` CLI)
 - [Kind](https://kind.sigs.k8s.io/) >= 0.20
