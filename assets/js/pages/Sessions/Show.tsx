@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import {
   ArrowLeft,
+  Copy,
   ExternalLink,
   RefreshCw,
   Settings,
@@ -48,13 +49,20 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-export default function SessionShow({ session }: { session: Session }) {
+export default function SessionShow({
+  session,
+  connection_info
+}: {
+  session: Session;
+  connection_info?: { url: string; connection: any } | null;
+}) {
   const [currentSession, setCurrentSession] = useState<Session>(session);
   const [isChannelConnected, setIsChannelConnected] = useState(false);
   const [cdpData, setCdpData] = useState<any>(null);
   const [cdpLoading, setCdpLoading] = useState(false);
   const [cdpError, setCdpError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   const isTerminalStatus = (status: string) => {
     const normalized = (status || '').toLowerCase();
@@ -95,6 +103,18 @@ export default function SessionShow({ session }: { session: Session }) {
       console.error('Failed to fetch CDP data:', error);
     } finally {
       setCdpLoading(false);
+    }
+  };
+
+  const handleCopyConnectionUrl = async () => {
+    if (!connection_info?.url) return;
+
+    try {
+      await navigator.clipboard.writeText(connection_info.url);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
     }
   };
 
@@ -387,6 +407,35 @@ export default function SessionShow({ session }: { session: Session }) {
             </CardContent>
           </Card>
         </div>
+
+        {connection_info && (
+          <Card className="border-neutral-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-neutral-900">
+                Connection URL
+              </CardTitle>
+              <p className="text-xs text-neutral-500">
+                Direct connection URL for external tools and scripts.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-neutral-50 px-2 py-1 rounded font-mono text-neutral-700 break-all">
+                  {connection_info.url}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyConnectionUrl}
+                  className="h-8 shrink-0"
+                >
+                  <Copy className="h-3 w-3 mr-1.5" />
+                  {copiedUrl ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-neutral-200">
           <CardHeader className="pb-2">

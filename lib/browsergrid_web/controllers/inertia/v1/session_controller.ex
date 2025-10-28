@@ -21,7 +21,15 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
   end
 
   def show(%{assigns: %{session: session}} = conn, _params) do
-    render_inertia(conn, "Sessions/Show", %{session: session})
+    connection_info = case Sessions.get_connection_info(session.id) do
+      {:ok, info} -> info
+      {:error, _} -> nil
+    end
+
+    render_inertia(conn, "Sessions/Show", %{
+      session: session,
+      connection_info: connection_info
+    })
   end
 
   def create(conn, %{"session" => session_params}) do
