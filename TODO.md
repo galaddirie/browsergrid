@@ -1,4 +1,4 @@
-- [ ] Profile integration
+- [x] Profile integration
 - [x] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
 - [ ] make default browser in the dropdown based on the system type
 
@@ -47,3 +47,6 @@ UX
 review - does it make sense to distrubute session actors across multiple nodes?
 
 how do we distrubute the phoneix api
+
+
+BUG- when we spin up a session pod where the api is unreachable we mark the session as an error but keep the pod running

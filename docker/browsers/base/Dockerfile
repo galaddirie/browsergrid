@@ -156,3 +156,4 @@ RUN mkdir -p ${HOME}/.cache && \
     chown -R browseruser:browseruser ${HOME} && \
     chmod -R 755 ${HOME}
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

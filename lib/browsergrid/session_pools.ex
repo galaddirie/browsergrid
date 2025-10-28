@@ -218,7 +218,7 @@ defmodule Browsergrid.SessionPools do
         {:error, :pool_at_capacity}
 
       true ->
-        case increment_lock_version(current_pool) do
+        case reserve_capacity(current_pool) do
           :ok ->
             with {:ok, session} <- start_prewarmed_session(current_pool),
                  {:ok, claimed} <- claim_session_internal(current_pool, user, session) do
@@ -239,6 +239,11 @@ defmodule Browsergrid.SessionPools do
                 {:error, reason}
             end
 
+          :pool_at_capacity ->
+            record_capacity_rejection(current_pool.id)
+            record_provision_result(current_pool.id, :pool_at_capacity)
+            {:error, :pool_at_capacity}
+
           :retry ->
             record_provision_result(current_pool.id, :retry)
             Process.sleep(provision_retry_backoff(attempts))
@@ -247,13 +252,41 @@ defmodule Browsergrid.SessionPools do
     end
   end
 
-  defp increment_lock_version(%SessionPool{id: pool_id, lock_version: version}) do
-    {updated, _} =
+  defp reserve_capacity(%SessionPool{id: pool_id, lock_version: version, max_ready: max_ready}) do
+    update_query =
       SessionPool
       |> where([sp], sp.id == ^pool_id and sp.lock_version == ^version)
-      |> Repo.update_all(inc: [lock_version: 1])
+      |> update([sp], inc: [lock_version: 1])
 
-    if updated == 1, do: :ok, else: :retry
+    update_query =
+      if limited_capacity?(max_ready) do
+        statuses = Enum.map(@active_statuses, &Atom.to_string/1)
+
+        where(update_query, [sp],
+          fragment(
+            "(SELECT COUNT(1) FROM sessions s WHERE s.session_pool_id = ? AND s.status = ANY(?)) < ?",
+            sp.id,
+            ^statuses,
+            ^max_ready
+          )
+        )
+      else
+        update_query
+      end
+
+    case Repo.update_all(update_query, []) do
+      {1, _} ->
+        :ok
+
+      {0, _} ->
+        cond do
+          limited_capacity?(max_ready) and active_session_count(pool_id) >= max_ready ->
+            :pool_at_capacity
+
+          true ->
+            :retry
+        end
+    end
   end
 
   defp provision_retry_backoff(attempts) do

@@ -9,6 +9,7 @@ defmodule Browsergrid.SessionRuntime.Session do
 
   alias Browsergrid.SessionRuntime
   alias Browsergrid.SessionRuntime.Browser
+  alias Browsergrid.SessionRuntime.ProfileLoader
   alias Browsergrid.SessionRuntime.StateStore
 
   require Logger
@@ -61,8 +62,9 @@ defmodule Browsergrid.SessionRuntime.Session do
 
     with {:ok, snapshot} <- fetch_or_default_snapshot(session_id),
          {:ok, state} <- build_initial_state(session_id, opts, snapshot),
-         {:ok, browser} <- start_and_wait_for_browser(state) do
-      state = finalize_state(state, browser)
+         {:ok, prepared_state} <- maybe_prepare_profile(state),
+         {:ok, browser} <- start_and_wait_for_browser(prepared_state) do
+      state = finalize_state(prepared_state, browser)
       StateStore.put(session_id, build_snapshot(state))
       {:ok, schedule_checkpoint(state)}
     else
@@ -262,6 +264,48 @@ defmodule Browsergrid.SessionRuntime.Session do
       "last_seen_at" => state.last_heartbeat_at || now,
       "updated_at" => now
     }
+  end
+
+  defp maybe_prepare_profile(%State{} = state) do
+    profile_id =
+      Map.get(state.metadata, "profile_id") ||
+        Map.get(state.metadata, :profile_id)
+
+    case normalize_profile_id(profile_id) do
+      nil ->
+        with :ok <- ensure_profile_dir_exists(state.profile_dir) do
+          {:ok, state}
+        end
+
+      profile_id ->
+        case ProfileLoader.ensure_profile_loaded(
+               state.id,
+               profile_id,
+               state.profile_dir,
+               current_snapshot: state.profile_snapshot
+             ) do
+          {:ok, %{snapshot: snapshot, metadata: metadata}} ->
+            merged_metadata = Map.merge(state.metadata || %{}, metadata)
+            {:ok, %{state | profile_snapshot: snapshot, metadata: merged_metadata}}
+
+          {:error, reason} ->
+            {:error, {:profile_load_failed, reason}}
+        end
+    end
+  end
+
+  defp normalize_profile_id(nil), do: nil
+  defp normalize_profile_id(id) when is_binary(id), do: id
+  defp normalize_profile_id(id), do: to_string(id)
+
+  defp ensure_profile_dir_exists(profile_dir) do
+    case File.mkdir_p(profile_dir) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        {:error, {:profile_dir_prepare_failed, reason}}
+    end
   end
 
   defp serialize_endpoint(nil), do: nil
