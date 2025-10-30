@@ -161,6 +161,41 @@ tasks:
     desc: Restart Browsergrid in the local cluster
     cmds:
       - kubectl --kubeconfig "{{.KUBECONFIG}}" rollout restart deploy/browsergrid -n browsergrid-dev
+
+  dev:logs:
+    desc: Follow logs from the active Browsergrid pod
+    cmds:
+      - |
+        POD=$(kubectl --kubeconfig "{{.KUBECONFIG}}" get pods -n browsergrid-dev -l app=browsergrid --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | tail -n1)
+        if [ -z "$POD" ]; then
+          echo "No browsergrid pods found" >&2
+          exit 1
+        fi
+        echo "Streaming logs from $POD"
+        kubectl --kubeconfig "{{.KUBECONFIG}}" logs "$POD" -n browsergrid-dev -f
+
+  dev:logs:previous:
+    desc: Show logs from the prior Browsergrid pod instance after a restart
+    cmds:
+      - |
+        POD=$(kubectl --kubeconfig "{{.KUBECONFIG}}" get pods -n browsergrid-dev -l app=browsergrid --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | tail -n1)
+        if [ -z "$POD" ]; then
+          echo "No browsergrid pods found" >&2
+          exit 1
+        fi
+        echo "Displaying previous logs for $POD"
+        kubectl --kubeconfig "{{.KUBECONFIG}}" logs "$POD" -n browsergrid-dev --previous
+
+  dev:logs:describe:
+    desc: Inspect the current Browsergrid pod status and restart history
+    cmds:
+      - |
+        POD=$(kubectl --kubeconfig "{{.KUBECONFIG}}" get pods -n browsergrid-dev -l app=browsergrid --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | tail -n1)
+        if [ -z "$POD" ]; then
+          echo "No browsergrid pods found" >&2
+          exit 1
+        fi
+        kubectl --kubeconfig "{{.KUBECONFIG}}" describe pod "$POD" -n browsergrid-dev
   
   dev:delete:
     desc: Delete the Browsergrid deployment from the local cluster
