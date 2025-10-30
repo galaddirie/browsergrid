@@ -97,7 +97,8 @@ defmodule BrowsergridWeb.SessionProxyController do
     initial_state = %{
       conn: conn,
       status: nil,
-      chunked?: false
+      chunked?: false,
+      cancelled?: false
     }
 
     case Finch.stream(request, Browsergrid.Finch, initial_state, &stream_chunk/2, receive_timeout: :infinity) do
@@ -147,17 +148,24 @@ defmodule BrowsergridWeb.SessionProxyController do
     {:cont, %{state | conn: conn, chunked?: true}}
   end
 
+  defp stream_chunk({:data, data}, %{conn: conn, cancelled?: true} = state) do
+    # If we've already detected the connection is closed, skip processing
+    {:cont, state}
+  end
+
   defp stream_chunk({:data, data}, %{conn: conn} = state) do
     case Plug.Conn.chunk(conn, data) do
       {:ok, updated_conn} ->
         {:cont, %{state | conn: updated_conn}}
 
       {:error, :closed} ->
-        {:halt, %{state | conn: conn}}
+        # Connection closed by client
+        Logger.debug("Client closed stream connection")
+        {:halt, %{state | conn: conn, cancelled?: true}}
 
       {:error, reason} ->
         Logger.warning("failed to stream chunk: #{inspect(reason)}")
-        {:halt, %{state | conn: conn}}
+        {:halt, %{state | conn: conn, cancelled?: true}}
     end
   end
 
@@ -174,7 +182,7 @@ defmodule BrowsergridWeb.SessionProxyController do
 
   defp stream_chunk({:error, reason}, %{conn: conn} = state) do
     Logger.warning("stream error", reason: inspect(reason))
-    {:halt, %{state | conn: conn}}
+    {:halt, %{state | conn: conn, cancelled?: true}}
   end
 
   defp stream_chunk(other, state) do

@@ -80,6 +80,7 @@ defmodule Browsergrid.SessionPools do
       {:ok, pool} ->
         Logger.info("Created session pool #{pool.name} for user #{pool.owner_id}")
         reconcile_pool(pool)
+        broadcast({:pool_created, pool})
 
       {:error, changeset} ->
         Logger.warning("Failed to create session pool: #{inspect(changeset.errors)}")
@@ -109,6 +110,7 @@ defmodule Browsergrid.SessionPools do
     |> tap(fn
       {:ok, updated} ->
         reconcile_pool(updated)
+        broadcast({:pool_updated, updated})
 
       {:error, changeset} ->
         Logger.warning("Failed to update session pool #{pool.id}: #{inspect(changeset.errors)}")
@@ -124,7 +126,13 @@ defmodule Browsergrid.SessionPools do
   def delete_pool(%SessionPool{} = pool) do
     case Repo.aggregate(pool_session_scope(pool.id), :count, :id) do
       0 ->
-        Repo.delete(pool)
+        case Repo.delete(pool) do
+          {:ok, _deleted_pool} ->
+            broadcast({:pool_deleted, pool.id})
+            {:ok, pool}
+          error ->
+            error
+        end
 
       _ ->
         {:error, :active_sessions}
@@ -733,5 +741,18 @@ defmodule Browsergrid.SessionPools do
     else
       map
     end
+  end
+
+  # Broadcast functions for real-time updates
+  defp broadcast({:pool_created, pool}) do
+    BrowsergridWeb.PoolChannel.broadcast_pool_created(pool)
+  end
+
+  defp broadcast({:pool_updated, pool}) do
+    BrowsergridWeb.PoolChannel.broadcast_pool_update(pool)
+  end
+
+  defp broadcast({:pool_deleted, pool_id}) do
+    BrowsergridWeb.PoolChannel.broadcast_pool_deleted(pool_id)
   end
 end

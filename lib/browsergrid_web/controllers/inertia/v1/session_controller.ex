@@ -3,6 +3,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
 
   alias Browsergrid.Profiles
   alias Browsergrid.Sessions
+  alias BrowsergridWeb.SystemUtils
 
   require Logger
 
@@ -12,11 +13,13 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
     user = conn.assigns.current_user
     sessions = Sessions.list_user_sessions(user, preload: [:profile, session_pool: :owner])
     profiles = Profiles.list_user_profiles(user, status: :active)
+    default_browser = SystemUtils.default_browser_type()
 
     render_inertia(conn, "Sessions/Index", %{
       sessions: sessions,
       total: length(sessions),
-      profiles: profiles
+      profiles: profiles,
+      default_browser: default_browser
     })
   end
 
@@ -127,6 +130,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
 
     sessions = Sessions.list_user_sessions(user, preload: [:profile, session_pool: :owner])
     profiles = Profiles.list_user_profiles(user, status: :active)
+    default_browser = SystemUtils.default_browser_type()
 
     conn
     |> put_flash(:error, "Failed to create session: #{message}")
@@ -134,6 +138,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionController do
       sessions: sessions,
       total: length(sessions),
       profiles: profiles,
+      default_browser: default_browser,
       errors: format_changeset_errors(changeset)
     })
   end

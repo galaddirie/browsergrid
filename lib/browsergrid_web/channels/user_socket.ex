@@ -25,6 +25,7 @@ defmodule BrowsergridWeb.UserSocket do
   # See `Phoenix.Token` docs for examples of authentication.
 
   channel "sessions", BrowsergridWeb.SessionChannel
+  channel "pools", BrowsergridWeb.PoolChannel
 
   @impl true
   def connect(_params, socket, _connect_info) do

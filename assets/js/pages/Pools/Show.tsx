@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePoolsChannel } from '@/hooks/usePoolsChannel';
 import {
   Profile,
   Session,
@@ -144,6 +145,16 @@ export default function PoolsShow({
   useEffect(() => {
     setIsClaiming(false);
   }, [claimResult?.session?.id]);
+
+  usePoolsChannel({
+    onPoolUpdated: updatedPool => {
+      if (updatedPool.id === pool.id) {
+        console.log('Real-time: Pool updated on show page', updatedPool);
+        // Refresh the page to get updated pool data, stats, and sessions
+        router.reload({ only: ['pool', 'stats', 'sessions'] });
+      }
+    },
+  });
 
   const ttlSeconds = pool.session_template?.ttl_seconds ?? null;
   const idleShutdownMinutes = Math.round(pool.idle_shutdown_after_ms / 60000);

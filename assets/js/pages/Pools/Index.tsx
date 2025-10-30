@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePoolsChannel } from '@/hooks/usePoolsChannel';
 import {
   SessionPoolStatistics,
   SessionPoolSummary,
@@ -77,6 +78,42 @@ const formatCounts = (statistics: SessionPoolStatistics) => {
 };
 
 export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
+  const [poolsList, setPoolsList] = useState<SessionPoolSummary[]>(pools || []);
+  const [poolsSummary, setPoolsSummary] = useState(summary);
+
+  useEffect(() => {
+    setPoolsList(pools || []);
+    setPoolsSummary(summary);
+  }, [pools, summary]);
+
+  usePoolsChannel({
+    onPoolCreated: newPool => {
+      console.log('Real-time: Pool created', newPool);
+      setPoolsList(previous => [newPool, ...previous]);
+      setPoolsSummary(previous => ({
+        ...previous,
+        total: previous.total + 1,
+      }));
+    },
+    onPoolUpdated: updatedPool => {
+      console.log('Real-time: Pool updated', updatedPool);
+      setPoolsList(previous =>
+        previous.map(pool =>
+          pool.id === updatedPool.id ? updatedPool : pool,
+        ),
+      );
+    },
+    onPoolDeleted: poolId => {
+      console.log('Real-time: Pool deleted', poolId);
+      setPoolsList(previous =>
+        previous.filter(pool => pool.id !== poolId),
+      );
+      setPoolsSummary(previous => ({
+        ...previous,
+        total: Math.max(0, previous.total - 1),
+      }));
+    },
+  });
   return (
     <Layout>
       <Header>
@@ -114,10 +151,10 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
               <Layers className="h-8 w-8 text-neutral-400" />
               <div>
                 <p className="text-2xl font-bold text-neutral-900">
-                  {summary.total}
+                  {poolsSummary.total}
                 </p>
                 <p className="text-xs text-neutral-500">
-                  {summary.total === 1 ? 'pool' : 'pools'} configured
+                  {poolsSummary.total === 1 ? 'pool' : 'pools'} configured
                 </p>
               </div>
             </CardContent>
@@ -133,7 +170,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
               <CheckCircle2 className="h-8 w-8 text-emerald-500" />
               <div>
                 <p className="text-2xl font-bold text-neutral-900">
-                  {summary.ready}
+                  {poolsSummary.ready}
                 </p>
                 <p className="text-xs text-neutral-500">
                   sessions prewarmed across all pools
@@ -152,10 +189,10 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
               <Users className="h-8 w-8 text-blue-500" />
               <div>
                 <p className="text-2xl font-bold text-neutral-900">
-                  {summary.claimed + summary.running}
+                  {poolsSummary.claimed + poolsSummary.running}
                 </p>
                 <p className="text-xs text-neutral-500">
-                  in use ({summary.claimed} claimed / {summary.running} running)
+                  in use ({poolsSummary.claimed} claimed / {poolsSummary.running} running)
                 </p>
               </div>
             </CardContent>
@@ -171,7 +208,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
               <AlertTriangle className="h-8 w-8 text-amber-500" />
               <div>
                 <p className="text-2xl font-bold text-neutral-900">
-                  {summary.errored}
+                  {poolsSummary.errored}
                 </p>
                 <p className="text-xs text-neutral-500">
                   sessions failed across pools
@@ -205,7 +242,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pools.length === 0 && (
+                {poolsList.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={7}
@@ -217,7 +254,7 @@ export default function PoolsIndex({ pools, summary }: PoolsIndexProps) {
                   </TableRow>
                 )}
 
-                {pools.map(pool => (
+                {poolsList.map(pool => (
                   <TableRow key={pool.id} className="hover:bg-neutral-50/50">
                     <TableCell className="py-4">
                       <div className="space-y-1">
