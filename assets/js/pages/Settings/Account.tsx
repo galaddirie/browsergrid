@@ -122,10 +122,7 @@ export default function AccountSettingsPage() {
     });
   }
 
-  function signOutEverywhere() {
-    // Use window.location for logout to ensure full page redirect
-    window.location.href = '/users/log_out';
-  }
+
 
   return (
     <Layout>
@@ -262,25 +259,7 @@ export default function AccountSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Sessions */}
-        <Card className="bg-background border">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-base font-medium">Sessions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-muted-foreground text-sm">
-              Sign out of Browsergrid on all devices.
-            </p>
-            <Button
-              variant="outline"
-              onClick={signOutEverywhere}
-              size="sm"
-              className="w-full"
-            >
-              Sign out of all sessions
-            </Button>
-          </CardContent>
-        </Card>
+
       </div>
     </Layout>
   );
