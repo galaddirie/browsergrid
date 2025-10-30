@@ -1,8 +1,7 @@
-- [x] Profile integration
-- [x] default to chromium on arm64 systems ( mac with m1/m2/m3, linux arm64, etc )
-- [ ] make default browser in the dropdown based on the system type
+- [ ] Complete Profile integration
+- [ ] Complete Deployment integration
 
-- [ ] Webhook integration
+- [ ] Add Webhook integration
 
 
 - [ ] adding CUA endpoint for browser
@@ -19,7 +18,6 @@
       -maybe add a flag for persistant chat browser sessions and warn users that they will be charged for the idle time between messages while the chat window is open
 - [ ] test to see if we can test 1 million sessions ( fake pods/containers) 
 - [ ] add a chaos engineering test suite
-- [ ] Deployment integration
 - [ ] intercept cdp events and animate the ffmpeg webm stream sort of like a live action replay like https://screen.studio/
 - [ ] match the stream output to the browser window size and aspect ratio, ensure the video frontend also handles any aspect ratio
 
@@ -28,13 +26,11 @@
 
 UX
 - [ ] Add copy icon to new API token modal
-- [ ] remove account sign out everywhere button - it only signs out on the current device
 
 - [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
 - [ ] non admins should not be able to view or modify default browser pool or sessions - this should be a system level setting and not something defined per controller or context
 
 
-- [ ] add realtime phoneix channel to pool page
 - [ ]imporve interaction between idle shutdown and min ready, we wouldnt want all idle sessions to be removed if we are below the min ready threshold, we would want to keep the session thats ready to be culled until its replacement is ready
 
 
