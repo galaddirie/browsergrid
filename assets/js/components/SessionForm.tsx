@@ -26,14 +26,16 @@ export function SessionForm({
   session,
   onSessionChange,
   profiles = [],
+  defaultBrowser,
 }: Omit<SessionFormProps, 'onSubmit' | 'onCancel' | 'isLoading'> & {
   profiles?: Profile[];
+  defaultBrowser?: Browser;
 }) {
   const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([]);
 
   useEffect(() => {
     if (profiles && profiles.length > 0) {
-      const browserType = session.browser_type || 'chrome';
+      const browserType = session.browser_type || defaultBrowser || 'chrome';
       const filtered = profiles.filter(
         p => p.browser_type === browserType && p.status === 'active',
       );
@@ -46,7 +48,7 @@ export function SessionForm({
         updateSession({ profile_id: undefined });
       }
     }
-  }, [session.browser_type, profiles]);
+  }, [session.browser_type, profiles, defaultBrowser]);
 
   const updateSession = (updates: Partial<SessionFormData>) => {
     onSessionChange({ ...session, ...updates });
@@ -97,7 +99,7 @@ export function SessionForm({
                 Browser
               </Label>
               <Select
-                value={session.browser_type ?? 'chrome'}
+                value={session.browser_type ?? defaultBrowser ?? 'chrome'}
                 onValueChange={(value: Browser) =>
                   updateSession({ browser_type: value })
                 }

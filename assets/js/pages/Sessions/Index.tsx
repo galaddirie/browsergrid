@@ -71,10 +71,12 @@ export default function SessionsIndex({
   sessions,
   total,
   profiles,
+  default_browser,
 }: {
   sessions: Session[];
   total: number;
   profiles?: any[];
+  default_browser?: string;
 }) {
   const [sessionsList, setSessionsList] = useState<Session[]>(sessions || []);
   const [sessionsTotal, setSessionsTotal] = useState<number>(total || 0);
@@ -93,7 +95,7 @@ export default function SessionsIndex({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isChannelConnected, setIsChannelConnected] = useState(false);
   const [session, setSession] = useState<Partial<SessionFormData>>({
-    browser_type: 'chrome',
+    browser_type: (default_browser as Browser) || 'chrome',
     headless: false,
     timeout: 30,
     ttl_seconds: null,
@@ -113,7 +115,7 @@ export default function SessionsIndex({
   useEffect(() => {
     if (isModalOpen) {
       setSession({
-        browser_type: 'chrome',
+        browser_type: (default_browser as Browser) || 'chrome',
         headless: false,
         timeout: 30,
         ttl_seconds: null,
@@ -130,7 +132,7 @@ export default function SessionsIndex({
         },
       });
     }
-  }, [isModalOpen]);
+  }, [isModalOpen, default_browser]);
 
   useEffect(() => {
     setSessionsList(sessions || []);
@@ -799,6 +801,7 @@ export default function SessionsIndex({
                 session={session}
                 onSessionChange={setSession}
                 profiles={profiles}
+                defaultBrowser={default_browser as Browser}
               />
             </div>
           </div>
