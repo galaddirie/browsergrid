@@ -27,11 +27,10 @@
 UX
 - [ ] Add copy icon to new API token modal
 
-- [ ] BUG if we modify default browser pool it resets on server restart regardless of changes
-- [ ] non admins should not be able to view or modify default browser pool or sessions - this should be a system level setting and not something defined per controller or context
 
 
-- [ ]imporve interaction between idle shutdown and min ready, we wouldnt want all idle sessions to be removed if we are below the min ready threshold, we would want to keep the session thats ready to be culled until its replacement is ready
+
+- [ ] imporve interaction between idle shutdown and min ready, we wouldnt want all idle sessions to be removed if we are below the min ready threshold, we would want to keep the session thats ready to be culled until its replacement is ready
 
 
 - [ ] use libcluster + horde + k8 for a sepreate server to scale websocket connections and websocket clusters  ex. ws://connect.browsergrid.io - make it easy to self host (auto dns?)
@@ -46,3 +45,8 @@ how do we distrubute the phoneix api
 
 
 BUG- when we spin up a session pod where the api is unreachable we mark the session as an error but keep the pod running
+
+
+BUG: if we have one node down and we spin up a session, if the node goes down the session pod stays up, when the node comes back up we cant connect to the session pod via node/session/:id/connect we get session not running error
+
+Test multi node deployment, create task utils to delete nodes and pods and see how the session runtime and actors behaves with a multi node deployment
