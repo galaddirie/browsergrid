@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   BarChart3,
