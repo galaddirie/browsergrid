@@ -34,7 +34,7 @@ services:
       - ENABLE_VNC=${ENABLE_VNC:-true}
       - HEADLESS=${HEADLESS:-false}
     ports:
-      - "80:80"
+      - "8081:80"
     networks:
       - browsergrid
     healthcheck:

@@ -38,12 +38,12 @@ ENV REMOTE_DEBUGGING_PORT=61000
 ENV SW_SERVER_PORT=8082
 ENV STREAM_SERVER_PORT=8083
 ENV STREAM_FPS=25
-ENV STREAM_BITRATE=1500k
-ENV STREAM_MAXRATE=2000k
-ENV STREAM_BUFSIZE=4000k
-ENV STREAM_QUALITY=realtime
-ENV STREAM_CPU_USED=5
-ENV STREAM_THREADS=4
+ENV STREAM_BITRATE=2000k
+ENV STREAM_CODEC_MODE=mpeg1
+ENV STREAM_MAX_CLIENT_BUFFER=2097152
+ENV STREAM_RESTART_DELAY_MS=800
+ENV STREAM_FFMPEG_LOGLEVEL=error
+ENV STREAM_DRAW_MOUSE=1
 
 # Install system packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -117,6 +117,9 @@ RUN ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \
 
 # Create directories
 RUN mkdir -p /opt/browsergrid/scripts
+
+# Install Node.js dependencies for stream server
+RUN cd /opt/browsergrid && npm init -y && npm install ws
 
 # Create non-root user with static UID/GID
 RUN groupadd -g ${GID} browseruser && \
