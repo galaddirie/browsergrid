@@ -110,6 +110,7 @@ defmodule BrowsergridWeb.API.V1.ConnectControllerTest do
         claim_or_provision_session: fn :pool, ^user -> {:error, :pool_at_capacity} end do
         response_conn = get(conn, ~p"/api/v1/connect/json")
         assert response_conn.status == 409
+
         assert %{
                  "error" => "pool_at_capacity",
                  "message" => "Pool has reached maximum capacity. Try again later."
