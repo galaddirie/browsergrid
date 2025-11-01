@@ -16,7 +16,7 @@ import {
 
 import Layout from '@/components/Layout';
 import { Header } from '@/components/HeaderPortal';
-import { PoolForm } from '@/components/pools/PoolForm';
+import { PoolForm } from '@/pages/Pools/form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

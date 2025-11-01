@@ -1,6 +1,6 @@
 import Layout from '@/components/Layout';
 import { Header } from '@/components/HeaderPortal';
-import { PoolForm } from '@/components/pools/PoolForm';
+import { PoolForm } from '@/pages/Pools/form';
 import { Profile, SessionPoolFormValues } from '@/types';
 
 interface PoolsNewProps {

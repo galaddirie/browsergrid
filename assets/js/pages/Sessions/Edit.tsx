@@ -4,7 +4,7 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 
 import Layout from '@/components/Layout';
-import { SessionForm } from '@/components/SessionForm';
+import { SessionForm } from '@/pages/Sessions/form';
 import { Button } from '@/components/ui/button';
 import {
   formDataToSession,
