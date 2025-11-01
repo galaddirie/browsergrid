@@ -12,9 +12,10 @@
 
 alias Browsergrid.Accounts
 alias Browsergrid.Accounts.User
+alias Browsergrid.Repo
+alias Browsergrid.SessionPools
 
 # Import required modules
-alias Browsergrid.Repo
 
 # Seed a non-admin user
 IO.puts("Creating non-admin user...")
@@ -39,3 +40,7 @@ case Accounts.get_user_by_email("user@example.com") do
     # User already exists
     IO.puts("Non-admin user already exists: #{existing_user.email}")
 end
+
+IO.puts("Ensuring default system session pool exists...")
+SessionPools.ensure_system_pools!()
+IO.puts("Default system session pool is ready.")

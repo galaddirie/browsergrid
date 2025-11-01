@@ -15,6 +15,14 @@ defmodule Browsergrid.SessionPools do
 
   @attachment_wait_seconds 10
   @active_statuses [:pending, :starting, :ready, :claimed, :running]
+  @default_system_pool_attrs %{
+    "name" => "default",
+    "description" => "Default browser pool",
+    "min_ready" => 0,
+    "max_ready" => 0,
+    "idle_shutdown_after_ms" => 600_000,
+    "session_template" => %{}
+  }
 
   @type pool_id :: Ecto.UUID.t()
   @type claim_result :: {:ok, Session.t()} | {:error, :not_found | :no_available_sessions}
@@ -23,10 +31,17 @@ defmodule Browsergrid.SessionPools do
   Return pools visible to the given user (system pools + user-owned pools).
   """
   @spec list_visible_pools(User.t()) :: [SessionPool.t()]
+  def list_visible_pools(%User{is_admin: true} = user) do
+    SessionPool
+    |> where([p], p.system == true or p.owner_id == ^user.id)
+    |> order_by([p], asc: fragment("CASE WHEN ? THEN 0 ELSE 1 END", p.system), asc: p.name)
+    |> Repo.all()
+  end
+
   def list_visible_pools(%User{id: user_id}) do
     SessionPool
-    |> where([p], p.system == true or p.owner_id == ^user_id)
-    |> order_by([p], asc: p.system, asc: p.name)
+    |> where([p], p.system == false and p.owner_id == ^user_id)
+    |> order_by([p], asc: p.name)
     |> Repo.all()
   end
 
@@ -59,12 +74,35 @@ defmodule Browsergrid.SessionPools do
   end
 
   @doc """
-  Ensure all system pools defined in configuration exist and are up to date.
+  Ensure at least one system (default) pool exists. If none are stored in the
+  database we create a default pool using sane settings.
   """
   @spec ensure_system_pools!() :: :ok
   def ensure_system_pools! do
-    Enum.each(system_pools_config(), &ensure_system_pool_config/1)
-    :ok
+    if system_pool_count() > 0 do
+      :ok
+    else
+      attrs = normalize_system_attrs(@default_system_pool_attrs)
+
+      attrs
+      |> SessionPool.create_changeset()
+      |> Repo.insert()
+      |> case do
+        {:ok, pool} ->
+          Logger.info("Created default system session pool #{pool.name}")
+          :ok
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          if unique_name_conflict?(changeset) do
+            # Another node likely created the pool concurrently.
+            :ok
+          else
+            Logger.error("Failed to bootstrap default system pool: #{inspect(changeset.errors)}")
+
+            raise Ecto.InvalidChangesetError, action: :insert, changeset: changeset
+          end
+      end
+    end
   end
 
   @doc """
@@ -118,25 +156,59 @@ defmodule Browsergrid.SessionPools do
   end
 
   @doc """
-  Delete a custom pool. System pools cannot be deleted.
+  Delete a pool. System pools require an admin actor and cannot be deleted when
+  they are the last remaining default pool.
   """
-  @spec delete_pool(SessionPool.t()) :: {:ok, SessionPool.t()} | {:error, :system_pool | :active_sessions}
-  def delete_pool(%SessionPool{system: true}), do: {:error, :system_pool}
+  @spec delete_pool(SessionPool.t(), Keyword.t()) ::
+          {:ok, SessionPool.t()} | {:error, :system_pool | :last_system_pool | :active_sessions}
+  def delete_pool(%SessionPool{} = pool, opts \\ []) do
+    actor = Keyword.get(opts, :actor)
 
-  def delete_pool(%SessionPool{} = pool) do
-    case Repo.aggregate(pool_session_scope(pool.id), :count, :id) do
-      0 ->
-        case Repo.delete(pool) do
-          {:ok, _deleted_pool} ->
-            broadcast({:pool_deleted, pool.id})
-            {:ok, pool}
-          error ->
-            error
-        end
+    with :ok <- authorize_pool_deletion(pool, actor),
+         :ok <- ensure_no_active_sessions(pool) do
+      case Repo.delete(pool) do
+        {:ok, _deleted_pool} ->
+          broadcast({:pool_deleted, pool.id})
+          {:ok, pool}
 
-      _ ->
-        {:error, :active_sessions}
+        error ->
+          error
+      end
     end
+  end
+
+  defp authorize_pool_deletion(%SessionPool{system: true} = pool, %User{is_admin: true}) do
+    case system_pool_count(exclude: pool.id) do
+      0 -> {:error, :last_system_pool}
+      _ -> :ok
+    end
+  end
+
+  defp authorize_pool_deletion(%SessionPool{system: true}, _actor), do: {:error, :system_pool}
+  defp authorize_pool_deletion(_pool, _actor), do: :ok
+
+  defp ensure_no_active_sessions(%SessionPool{id: pool_id}) do
+    case Repo.aggregate(pool_session_scope(pool_id), :count, :id) do
+      0 -> :ok
+      _ -> {:error, :active_sessions}
+    end
+  end
+
+  defp system_pool_count, do: system_pool_count([])
+
+  defp system_pool_count(opts) do
+    exclude_id = Keyword.get(opts, :exclude)
+
+    SessionPool
+    |> where([p], p.system == true)
+    |> maybe_exclude_pool(exclude_id)
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp maybe_exclude_pool(query, nil), do: query
+
+  defp maybe_exclude_pool(query, pool_id) do
+    where(query, [p], p.id != ^pool_id)
   end
 
   @doc """
@@ -208,8 +280,7 @@ defmodule Browsergrid.SessionPools do
 
   defp provision_with_optimistic_lock(pool, user, attempts \\ 5)
 
-  defp provision_with_optimistic_lock(%SessionPool{} = pool, %User{} = _user, attempts)
-       when attempts <= 0 do
+  defp provision_with_optimistic_lock(%SessionPool{} = pool, %User{} = _user, attempts) when attempts <= 0 do
     record_provision_result(pool.id, :retry_exhausted)
     {:error, :pool_at_capacity}
   end
@@ -219,44 +290,42 @@ defmodule Browsergrid.SessionPools do
     active_count = active_session_count(current_pool.id)
     max_ready = current_pool.max_ready
 
-    cond do
-      limited_capacity?(max_ready) and active_count >= max_ready ->
-        record_capacity_rejection(current_pool.id)
-        record_provision_result(current_pool.id, :pool_at_capacity)
-        {:error, :pool_at_capacity}
+    if limited_capacity?(max_ready) and active_count >= max_ready do
+      record_capacity_rejection(current_pool.id)
+      record_provision_result(current_pool.id, :pool_at_capacity)
+      {:error, :pool_at_capacity}
+    else
+      case reserve_capacity(current_pool) do
+        :ok ->
+          with {:ok, session} <- start_prewarmed_session(current_pool),
+               {:ok, claimed} <- claim_session_internal(current_pool, user, session) do
+            record_provision_result(current_pool.id, :success)
+            reconcile_pool(current_pool)
+            {:ok, claimed}
+          else
+            {:error, %Ecto.Changeset{} = changeset} ->
+              Logger.error(
+                "Failed to claim provisioned session for pool #{current_pool.id}: #{inspect(changeset.errors)}"
+              )
 
-      true ->
-        case reserve_capacity(current_pool) do
-          :ok ->
-            with {:ok, session} <- start_prewarmed_session(current_pool),
-                 {:ok, claimed} <- claim_session_internal(current_pool, user, session) do
-              record_provision_result(current_pool.id, :success)
-              reconcile_pool(current_pool)
-              {:ok, claimed}
-            else
-              {:error, %Ecto.Changeset{} = changeset} ->
-                Logger.error(
-                  "Failed to claim provisioned session for pool #{current_pool.id}: #{inspect(changeset.errors)}"
-                )
+              record_provision_result(current_pool.id, :error)
+              {:error, :no_available_sessions}
 
-                record_provision_result(current_pool.id, :error)
-                {:error, :no_available_sessions}
+            {:error, reason} ->
+              record_provision_result(current_pool.id, :error)
+              {:error, reason}
+          end
 
-              {:error, reason} ->
-                record_provision_result(current_pool.id, :error)
-                {:error, reason}
-            end
+        :pool_at_capacity ->
+          record_capacity_rejection(current_pool.id)
+          record_provision_result(current_pool.id, :pool_at_capacity)
+          {:error, :pool_at_capacity}
 
-          :pool_at_capacity ->
-            record_capacity_rejection(current_pool.id)
-            record_provision_result(current_pool.id, :pool_at_capacity)
-            {:error, :pool_at_capacity}
-
-          :retry ->
-            record_provision_result(current_pool.id, :retry)
-            Process.sleep(provision_retry_backoff(attempts))
-            provision_with_optimistic_lock(pool, user, attempts - 1)
-        end
+        :retry ->
+          record_provision_result(current_pool.id, :retry)
+          Process.sleep(provision_retry_backoff(attempts))
+          provision_with_optimistic_lock(pool, user, attempts - 1)
+      end
     end
   end
 
@@ -270,7 +339,9 @@ defmodule Browsergrid.SessionPools do
       if limited_capacity?(max_ready) do
         statuses = Enum.map(@active_statuses, &Atom.to_string/1)
 
-        where(update_query, [sp],
+        where(
+          update_query,
+          [sp],
           fragment(
             "(SELECT COUNT(1) FROM sessions s WHERE s.session_pool_id = ? AND s.status = ANY(?)) < ?",
             sp.id,
@@ -287,12 +358,10 @@ defmodule Browsergrid.SessionPools do
         :ok
 
       {0, _} ->
-        cond do
-          limited_capacity?(max_ready) and active_session_count(pool_id) >= max_ready ->
-            :pool_at_capacity
-
-          true ->
-            :retry
+        if limited_capacity?(max_ready) and active_session_count(pool_id) >= max_ready do
+          :pool_at_capacity
+        else
+          :retry
         end
     end
   end
@@ -369,6 +438,16 @@ defmodule Browsergrid.SessionPools do
   def resolve_pool_identifier(:default), do: fetch_pool(:default)
   def resolve_pool_identifier("default"), do: fetch_pool(:default)
   def resolve_pool_identifier(identifier) when is_binary(identifier), do: fetch_pool(identifier)
+
+  @doc """
+  Authorize a user to manage the given pool (view, update, delete).
+  """
+  @spec authorize_manage(SessionPool.t(), User.t()) :: :ok | {:error, :forbidden}
+  def authorize_manage(%SessionPool{system: true}, %User{is_admin: true}), do: :ok
+  def authorize_manage(%SessionPool{system: true}, _user), do: {:error, :forbidden}
+  def authorize_manage(%SessionPool{owner_id: owner_id}, %User{id: user_id}) when owner_id == user_id, do: :ok
+  def authorize_manage(%SessionPool{}, %User{is_admin: true}), do: :ok
+  def authorize_manage(_pool, _user), do: {:error, :forbidden}
 
   @doc """
   Authorize a user to claim sessions from the given pool.
@@ -590,41 +669,6 @@ defmodule Browsergrid.SessionPools do
   defp pool_user_id(%SessionPool{system: true}), do: nil
   defp pool_user_id(%SessionPool{owner_id: owner_id}), do: owner_id
 
-  defp system_pools_config do
-    :browsergrid
-    |> Application.get_env(:session_pools, [])
-    |> Keyword.get(:system_pools, [
-      %{
-        name: "default",
-        min_ready: 0,
-        max_ready: 0,
-        idle_shutdown_after_ms: 600_000,
-        session_template: %{}
-      }
-    ])
-  end
-
-  defp ensure_system_pool_config(config) when is_map(config) do
-    attrs = normalize_system_attrs(config)
-    name = Map.fetch!(attrs, "name")
-
-    case Repo.get_by(SessionPool, name: name, system: true) do
-      nil ->
-        Logger.info("Creating system session pool #{name}")
-
-        attrs
-        |> SessionPool.create_changeset()
-        |> Repo.insert!()
-
-      %SessionPool{} = pool ->
-        update_attrs = Map.drop(attrs, ["name", "system"])
-
-        pool
-        |> SessionPool.changeset(update_attrs)
-        |> Repo.update!()
-    end
-  end
-
   defp normalize_custom_attrs(attrs, owner) do
     attrs
     |> stringify_keys()
@@ -721,6 +765,16 @@ defmodule Browsergrid.SessionPools do
 
   defp normalize_idle_shutdown(value) when is_integer(value) and value >= 0, do: value
   defp normalize_idle_shutdown(_), do: nil
+
+  defp unique_name_conflict?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {:name, {"has already been taken", _}} -> true
+      {:owner_id, {"has already been taken", _}} -> true
+      _ -> false
+    end)
+  end
+
+  defp unique_name_conflict?(_), do: false
 
   defp stringify_keys(map) when is_map(map) do
     Map.new(map, fn

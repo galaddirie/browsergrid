@@ -52,3 +52,4 @@ defmodule BrowsergridWeb.PoolChannel do
     )
   end
 end
+

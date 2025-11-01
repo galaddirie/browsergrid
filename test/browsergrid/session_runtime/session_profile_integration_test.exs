@@ -56,7 +56,7 @@ defmodule Browsergrid.SessionRuntime.SessionProfileIntegrationTest do
     assert state.metadata["profile_version"] == profile.version
 
     profile = Profiles.get_profile!(profile.id)
-    refute is_nil(profile.last_used_at)
+    assert profile.last_used_at
   end
 
   defp unique_session_id do
@@ -70,8 +70,7 @@ defmodule Browsergrid.SessionRuntime.SessionProfileIntegrationTest do
 
   defp build_archive(entries) do
     files =
-      entries
-      |> Enum.map(fn {path, content} ->
+      Enum.map(entries, fn {path, content} ->
         {String.to_charlist(path), content}
       end)
 

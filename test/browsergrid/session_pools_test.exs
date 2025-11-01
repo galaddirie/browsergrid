@@ -1,12 +1,16 @@
 defmodule Browsergrid.SessionPoolsTest do
   use Browsergrid.DataCase, async: false
 
+  import Ecto.Query
   import Mock
 
   alias Browsergrid.AccountsFixtures
   alias Browsergrid.Factory
+  alias Browsergrid.Repo
   alias Browsergrid.SessionPools
+  alias Browsergrid.SessionPools.SessionPool
   alias Browsergrid.Sessions
+  alias Ecto.Changeset
 
   describe "create_pool/2" do
     test "creates pool owned by the user and normalizes attributes" do
@@ -28,6 +32,94 @@ defmodule Browsergrid.SessionPoolsTest do
       assert pool.max_ready == 10
       assert pool.idle_shutdown_after_ms == 300_000
       assert SessionPools.session_template(pool)["ttl_seconds"] == 120
+    end
+  end
+
+  describe "ensure_system_pools!/0" do
+    setup do
+      Repo.delete_all(SessionPool)
+      :ok
+    end
+
+    test "creates a default system pool when none exist" do
+      SessionPools.ensure_system_pools!()
+
+      assert Repo.exists?(from p in SessionPool, where: p.system == true)
+
+      pool =
+        SessionPool
+        |> where([p], p.system == true)
+        |> Repo.one()
+
+      assert pool.name == "default"
+      assert pool.system
+      assert pool.idle_shutdown_after_ms == 600_000
+      assert Enum.all?(pool.session_template, fn {_key, value} -> is_nil(value) end)
+    end
+
+    test "does not overwrite existing system pool attributes" do
+      pool = Factory.insert(:session_pool, system: true, min_ready: 5, name: "default")
+
+      SessionPools.ensure_system_pools!()
+
+      reloaded = Repo.get!(SessionPool, pool.id)
+      assert reloaded.min_ready == 5
+    end
+  end
+
+  describe "list_visible_pools/1" do
+    setup do
+      Repo.delete_all(SessionPool)
+      :ok
+    end
+
+    test "hides system pools from non-admin users" do
+      _system_pool = Factory.insert(:session_pool, system: true, name: "default")
+      user = AccountsFixtures.user_fixture()
+      user_pool = Factory.insert(:session_pool, owner_id: user.id, name: "User Pool")
+      _other_pool = Factory.insert(:session_pool, name: "Other Pool")
+
+      pools = SessionPools.list_visible_pools(user)
+
+      assert Enum.map(pools, & &1.id) == [user_pool.id]
+    end
+
+    test "includes system pools for admins" do
+      system_pool = Factory.insert(:session_pool, system: true, name: "default")
+
+      admin =
+        AccountsFixtures.user_fixture()
+        |> Changeset.change(is_admin: true)
+        |> Repo.update!()
+
+      pools = SessionPools.list_visible_pools(admin)
+      assert Enum.any?(pools, &(&1.id == system_pool.id))
+    end
+  end
+
+  describe "delete_pool/2" do
+    setup do
+      Repo.delete_all(SessionPool)
+      :ok
+    end
+
+    test "requires admin and preserves at least one system pool" do
+      pool = Factory.insert(:session_pool, system: true, name: "default")
+      user = AccountsFixtures.user_fixture()
+
+      assert {:error, :system_pool} = SessionPools.delete_pool(pool, actor: user)
+
+      admin =
+        AccountsFixtures.user_fixture()
+        |> Changeset.change(is_admin: true)
+        |> Repo.update!()
+
+      assert {:error, :last_system_pool} = SessionPools.delete_pool(pool, actor: admin)
+
+      _additional = Factory.insert(:session_pool, system: true, name: "secondary")
+
+      assert {:ok, ^pool} = SessionPools.delete_pool(pool, actor: admin)
+      refute Repo.get(SessionPool, pool.id)
     end
   end
 

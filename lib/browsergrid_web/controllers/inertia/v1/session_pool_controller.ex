@@ -134,7 +134,7 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
     user = conn.assigns.current_user
 
     with {:ok, pool} <- fetch_pool_for_user(id, user),
-         {:ok, _deleted} <- SessionPools.delete_pool(pool) do
+         {:ok, _deleted} <- SessionPools.delete_pool(pool, actor: user) do
       conn
       |> put_flash(:info, "Pool deleted successfully")
       |> redirect(to: ~p"/pools")
@@ -142,6 +142,11 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
       {:error, :system_pool} ->
         conn
         |> put_flash(:error, "System pools cannot be deleted")
+        |> redirect(to: ~p"/pools/#{id}")
+
+      {:error, :last_system_pool} ->
+        conn
+        |> put_flash(:error, "Cannot delete the last remaining system pool")
         |> redirect(to: ~p"/pools/#{id}")
 
       {:error, :active_sessions} ->
@@ -201,10 +206,10 @@ defmodule BrowsergridWeb.Inertia.V1.SessionPoolController do
 
   defp fetch_pool_for_user(id, user) do
     with {:ok, pool} <- SessionPools.fetch_pool(id),
-         true <- pool.system || pool.owner_id == user.id do
+         :ok <- SessionPools.authorize_manage(pool, user) do
       {:ok, pool}
     else
-      false -> {:error, :forbidden}
+      {:error, :forbidden} -> {:error, :forbidden}
       error -> error
     end
   end

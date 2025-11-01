@@ -37,9 +37,10 @@ defmodule Browsergrid.SessionPoolsConcurrencyTest do
         end do
         results =
           1..20
-          |> Task.async_stream(fn _ ->
-            SessionPools.claim_or_provision_session(pool, owner)
-          end,
+          |> Task.async_stream(
+            fn _ ->
+              SessionPools.claim_or_provision_session(pool, owner)
+            end,
             max_concurrency: 20,
             timeout: 30_000
           )

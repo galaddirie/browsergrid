@@ -47,7 +47,7 @@ defmodule Browsergrid.SessionRuntime.ProfileLoaderTest do
     assert File.read!(preferences_path) == @default_entries["Default/Preferences"]
 
     profile = Profiles.get_profile!(profile.id)
-    refute is_nil(profile.last_used_at)
+    assert profile.last_used_at
   end
 
   test "rehydrates profile directory when snapshot exists but files are missing" do
@@ -84,8 +84,7 @@ defmodule Browsergrid.SessionRuntime.ProfileLoaderTest do
 
   defp build_archive(entries) when is_map(entries) do
     files =
-      entries
-      |> Enum.map(fn {path, content} ->
+      Enum.map(entries, fn {path, content} ->
         {String.to_charlist(path), content}
       end)
 

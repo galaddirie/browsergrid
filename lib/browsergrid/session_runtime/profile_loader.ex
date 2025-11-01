@@ -30,8 +30,8 @@ defmodule Browsergrid.SessionRuntime.ProfileLoader do
 
       _ ->
         with {:ok, profile} <- fetch_profile(profile_id),
-             snapshot_ref <- build_snapshot(profile),
-             metadata <- build_metadata(profile),
+             snapshot_ref = build_snapshot(profile),
+             metadata = build_metadata(profile),
              :ok <- maybe_sync_profile(profile, profile_dir, current_snapshot, snapshot_ref),
              :ok <- touch_profile(profile) do
           {:ok, %{snapshot: snapshot_ref, metadata: metadata}}
@@ -51,14 +51,12 @@ defmodule Browsergrid.SessionRuntime.ProfileLoader do
   end
 
   defp maybe_sync_profile(%Profile{} = profile, profile_dir, current_snapshot, snapshot_ref) do
-    cond do
-      same_snapshot?(snapshot_ref, current_snapshot) and directory_ready?(profile_dir) ->
-        :ok
-
-      true ->
-        with :ok <- ensure_directory(profile_dir) do
-          sync_profile_contents(profile, profile_dir)
-        end
+    if same_snapshot?(snapshot_ref, current_snapshot) and directory_ready?(profile_dir) do
+      :ok
+    else
+      with :ok <- ensure_directory(profile_dir) do
+        sync_profile_contents(profile, profile_dir)
+      end
     end
   end
 

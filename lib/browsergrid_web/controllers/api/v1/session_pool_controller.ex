@@ -34,13 +34,18 @@ defmodule BrowsergridWeb.API.V1.SessionPoolController do
     user = conn.assigns.current_user
 
     with {:ok, pool} <- fetch_pool_for_user(id, user),
-         {:ok, _deleted} <- SessionPools.delete_pool(pool) do
+         {:ok, _deleted} <- SessionPools.delete_pool(pool, actor: user) do
       send_resp(conn, :no_content, "")
     else
       {:error, :system_pool} ->
         conn
         |> put_status(:forbidden)
         |> json(%{error: "cannot_delete_system_pool"})
+
+      {:error, :last_system_pool} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "cannot_delete_last_system_pool"})
 
       {:error, :active_sessions} ->
         conn
@@ -80,7 +85,7 @@ defmodule BrowsergridWeb.API.V1.SessionPoolController do
 
   defp fetch_pool_for_user(identifier, user) do
     with {:ok, pool} <- SessionPools.resolve_pool_identifier(identifier),
-         :ok <- SessionPools.authorize_claim(pool, user) do
+         :ok <- SessionPools.authorize_manage(pool, user) do
       {:ok, pool}
     end
   end

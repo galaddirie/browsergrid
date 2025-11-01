@@ -11,9 +11,10 @@ defmodule BrowsergridWeb.SystemUtils do
   """
   @spec default_browser_type() :: browser_type()
   def default_browser_type do
-    cond do
-      is_arm_system?() -> :chromium
-      true -> :chrome
+    if is_arm_system?() do
+      :chromium
+    else
+      :chrome
     end
   end
 
@@ -25,6 +26,7 @@ defmodule BrowsergridWeb.SystemUtils do
     case System.cmd("uname", ["-m"]) do
       {architecture, 0} ->
         String.contains?(architecture, "arm") or String.contains?(architecture, "aarch64")
+
       _ ->
         false
     end
@@ -41,3 +43,4 @@ defmodule BrowsergridWeb.SystemUtils do
     end
   end
 end
+
