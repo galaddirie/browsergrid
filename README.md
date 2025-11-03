@@ -10,7 +10,6 @@ A distributed browser automation platform built with Elixir and Phoenix LiveView
 - [Kind](https://kind.sigs.k8s.io/) >= 0.20
 - `kubectl`
 - Docker
-- Elixir
 
 ### Quick Start
 
