@@ -39,7 +39,7 @@ export function CreateSessionDialog({
       onOpenChange={(open: boolean) => !open && setIsModalOpen(false)}
     >
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col p-0">
-        <DialogHeader className="flex-shrink-0 border-b px-6 py-4">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle className="text-xl font-semibold">
             Create New Session
           </DialogTitle>
@@ -58,7 +58,7 @@ export function CreateSessionDialog({
         </div>
 
         {/* Action Buttons - Sticky Footer */}
-        <div className="flex flex-shrink-0 justify-end gap-2 border-t bg-white px-6 py-4">
+        <div className="flex shrink-0 justify-end gap-2 border-t bg-white px-6 py-4">
           <Button
             variant="outline"
             onClick={handleCancel}

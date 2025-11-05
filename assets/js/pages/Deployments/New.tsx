@@ -29,14 +29,14 @@ const Stepper = ({
           <div className="flex items-start">
             <div className="m-0 flex flex-col items-center justify-start">
               <div
-                className={`mt-[1px] mb-[1px] h-2 w-2 rounded-full ${
+                className={`mt-px mb-px h-2 w-2 rounded-full ${
                   index <= currentStep
                     ? 'bg-blue-600 dark:bg-blue-400'
                     : 'bg-gray-300 dark:bg-gray-600'
                 } flex items-center justify-center`}
               ></div>
               {index !== steps.length - 1 && (
-                <div className="h-[32px] w-[1px] flex-grow bg-gray-200 dark:bg-gray-600" />
+                <div className="h-[32px] w-px grow bg-gray-200 dark:bg-gray-600" />
               )}
             </div>
             <span

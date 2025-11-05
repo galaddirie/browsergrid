@@ -28,7 +28,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-muted/50 flex min-h-screen flex-col">
       <main className="flex flex-1 flex-col">
-        <div className="flex w-full flex-grow flex-col">
+        <div className="flex w-full grow flex-col">
           <div className="relative flex h-full w-full flex-col items-center justify-center">
             <div className="flex h-full w-full flex-col items-stretch justify-start">
               <div className="bg-background border-muted border-b pt-20">

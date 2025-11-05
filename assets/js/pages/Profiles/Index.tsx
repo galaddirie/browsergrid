@@ -246,7 +246,7 @@ export default function ProfilesIndex({ profiles, stats }: ProfilesIndexProps) {
                     <div className="flex items-center justify-between">
                       {/* Left side - Profile info */}
                       <div className="flex flex-1 items-center gap-4">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100">
                             <BrowserIcon browser={profile.browser_type} />
                           </div>

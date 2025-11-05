@@ -51,7 +51,7 @@ export function DeploymentDetailsForm({
         </div>
 
         {/* Deployment Overview */}
-        <Card className="group border-border/50 from-background/10 via-background/50 to-background/80 hover:border-border/80 relative overflow-hidden border bg-gradient-to-b transition-all duration-300">
+        <Card className="group border-border/50 from-background/10 via-background/50 to-background/80 hover:border-border/80 relative overflow-hidden border bg-linear-to-b transition-all duration-300">
           <CardContent>
             {/* Archive info */}
             <div className="flex items-center gap-3">

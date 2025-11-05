@@ -71,7 +71,7 @@ export const UploadZipForm = ({
         onDragLeave={() => setDragActive(false)}
         className={[
           'flex items-center justify-center rounded-xl border transition-colors select-none',
-          'from-muted/30 to-background bg-gradient-to-b',
+          'from-muted/30 to-background bg-linear-to-b',
           'ring-offset-background hover:bg-muted/40 focus-visible:ring-ring outline-none focus-visible:ring-2',
           fileState === 'idle' && 'border-border border-dashed',
           fileState === 'drag' && 'border-foreground/40 border-dashed',

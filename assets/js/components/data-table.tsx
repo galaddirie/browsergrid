@@ -97,13 +97,13 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-neutral-200/70 dark:border-neutral-800/60 overflow-hidden bg-white">
+      <div className="rounded-lg border border-border overflow-hidden bg-card">
         <Table className="text-sm">
-          <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
             {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="border-b border-neutral-200/60 dark:border-neutral-800/60">
+              <TableRow key={hg.id} className="border-b border-border">
                 {hg.headers.map((header) => (
-                  <TableHead key={header.id} className="py-2.5 text-[12px] font-medium text-neutral-600 dark:text-neutral-300">
+                  <TableHead key={header.id} className="py-2.5 text-[12px] font-medium text-muted-foreground">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
@@ -116,7 +116,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={`hover:bg-neutral-50/60 dark:hover:bg-neutral-900/40 ${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={`hover:bg-muted/50 ${onRowClick ? 'cursor-pointer' : ''}`}
                   onClick={() => {
                     console.log('TableRow clicked, onRowClick exists:', !!onRowClick);
                     console.log('Row data:', row.original);
@@ -132,7 +132,7 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-neutral-500">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No results
                 </TableCell>
               </TableRow>

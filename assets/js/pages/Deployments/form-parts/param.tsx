@@ -554,7 +554,7 @@ export function DeploymentParametersForm({
                                 tabIndex={0}
                               >
                                 <div className="flex items-center gap-4">
-                                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 group-hover:from-blue-100 group-hover:to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 dark:group-hover:from-blue-800/60 dark:group-hover:to-blue-700/60">
+                                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-linear-to-br from-blue-50 to-blue-100 group-hover:from-blue-100 group-hover:to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 dark:group-hover:from-blue-800/60 dark:group-hover:to-blue-700/60">
                                     <Icon className="h-6 w-6 text-blue-600 group-hover:text-blue-700 dark:text-blue-400 dark:group-hover:text-blue-300" />
                                   </div>
                                   <div className="min-w-0 flex-1">

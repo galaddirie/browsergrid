@@ -240,7 +240,7 @@ export function SessionForm({
               </SelectContent>
             </Select>
             {selectedProfile && (
-              <div className="mt-4 rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+              <div className="mt-4 rounded-lg border border-blue-100 bg-linear-to-r from-blue-50 to-indigo-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
                     <Info className="h-3 w-3 text-blue-600" />

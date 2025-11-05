@@ -50,7 +50,7 @@ export function TagInput({ tags, setTags }: TagInputProps) {
 
   return (
     <div className="w-full space-y-2">
-      <div className="bg-background focus-within:ring-ring flex min-h-[2.5rem] flex-wrap items-center gap-2 rounded-md border p-2 focus-within:ring-2 focus-within:ring-offset-2">
+      <div className="bg-background focus-within:ring-ring flex min-h-10 flex-wrap items-center gap-2 rounded-md border p-2 focus-within:ring-2 focus-within:ring-offset-2">
         {tags?.map((tag, index) => (
           <Badge key={index} variant="secondary">
             {tag}
@@ -70,7 +70,7 @@ export function TagInput({ tags, setTags }: TagInputProps) {
           type="text"
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="flex-grow border-none bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="grow border-none bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
           placeholder={
             tags?.length === 0 ? 'Type and press space to add tags' : ''
           }
