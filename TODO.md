@@ -50,3 +50,5 @@ BUG- when we spin up a session pod where the api is unreachable we mark the sess
 BUG: if we have one node down and we spin up a session, if the node goes down the session pod stays up, when the node comes back up we cant connect to the session pod via node/session/:id/connect we get session not running error
 
 Test multi node deployment, create task utils to delete nodes and pods and see how the session runtime and actors behaves with a multi node deployment
+
+Move bulk delete from ui loop operation to server operation
