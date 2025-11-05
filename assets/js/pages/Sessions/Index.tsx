@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { router } from '@inertiajs/react';
 import {
@@ -22,6 +22,11 @@ import {
   DeleteConfirmationDialog,
   BulkDeleteConfirmationDialog,
 } from './dialogs';
+import {
+  buildDefaultSessionForm,
+  buildSessionFormData,
+  fetchWithCsrf,
+} from './utils';
 
 
 export default function SessionsIndex({
@@ -50,44 +55,13 @@ export default function SessionsIndex({
   );
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [isChannelConnected, setIsChannelConnected] = useState(false);
-  const [session, setSession] = useState<Partial<SessionFormData>>({
-    browser_type: (default_browser as Browser) || 'chrome',
-    headless: false,
-    timeout: 30,
-    ttl_seconds: null,
-    screen: {
-      width: 1920,
-      height: 1080,
-      dpi: 96,
-      scale: 1.0,
-    },
-    limits: {
-      cpu: 2.0,
-      memory: '4GB',
-      timeout_minutes: 30,
-    },
-  });
+  const [session, setSession] = useState<Partial<SessionFormData>>(() =>
+    buildDefaultSessionForm(default_browser as Browser | undefined),
+  );
 
   useEffect(() => {
     if (isModalOpen) {
-      setSession({
-        browser_type: (default_browser as Browser) || 'chrome',
-        headless: false,
-        timeout: 30,
-        ttl_seconds: null,
-        screen: {
-          width: 1920,
-          height: 1080,
-          dpi: 96,
-          scale: 1.0,
-        },
-        limits: {
-          cpu: 2.0,
-          memory: '4GB',
-          timeout_minutes: 30,
-        },
-      });
+      setSession(buildDefaultSessionForm(default_browser as Browser | undefined));
     }
   }, [isModalOpen, default_browser]);
 
@@ -96,7 +70,7 @@ export default function SessionsIndex({
     setSessionsTotal(total || 0);
   }, [sessions, total]);
 
-  const { isConnected } = useSessionsChannel({
+  const { isConnected: isChannelConnected } = useSessionsChannel({
     onSessionCreated: newSession => {
       console.log('Real-time: Session created', newSession);
       setSessionsList(previous => [newSession, ...previous]);
@@ -124,35 +98,26 @@ export default function SessionsIndex({
     },
     onConnect: () => {
       console.log('Real-time: Connected to sessions channel');
-      setIsChannelConnected(true);
     },
     onDisconnect: () => {
       console.log('Real-time: Disconnected from sessions channel');
-      setIsChannelConnected(false);
     },
   });
 
-  useEffect(() => {
-    setIsChannelConnected(isConnected);
-  }, [isConnected]);
+  const stats = useMemo(() => {
+    const list = sessionsList ?? [];
+    const normalize = (status?: string) => status?.toLowerCase() ?? '';
 
-  const stats = {
-    total: sessionsTotal,
-    running:
-      sessionsList?.filter((s: Session) =>
-        ['running', 'claimed'].includes((s.status || '').toLowerCase()),
-      ).length || 0,
-    ready:
-      sessionsList?.filter((s: Session) =>
-        ['ready', 'available'].includes((s.status || '').toLowerCase()),
-      ).length || 0,
-    failed:
-      sessionsList?.filter((s: Session) =>
-        ['failed', 'crashed', 'error'].includes(
-          (s.status || '').toLowerCase(),
-        ),
-      ).length || 0,
-  };
+    const matches = (session: Session, acceptable: string[]) =>
+      acceptable.includes(normalize(session.status));
+
+    return {
+      total: sessionsTotal,
+      running: list.filter(session => matches(session, ['running', 'claimed'])).length,
+      ready: list.filter(session => matches(session, ['ready', 'available'])).length,
+      failed: list.filter(session => matches(session, ['failed', 'crashed', 'error'])).length,
+    };
+  }, [sessionsList, sessionsTotal]);
 
   const isSessionStopping = (id?: string | null) =>
     Boolean(id && stoppingSessions.has(id));
@@ -161,30 +126,7 @@ export default function SessionsIndex({
     setIsLoading(true);
 
     const backendData = formDataToSession(sessionData);
-
-    const payload = new FormData();
-
-    if (backendData.name !== undefined) payload.append('session[name]', backendData.name);
-    payload.append('session[browser_type]', backendData.browser_type || 'chrome');
-    if (backendData.profile_id !== undefined) payload.append('session[profile_id]', backendData.profile_id);
-    payload.append('session[headless]', backendData.headless ? 'true' : 'false');
-    if (backendData.timeout !== undefined) payload.append('session[timeout]', backendData.timeout.toString());
-    if (backendData.ttl_seconds !== undefined && backendData.ttl_seconds !== null) payload.append('session[ttl_seconds]', backendData.ttl_seconds.toString());
-    if (backendData.cluster !== undefined) payload.append('session[cluster]', backendData.cluster);
-    if (backendData.session_pool_id !== undefined) payload.append('session[session_pool_id]', backendData.session_pool_id);
-
-    if (backendData.screen) {
-      payload.append('session[screen][width]', backendData.screen.width.toString());
-      payload.append('session[screen][height]', backendData.screen.height.toString());
-      payload.append('session[screen][dpi]', backendData.screen.dpi.toString());
-      payload.append('session[screen][scale]', backendData.screen.scale.toString());
-    }
-
-    if (backendData.limits) {
-      if (backendData.limits.cpu !== undefined) payload.append('session[limits][cpu]', backendData.limits.cpu.toString());
-      if (backendData.limits.memory !== undefined) payload.append('session[limits][memory]', backendData.limits.memory);
-      if (backendData.limits.timeout_minutes !== undefined) payload.append('session[limits][timeout_minutes]', backendData.limits.timeout_minutes.toString());
-    }
+    const payload = buildSessionFormData(backendData);
 
     router.post(
       '/sessions',
@@ -193,6 +135,9 @@ export default function SessionsIndex({
         onFinish: () => {
           setIsLoading(false);
           setIsModalOpen(false);
+        },
+        onSuccess: () => {
+          setSession(buildDefaultSessionForm(default_browser as Browser | undefined));
         },
         onError: errors => {
           console.error('Failed to create session:', errors);
@@ -249,9 +194,9 @@ export default function SessionsIndex({
   };
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked && sessions) {
-      const allIds = sessions
-        .map(s => s.id)
+    if (checked) {
+      const allIds = (sessionsList ?? [])
+        .map(session => session.id)
         .filter(id => id && id.trim()) as string[];
       setSelectedSessions(new Set(allIds));
     } else {
@@ -285,40 +230,39 @@ export default function SessionsIndex({
         return;
       }
 
-      const deletePromises = validSessionIds.map(sessionId =>
-        fetch(`/sessions/${sessionId}`, {
-          method: 'DELETE',
-          headers: {
-            'X-CSRF-Token':
-              document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content') || '',
-          },
+      const results = await Promise.all(
+        validSessionIds.map(async sessionId => {
+          try {
+            const response = await fetchWithCsrf(`/sessions/${sessionId}`, {
+              method: 'DELETE',
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to delete session ${sessionId}: ${response.status}`,
+              );
+            }
+
+            return { sessionId, ok: true as const };
+          } catch (error) {
+            console.error(`Failed to delete session ${sessionId}`, error);
+            return { sessionId, ok: false as const, error };
+          }
         }),
       );
 
-      const results = await Promise.allSettled(deletePromises);
-      const successfulDeletes = results.filter(
-        result => result.status === 'fulfilled',
-      ).length;
-      const failedDeletes = results.filter(
-        result => result.status === 'rejected',
-      ).length;
+      const successfulDeletes = results.filter(result => result.ok).length;
+      const failedDeletes = results.filter(result => !result.ok);
 
-      console.log(
-        `Bulk delete results: ${successfulDeletes} successful, ${failedDeletes} failed`,
-      );
-
-      if (failedDeletes > 0) {
-        const failedResults = results.filter(
-          result => result.status === 'rejected',
-        ) as PromiseRejectedResult[];
+      if (failedDeletes.length > 0) {
         console.error(
           'Failed delete requests:',
-          failedResults.map(r => r.reason),
+          failedDeletes.map(result => ({
+            sessionId: result.sessionId,
+            error: result.error instanceof Error ? result.error.message : result.error,
+          })),
         );
       }
-
       if (successfulDeletes > 0) {
         router.reload({ only: ['sessions', 'total'] });
         setSelectedSessions(new Set());
@@ -356,16 +300,8 @@ export default function SessionsIndex({
     );
 
     try {
-      const response = await fetch(`/sessions/${sessionId}/stop`, {
+      const response = await fetchWithCsrf(`/sessions/${sessionId}/stop`, {
         method: 'POST',
-        headers: {
-          'X-CSRF-Token':
-            document
-              .querySelector('meta[name="csrf-token"]')
-              ?.getAttribute('content') || '',
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({}),
       });
 
@@ -405,20 +341,6 @@ export default function SessionsIndex({
         return next;
       });
     }
-  };
-
-  const isTerminalStatus = (status: string) => {
-    const normalized = (status || '').toLowerCase();
-    const terminal = [
-      'completed',
-      'failed',
-      'expired',
-      'crashed',
-      'timed_out',
-      'terminated',
-      'stopped',
-    ];
-    return terminal.includes(normalized);
   };
 
   return (
@@ -469,7 +391,7 @@ export default function SessionsIndex({
           </div>
           <div className="mb-6 flex space-x-2">
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => router.reload({ only: ['sessions', 'total'] })}
               variant="outline"
               size="sm"
               className="h-8 text-xs"
@@ -527,15 +449,14 @@ export default function SessionsIndex({
             <DataTable
               columns={columns(
                 selectedSessions,
-                handleSelectSession,
-                handleSelectAll,
-                isAllSelected,
-                isPartialSelected,
-                handleDeleteClick,
-                handleStopSession,
-                isSessionStopping,
-                isTerminalStatus
-              )}
+              handleSelectSession,
+              handleSelectAll,
+              isAllSelected,
+              isPartialSelected,
+              handleDeleteClick,
+              handleStopSession,
+              isSessionStopping
+            )}
               data={sessionsList}
               searchKey="id"
               searchPlaceholder="Search sessions..."

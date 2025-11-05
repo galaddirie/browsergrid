@@ -18,7 +18,7 @@ spec:
         - name: browsergrid
           image: browsergrid/app:dev
           imagePullPolicy: IfNotPresent
-          command: ["sh", "-c", "mix deps.get && cd assets && npm install && cd .. && mix assets.setup && mix assets.build && mix ecto.setup && mix phx.server"]
+          command: ["sh", "-c", "mix deps.get && (cd assets && npm install) && mix assets.setup && mix ecto.setup && mix phx.server"]
           workingDir: /app
           env:
             - name: PHX_SERVER
@@ -45,6 +45,8 @@ spec:
               value: "${BROWSERGRID_ADMIN_EMAIL}"
             - name: BROWSERGRID_ADMIN_PASSWORD
               value: "${BROWSERGRID_ADMIN_PASSWORD}"
+            - name: KUBERNETES_WATCH_RELOAD
+              value: "true"
             - name: ERL_CRASH_DUMP
               value: "/var/log/browsergrid/erl_crash.dump"
           ports:
@@ -59,6 +61,10 @@ spec:
               mountPath: /app/_build
             - name: crash-dumps
               mountPath: /var/log/browsergrid
+            - name: node-modules
+              mountPath: /app/assets/node_modules
+            - name: priv-static
+              mountPath: /app/priv/static
           readinessProbe:
             httpGet:
               path: /healthz
@@ -83,6 +89,10 @@ spec:
         - name: build
           emptyDir: {}
         - name: crash-dumps
+          emptyDir: {}
+        - name: node-modules
+          emptyDir: {}
+        - name: priv-static
           emptyDir: {}
 ---
 apiVersion: v1

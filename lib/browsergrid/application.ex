@@ -22,14 +22,35 @@ defmodule Browsergrid.Application do
 
       # Job processing
       {Oban, Application.fetch_env!(:browsergrid, Oban)},
-      {Finch, name: Browsergrid.Finch},
-      Browsergrid.SessionRuntime.Supervisor,
-      Browsergrid.SessionPools.Manager,
-      # Web endpoint (should start last)
-      BrowsergridWeb.Endpoint
+      {Finch, name: Browsergrid.Finch}
     ]
 
+    # Conditionally add session runtime components
+    session_runtime_enabled = Application.get_env(:browsergrid, Browsergrid.SessionRuntime)[:enabled] != false
+    session_pools_enabled = Application.get_env(:browsergrid, Browsergrid.SessionPools.Manager)[:enabled] != false
+
     children = base_children
+
+    children =
+      if session_runtime_enabled do
+        Logger.info("Starting session runtime components")
+        [Browsergrid.SessionRuntime.Supervisor | children]
+      else
+        Logger.info("Session runtime disabled - skipping SessionRuntime.Supervisor")
+        children
+      end
+
+    children =
+      if session_pools_enabled do
+        Logger.info("Starting session pools manager")
+        [Browsergrid.SessionPools.Manager | children]
+      else
+        Logger.info("Session pools disabled - skipping SessionPools.Manager")
+        children
+      end
+
+    # Web endpoint (should start last)
+    children = [BrowsergridWeb.Endpoint | children]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

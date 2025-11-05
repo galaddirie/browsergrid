@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Cpu, Info, Monitor, Settings, User } from 'lucide-react';
 
@@ -31,55 +31,28 @@ export function SessionForm({
   profiles?: Profile[];
   defaultBrowser?: Browser;
 }) {
-  const browserType = session.browser_type ?? defaultBrowser ?? 'chrome';
-
-  const availableProfiles = useMemo(() => {
-    if (!profiles?.length) {
-      return [];
-    }
-
-    return profiles.filter(
-      profile =>
-        profile.browser_type === browserType && profile.status === 'active',
-    );
-  }, [profiles, browserType]);
-
-  const updateSession = useCallback(
-    (updates: Partial<SessionFormData>) => {
-      onSessionChange({ ...session, ...updates });
-    },
-    [onSessionChange, session],
-  );
+  const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([]);
 
   useEffect(() => {
-    if (!session.profile_id) {
-      return;
+    if (profiles && profiles.length > 0) {
+      const browserType = session.browser_type || defaultBrowser || 'chrome';
+      const filtered = profiles.filter(
+        p => p.browser_type === browserType && p.status === 'active',
+      );
+      setAvailableProfiles(filtered);
+
+      if (
+        session.profile_id &&
+        !filtered.find(p => p.id === session.profile_id)
+      ) {
+        updateSession({ profile_id: undefined });
+      }
     }
+  }, [session.browser_type, profiles, defaultBrowser]);
 
-    const profileExists = availableProfiles.some(
-      profile => profile.id === session.profile_id,
-    );
-
-    if (!profileExists) {
-      updateSession({ profile_id: undefined });
-    }
-  }, [availableProfiles, session.profile_id, updateSession]);
-
-  const selectedProfile = useMemo(
-    () =>
-      availableProfiles.find(
-        (profile: Profile) => profile.id === session.profile_id,
-      ),
-    [availableProfiles, session.profile_id],
-  );
-
-  const profileSizeMb = useMemo(() => {
-    if (!selectedProfile?.storage_size_bytes) {
-      return null;
-    }
-
-    return (selectedProfile.storage_size_bytes / 1024 / 1024).toFixed(1);
-  }, [selectedProfile]);
+  const updateSession = (updates: Partial<SessionFormData>) => {
+    onSessionChange({ ...session, ...updates });
+  };
 
   const updateScreen = (screenUpdates: Partial<ScreenConfig>) => {
     updateSession({
@@ -126,7 +99,7 @@ export function SessionForm({
                 Browser
               </Label>
               <Select
-                value={browserType}
+                value={session.browser_type ?? defaultBrowser ?? 'chrome'}
                 onValueChange={(value: Browser) =>
                   updateSession({ browser_type: value })
                 }
@@ -226,9 +199,9 @@ export function SessionForm({
                     </div>
                   </SelectItem>
                 ))}
-                {availableProfiles.length === 0 && (
+                {availableProfiles.length === 0 && session.browser_type && (
                   <div className="p-2 text-center text-xs text-gray-500">
-                    No active profiles available for {browserType}.
+                    No active profiles available for {session.browser_type}.
                     <a
                       href="/profiles/new"
                       className="ml-1 text-blue-600 hover:underline"
@@ -239,7 +212,7 @@ export function SessionForm({
                 )}
               </SelectContent>
             </Select>
-            {selectedProfile && (
+            {session.profile_id && session.profile_id !== 'none' && (
               <div className="mt-4 rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
@@ -247,14 +220,24 @@ export function SessionForm({
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="text-sm font-medium text-blue-900">
-                      {selectedProfile.name}
+                      {
+                        availableProfiles.find(
+                          (p: Profile) => p.id === session.profile_id,
+                        )?.name
+                      }
                     </div>
                     <div className="text-xs text-blue-700">
-                      {selectedProfile.description || 'No description'}
+                      {availableProfiles.find(
+                        (p: Profile) => p.id === session.profile_id,
+                      )?.description || 'No description'}
                     </div>
                     <div className="text-xs text-blue-600">
                       Size:{' '}
-                      {profileSizeMb ? `${profileSizeMb} MB` : 'Unknown'}
+                      {availableProfiles.find(
+                        (p: Profile) => p.id === session.profile_id,
+                      )?.storage_size_bytes
+                        ? `${(availableProfiles.find((p: Profile) => p.id === session.profile_id)!.storage_size_bytes! / 1024 / 1024).toFixed(1)} MB`
+                        : 'Unknown'}
                     </div>
                   </div>
                 </div>

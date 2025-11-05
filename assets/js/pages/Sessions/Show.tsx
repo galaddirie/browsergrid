@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 import { Link } from '@inertiajs/react';
 import {
@@ -19,35 +19,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSessionsChannel } from '@/hooks/useSessionsChannel';
 import { Session } from '@/types';
+import { SessionStatusBadge } from './SessionStatusBadge';
+import {
+  fetchWithCsrf,
+  formatDateTime,
+  isTerminalStatus,
+} from './utils';
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'available':
-      case 'ready':
-      case 'running':
-      case 'active':
-      case 'claimed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'pending':
-      case 'starting':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'failed':
-      case 'crashed':
-      case 'terminated':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'idle':
-      case 'completed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      default:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    }
-  };
-
-  return (
-    <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
-  );
-};
+const DetailRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) => (
+  <div className="flex items-start justify-between gap-3 py-1">
+    <span className="text-xs text-neutral-600">{label}</span>
+    <div className="flex items-center justify-end gap-2 text-xs text-neutral-900">
+      {value}
+    </div>
+  </div>
+);
 
 export default function SessionShow({
   session,
@@ -57,33 +49,18 @@ export default function SessionShow({
   connection_info?: { url: string; connection: any } | null;
 }) {
   const [currentSession, setCurrentSession] = useState<Session>(session);
-  const [isChannelConnected, setIsChannelConnected] = useState(false);
   const [cdpData, setCdpData] = useState<any>(null);
   const [cdpLoading, setCdpLoading] = useState(false);
   const [cdpError, setCdpError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const isTerminalStatus = (status: string) => {
-    const normalized = (status || '').toLowerCase();
-    const terminal = [
-      'completed',
-      'failed',
-      'expired',
-      'crashed',
-      'timed_out',
-      'terminated',
-      'stopped',
-    ];
-    return terminal.includes(normalized);
-  };
-
   const streamUrl =
     currentSession.stream_url ||
     (currentSession.id
       ? `/sessions/${currentSession.id}/connect/stream`
       : undefined);
-  const isStreamActive = !isTerminalStatus(currentSession.status ?? '');
+  const isStreamActive = !isTerminalStatus(currentSession.status);
 
   const fetchCdpData = async () => {
     if (!currentSession.id) return;
@@ -92,7 +69,9 @@ export default function SessionShow({
     setCdpError(null);
 
     try {
-      const response = await fetch(`${currentSession.id}/connect/json`);
+      const response = await fetchWithCsrf(
+        `/sessions/${currentSession.id}/connect/json`,
+      );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -134,16 +113,8 @@ export default function SessionShow({
     }));
 
     try {
-      const response = await fetch(`/sessions/${currentSession.id}/stop`, {
+      const response = await fetchWithCsrf(`/sessions/${currentSession.id}/stop`, {
         method: 'POST',
-        headers: {
-          'X-CSRF-Token':
-            document
-              .querySelector('meta[name="csrf-token"]')
-              ?.getAttribute('content') || '',
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({}),
       });
 
@@ -179,7 +150,7 @@ export default function SessionShow({
     }
   };
 
-  const { isConnected } = useSessionsChannel({
+  const { isConnected: isChannelConnected } = useSessionsChannel({
     onSessionUpdated: updatedSession => {
       if (updatedSession.id === session.id) {
         console.log('Real-time: Session updated on show page', updatedSession);
@@ -188,17 +159,11 @@ export default function SessionShow({
     },
     onConnect: () => {
       console.log('Real-time: Connected to sessions channel (show page)');
-      setIsChannelConnected(true);
     },
     onDisconnect: () => {
       console.log('Real-time: Disconnected from sessions channel (show page)');
-      setIsChannelConnected(false);
     },
   });
-
-  useEffect(() => {
-    setIsChannelConnected(isConnected);
-  }, [isConnected]);
 
   return (
     <Layout>
@@ -250,7 +215,7 @@ export default function SessionShow({
                 </a>
               </Button>
             )}
-            {!isTerminalStatus(currentSession.status ?? '') && (
+            {!isTerminalStatus(currentSession.status) && (
               <Button
                 size="sm"
                 variant="destructive"
@@ -279,25 +244,30 @@ export default function SessionShow({
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="border-neutral-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-neutral-900">
-                Session Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">ID</span>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-900">
+              Session Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <DetailRow
+              label="ID"
+              value={
                 <span className="font-mono text-xs text-neutral-900">
                   {currentSession.id}
                 </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Status</span>
-                <StatusBadge status={currentSession.status ?? 'unknown'} />
-              </div>
-              {currentSession.session_pool && (
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-xs text-neutral-600">Pool</span>
+              }
+            />
+            <DetailRow
+              label="Status"
+              value={
+                <SessionStatusBadge status={currentSession.status ?? 'unknown'} />
+              }
+            />
+            {currentSession.session_pool && (
+              <DetailRow
+                label="Pool"
+                value={
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-neutral-900">
                       {currentSession.session_pool.name}
@@ -309,104 +279,76 @@ export default function SessionShow({
                       {currentSession.session_pool.system ? 'System' : 'Custom'}
                     </Badge>
                   </div>
-                </div>
-              )}
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Created</span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.inserted_at
-                    ? new Date(currentSession.inserted_at).toLocaleString()
-                    : 'N/A'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Claimed</span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.claimed_at
-                    ? new Date(currentSession.claimed_at).toLocaleString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">
-                  Attachment Deadline
-                </span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.attachment_deadline_at
-                    ? new Date(
-                        currentSession.attachment_deadline_at,
-                      ).toLocaleString()
-                    : '—'}
-                </span>
-              </div>
-
-              {currentSession.timeout && (
-                <div className="flex justify-between py-1">
-                  <span className="text-xs text-neutral-600">Timeout</span>
-                  <span className="text-xs text-neutral-900">
-                    {currentSession.timeout} minutes
-                  </span>
-                </div>
-              )}
-              {currentSession.ttl_seconds && (
-                <div className="flex justify-between py-1">
-                  <span className="text-xs text-neutral-600">TTL</span>
-                  <span className="text-xs text-neutral-900">
-                    {currentSession.ttl_seconds} seconds
-                  </span>
-                </div>
-              )}
-              {currentSession.cluster && (
-                <div className="flex justify-between py-1">
-                  <span className="text-xs text-neutral-600">Cluster</span>
-                  <span className="text-xs text-neutral-900">
-                    {currentSession.cluster}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                }
+              />
+            )}
+            <DetailRow
+              label="Created"
+              value={
+                currentSession.inserted_at
+                  ? formatDateTime(currentSession.inserted_at)
+                  : 'N/A'
+              }
+            />
+            <DetailRow
+              label="Claimed"
+              value={formatDateTime(currentSession.claimed_at)}
+            />
+            <DetailRow
+              label="Attachment Deadline"
+              value={formatDateTime(currentSession.attachment_deadline_at)}
+            />
+            {currentSession.timeout && (
+              <DetailRow
+                label="Timeout"
+                value={`${currentSession.timeout} minutes`}
+              />
+            )}
+            {currentSession.ttl_seconds && (
+              <DetailRow
+                label="TTL"
+                value={`${currentSession.ttl_seconds} seconds`}
+              />
+            )}
+            {currentSession.cluster && (
+              <DetailRow
+                label="Cluster"
+                value={currentSession.cluster}
+              />
+            )}
+          </CardContent>
+        </Card>
 
           <Card className="border-neutral-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-neutral-900">
-                Browser Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Browser</span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.browser_type}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Mode</span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.headless ? 'Headless' : 'GUI'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-neutral-600">Screen</span>
-                <span className="text-xs text-neutral-900">
-                  {currentSession.screen?.width ?? 1920}×
-                  {currentSession.screen?.height ?? 1080}
-                </span>
-              </div>
-              {(currentSession.limits?.cpu || currentSession.limits?.memory ||
-                currentSession.limits?.timeout_minutes) && (
-                <div className="flex justify-between py-1">
-                  <span className="text-xs text-neutral-600">Limits</span>
-                  <span className="text-xs text-neutral-900">
-                    CPU {currentSession.limits?.cpu ?? 'default'} • Memory{' '}
-                    {currentSession.limits?.memory ?? 'default'} • Timeout{' '}
-                    {currentSession.limits?.timeout_minutes ?? 'default'}m
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-900">
+              Browser Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <DetailRow
+              label="Browser"
+              value={currentSession.browser_type}
+            />
+            <DetailRow
+              label="Mode"
+              value={currentSession.headless ? 'Headless' : 'GUI'}
+            />
+            <DetailRow
+              label="Screen"
+              value={`${currentSession.screen?.width ?? 1920}×${currentSession.screen?.height ?? 1080}`}
+            />
+            {(currentSession.limits?.cpu ||
+              currentSession.limits?.memory ||
+              currentSession.limits?.timeout_minutes) && (
+              <DetailRow
+                label="Limits"
+                value={`CPU ${currentSession.limits?.cpu ?? 'default'} • Memory ${currentSession.limits?.memory ?? 'default'} • Timeout ${currentSession.limits?.timeout_minutes ?? 'default'}m`}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
         {connection_info && (
           <Card className="border-neutral-200">

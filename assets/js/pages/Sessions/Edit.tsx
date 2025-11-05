@@ -12,6 +12,7 @@ import {
   SessionFormData,
   sessionToFormData,
 } from '@/types';
+import { buildSessionFormData } from './utils';
 
 export default function EditSession({
   session,
@@ -70,32 +71,9 @@ export default function EditSession({
           <Button
             onClick={() => {
               const backendData = formDataToSession(sessionData);
-              const payload: Record<string, unknown> = {
-                name: backendData.name,
-                browser_type: backendData.browser_type,
-                profile_id: backendData.profile_id,
-                headless: backendData.headless,
-                timeout: backendData.timeout,
-                ttl_seconds: backendData.ttl_seconds,
-                cluster: backendData.cluster,
-                session_pool_id: backendData.session_pool_id,
-              };
+              const payload = buildSessionFormData(backendData);
 
-              if (backendData.screen) {
-                payload.screen = backendData.screen;
-              }
-
-              if (backendData.limits) {
-                payload.limits = backendData.limits;
-              }
-
-              Object.keys(payload).forEach(key => {
-                if (payload[key] === undefined) {
-                  delete payload[key];
-                }
-              });
-
-              router.put(`/sessions/${session.id}`, { session: payload });
+              router.put(`/sessions/${session.id}`, payload);
             }}
           >
             Save Changes

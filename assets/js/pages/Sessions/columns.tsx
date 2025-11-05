@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { Link } from "@inertiajs/react";
 import { Session } from "@/types";
+import { SessionStatusBadge } from "./SessionStatusBadge";
+import { formatDate, formatTime, isTerminalStatus } from "./utils";
 
 export const columns = (
   selectedSessions: Set<string>,
@@ -22,8 +24,7 @@ export const columns = (
   isPartialSelected: boolean,
   handleDeleteClick: (session: Session) => void,
   handleStopSession: (session: Session) => void,
-  isSessionStopping: (id?: string | null) => boolean,
-  isTerminalStatus: (status: string) => boolean
+  isSessionStopping: (id?: string | null) => boolean
 ): ColumnDef<Session>[] => [
   {
     id: "select",
@@ -155,34 +156,7 @@ export const columns = (
     header: "Status",
     cell: ({ row }) => {
       const session = row.original;
-      const getStatusColor = (status: string) => {
-        switch (status?.toLowerCase()) {
-          case 'available':
-          case 'ready':
-          case 'running':
-          case 'active':
-          case 'claimed':
-            return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-          case 'pending':
-          case 'starting':
-            return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-          case 'failed':
-          case 'crashed':
-          case 'terminated':
-            return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-          case 'idle':
-          case 'completed':
-            return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-          default:
-            return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-        }
-      };
-
-      return (
-        <Badge className={`${getStatusColor(session.status || 'unknown')} border-0`}>
-          {session.status}
-        </Badge>
-      );
+      return <SessionStatusBadge status={session.status} />;
     },
   },
   {
@@ -190,17 +164,15 @@ export const columns = (
     header: "Created",
     cell: ({ row }) => {
       const session = row.original;
+      const createdAt = session.inserted_at;
+
       return (
         <div className="space-y-0.5">
           <div className="text-xs text-neutral-900">
-            {session.inserted_at
-              ? new Date(session.inserted_at).toLocaleDateString()
-              : 'N/A'}
+            {createdAt ? formatDate(createdAt) : 'N/A'}
           </div>
           <div className="text-xs text-neutral-500">
-            {session.inserted_at
-              ? new Date(session.inserted_at).toLocaleTimeString()
-              : ''}
+            {createdAt ? formatTime(createdAt) : ''}
           </div>
         </div>
       );
@@ -239,7 +211,7 @@ export const columns = (
               </a>
             </Button>
           )}
-          {!isTerminalStatus(session.status ?? '') && (
+          {!isTerminalStatus(session.status) && (
             <Button
               size="sm"
               variant="ghost"
@@ -272,3 +244,5 @@ export const columns = (
     enableSorting: false,
   },
 ];
+
+
